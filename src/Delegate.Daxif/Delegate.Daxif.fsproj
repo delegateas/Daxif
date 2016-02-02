@@ -1,0 +1,239 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>380ba6a3-8276-490c-b9f9-4cad64035ae3</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Delegate.Daxif</RootNamespace>
+    <AssemblyName>Delegate.Daxif</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <Name>Delegate.Daxif</Name>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+    <SccProjectName>SAK</SccProjectName>
+    <SccProvider>SAK</SccProvider>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccLocalPath>SAK</SccLocalPath>
+    <TargetFSharpCoreVersion>4.3.0.0</TargetFSharpCoreVersion>
+    <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>f6a39c8f</NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <Tailcalls>false</Tailcalls>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <DocumentationFile>
+    </DocumentationFile>
+    <StartAction>Program</StartAction>
+    <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\devenv.exe</StartProgram>
+    <StartWorkingDirectory>..\..\..\</StartWorkingDirectory>
+    <StartArguments>"TestXrmProvider.fsx"</StartArguments>
+    <OtherFlags>--warnaserror:25</OtherFlags>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <Tailcalls>true</Tailcalls>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <DocumentationFile>bin\Release\Delegate.Daxif.xml</DocumentationFile>
+    <OtherFlags>--warnaserror:25</OtherFlags>
+  </PropertyGroup>
+  <PropertyGroup>
+    <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
+  </PropertyGroup>
+  <Choose>
+    <When Condition="'$(VisualStudioVersion)' == '11.0'">
+      <PropertyGroup>
+        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+  <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+  <Target Name="AfterBuild" Condition="$(Configuration)==Release">
+    <!--<Exec Command="&quot;$(SolutionDir)Delegate.Daxif\Tests\Delegate.DaxifTests.cmd&quot; &quot;$(SolutionDir)&quot;" />-->
+    <GetAssemblyIdentity AssemblyFiles="$(TargetPath)">
+      <Output TaskParameter="Assemblies" ItemName="CurrentAssembly" />
+    </GetAssemblyIdentity>
+  </Target>
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Daxif.fs" />
+    <Compile Include="ProvidedTypes\ProvidedTypes.fsi" />
+    <Compile Include="ProvidedTypes\ProvidedTypes.fs" />
+    <Compile Include="Signatures\Data.fsi" />
+    <Compile Include="Signatures\Info.fsi" />
+    <Compile Include="Signatures\Serialization.fsi" />
+    <Compile Include="Signatures\Solution.fsi" />
+    <Compile Include="Signatures\Translations.fsi" />
+    <Compile Include="Signatures\WebResources.fsi" />
+    <Compile Include="Signatures\Plugins.fsi" />
+    <Compile Include="Signatures\Workflow.fsi" />
+    <Compile Include="Signatures\TypeProvider.fsi" />
+    <Compile Include="Signatures\Diff.fsi" />
+    <Compile Include="HelperModules\Common\ConsoleLogger.fs" />
+    <Compile Include="HelperModules\Common\Utility.fs" />
+    <Compile Include="HelperModules\Common\Resource.fs" />
+    <Compile Include="HelperModules\Common\FSharpCoreExt.fs" />
+    <Compile Include="HelperModules\Common\Authentication.fs" />
+    <Compile Include="HelperModules\Common\ServiceManager.fs" />
+    <Compile Include="HelperModules\Common\ServiceProxy.fs" />
+    <Compile Include="HelperModules\Common\CrmData.fs" />
+    <Compile Include="HelperModules\SerializationHelper.fs" />
+    <Compile Include="HelperModules\DataHelper.fs" />
+    <Compile Include="HelperModules\InfoHelper.fs" />
+    <Compile Include="HelperModules\SolutionHelper.fs" />
+    <Compile Include="HelperModules\TranslationsHelper.fs" />
+    <Compile Include="HelperModules\TypeProviderHelper.fs" />
+    <Compile Include="HelperModules\WebResourcesHelper.fs" />
+    <Compile Include="HelperModules\PluginsHelper.fs" />
+    <Compile Include="HelperModules\WorkflowHelper.fs" />
+    <Compile Include="HelperModules\DiffHelper.fs" />
+    <Compile Include="Modules\Data.fs" />
+    <Compile Include="Modules\Info.fs" />
+    <Compile Include="Modules\Serialization.fs" />
+    <Compile Include="Modules\Solution.fs" />
+    <Compile Include="Modules\Translations.fs" />
+    <Compile Include="Modules\WebResources.fs" />
+    <Compile Include="Modules\Plugins.fs" />
+    <Compile Include="Modules\Workflow.fs" />
+    <Compile Include="Modules\TypeProvider.fs" />
+    <Compile Include="Modules\Diff.fs" />
+    <None Include="Tests\SetupTests.fsx" />
+    <None Include="Tests\Delegate.DaxifTests.fsx" />
+    <None Include="Tests\SerializationUnitTests.fsx" />
+    <None Include="Tests\MetadataIntegrationTests.fsx" />
+    <None Include="Tests\DataUnitTests.fsx" />
+    <None Include="Tests\ServiceManagerUnitTests.fsx" />
+    <None Include="Tests\SolutionIntegrationTests.fsx" />
+    <None Include="Tests\WebResourcesHelperIntegrationTests.fsx" />
+    <None Include="Tests\PluginIntegrationTests.fsx" />
+    <None Include="Tests\WorkflowIntegrationTests.fsx" />
+    <None Include="Tests\AuthInfo.fsx" />
+    <EmbeddedResource Include="Resources\diff\diff.js" />
+    <EmbeddedResource Include="Resources\diff\diff.html" />
+    <EmbeddedResource Include="Resources\diff\diffStyle.css" />
+    <EmbeddedResource Include="Resources\img\favicon.ico" />
+    <EmbeddedResource Include="Resources\img\delegate_daxif_logo.png" />
+    <None Include="DG.EnsureAssemblies.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.AuthInfo.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.Config.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionCreateDev.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionExportDev.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionExportTest.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionExtract.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionImportDev.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionImportTest.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionPack.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionUpdateContext.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionUpdateCustomContext.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionUpdateTsContext.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.WebResourcesSyncDev.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.SolutionDiff.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.WorkflowSyncDev.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.PluginsSyncDev.fsx" />
+    <None Include="packages.config" />
+    <None Include="bin\coretools\WebsiteCopy.exe" />
+    <Content Include="bin\coretools\Other Redistributable.txt" />
+    <None Include="bin\coretools\Microsoft.Xrm.Tooling.CrmConnectControl.dll" />
+    <None Include="bin\coretools\Microsoft.Xrm.Tooling.Connector.dll" />
+    <None Include="bin\coretools\Microsoft.Xrm.Sdk.dll" />
+    <None Include="bin\coretools\Microsoft.Xrm.Sdk.Deployment.dll" />
+    <None Include="bin\coretools\Microsoft.Xrm.Portal.dll" />
+    <None Include="bin\coretools\Microsoft.Xrm.Client.dll" />
+    <None Include="bin\coretools\Microsoft.Xrm.Client.CodeGeneration.dll" />
+    <None Include="bin\coretools\Microsoft.IdentityModel.Clients.ActiveDirectory.WindowsForms.dll" />
+    <None Include="bin\coretools\Microsoft.IdentityModel.Clients.ActiveDirectory.dll" />
+    <None Include="bin\coretools\Microsoft.Crm.Sdk.Proxy.dll" />
+    <None Include="bin\coretools\LicenseTerms.docx" />
+    <Content Include="bin\coretools\CrmSvcUtil.xml" />
+    <Content Include="bin\coretools\CrmSvcUtil.exe.config" />
+    <None Include="bin\coretools\CrmSvcUtil.exe" />
+    <None Include="bin\coretools\AntiXSSLibrary.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="FSharp.Core">
+      <HintPath>..\packages\FSharp.Core.4.0.0.1\lib\net40\FSharp.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Crm.Sdk.Proxy">
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.0.1\lib\net45\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.IdentityModel">
+      <HintPath>..\packages\Microsoft.IdentityModel.6.1.7600.16394\lib\net35\Microsoft.IdentityModel.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Crm.Services.Utility">
+      <HintPath>..\..\lib\Microsoft.Crm.Services.Utility.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Xrm.Sdk">
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.0.1\lib\net45\Microsoft.Xrm.Sdk.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SolutionPackager">
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreTools.8.0.1\content\bin\coretools\SolutionPackager.exe</HintPath>
+    </Reference>
+    <Reference Include="Suave">
+      <HintPath>..\packages\Suave.1.1.0\lib\net40\Suave.dll</HintPath>
+    </Reference>
+    <Reference Include="XmlDiffPatch">
+      <HintPath>..\packages\XMLDiffPatch.1.0.8.28\lib\net\XmlDiffPatch.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="XmlDiffPatch.View">
+      <HintPath>..\packages\XMLDiffPatch.1.0.8.28\lib\net\XmlDiffPatch.View.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.Services" />
+    <Reference Include="System.Data.Services.Client" />
+    <Reference Include="System.DirectoryServices" />
+    <Reference Include="System.DirectoryServices.AccountManagement" />
+    <Reference Include="System.IdentityModel" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.Caching" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Web" />
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Xml" />
+    <Reference Include="mscorlib" />
+    <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+</Project>

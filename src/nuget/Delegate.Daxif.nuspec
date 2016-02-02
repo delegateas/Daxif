@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">    
+    <id>@project@</id>
+    <version>@build.number@</version>
+    <authors>@authors@</authors>
+    <owners>@authors@</owners>
+    <summary>@summary@</summary>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>@description@</description>
+    <iconUrl>https://raw.githubusercontent.com/delegateas/delegateas.github.io/master/img/delegate_daxif_logo_small.png</iconUrl>
+    <projectUrl>http://delegateas.github.io/</projectUrl>
+    <releaseNotes>@releaseNotes@</releaseNotes>
+    <copyright>@copyright@</copyright>    
+    <tags>@tags@</tags>
+    @dependencies@
+    @references@
+  </metadata>
+  <files>
+    <file src="..\install.ps1" target="tools" />
+    <file src="..\uninstall.ps1" target="tools" />
+    <file src="..\Delegate.Daxif\*.fsx" target="content\Daxif" />
+    <file src="..\Delegate.Daxif\bin\Release\Delegate.Daxif.dll" target="lib\net45" />
+    <file src="..\Delegate.Daxif\bin\Release\Delegate.Daxif.xml" target="lib\net45" />
+    <file src="..\..\lib\Microsoft.Crm.Services.Utility.dll" target="lib\net45" />
+  </files>
+</package>
