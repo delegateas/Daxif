@@ -68,10 +68,6 @@ module internal PluginsHelper =
       let z = getName y'
       ((fun x -> x = (y,z)),xs) ||> Seq.exists)
 
-  let proxyContext client f =
-    use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-    f p
-
   // TODO:
   let messageName step = // type' action entity = 
     let entity' = String.IsNullOrEmpty(step.logicalName) |> function
@@ -299,10 +295,10 @@ module internal PluginsHelper =
       |> Array.toSeq
       |> Seq.concat
       |> Seq.map( fun x -> tupleToRecord x )
-
-  let route f x = 
-    f x
-    x
+  
+  let proxyContext client f =
+    use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
+    f p
 
   // TODO:
   let createAssembly name dll (asm:Assembly) hash =
@@ -600,7 +596,7 @@ module internal PluginsHelper =
       | Some id -> 
         id
 
-  let deletePluginImages (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) = 
+  let deletePluginImages (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) _ = 
     log.WriteLine(LogLevel.Info, "Retrieving Steps")
 
     proxyContext client (fun p -> 
@@ -642,11 +638,10 @@ module internal PluginsHelper =
 
           let obsoleteImage = targetImage - sourceImage
 
-          deleteImages log client (obsoleteImage,images)) ) 
-    
-      solution, client, log, sourcePlugins, steps )
+          deleteImages log client (obsoleteImage,images)) )
+      steps )
 
-  let deletePluginSteps (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins, steps) = 
+  let deletePluginSteps (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) steps = 
     //Delete Steps
     let targetSteps =
       steps
@@ -670,10 +665,8 @@ module internal PluginsHelper =
     let obsoleteStep = targetStep' - sourceStep
     log.WriteLine(LogLevel.Info, "Deleting steps")
     deleteSteps log client (obsoleteStep, targetSteps)
-    
-    solution, client, log, sourcePlugins
-      
-  let deletePluginTypes (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) = 
+
+  let deletePluginTypes (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) _ = 
     log.WriteLine(LogLevel.Info, "Deleting types")
 
     proxyContext client (fun p -> 
@@ -696,9 +689,9 @@ module internal PluginsHelper =
             
       deleteTypes log client (obsoleteTypes,types) 
       
-      solution, client, log, sourcePlugins, newTypes )
+      newTypes )
 
-  let updateAssembly (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins, newTypes) =
+  let updateAssembly (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) newTypes =
     log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
 
     proxyContext client (fun p -> 
@@ -715,17 +708,14 @@ module internal PluginsHelper =
           |> ignore
 
           log.WriteLine(LogLevel.Verbose, sprintf "%s: %s was updated" x.LogicalName (getName x)) ) )
-    
-    solution, client, log, sourcePlugins, newTypes
+    newTypes
   
-  let syncTypes (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins, newTypes) =
+  let syncTypes (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) newTypes =
     // Create Plugin Types
     log.WriteLine(LogLevel.Info, "Creating types")
     createTypes log client newTypes solution.assemblyId
 
-    solution, client, log, sourcePlugins
-
-  let syncSteps (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) =
+  let syncSteps (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) _ =
     log.WriteLine(LogLevel.Info, sprintf "Creating and updating steps")
 
     // Create and update Plugin Steps
@@ -766,9 +756,7 @@ module internal PluginsHelper =
         log.WriteLine(LogLevel.Debug, sprintf "Updating steps for: %s" key)
         updatePluginSteps log client (updateSteps,steps) values) )
 
-    solution, client, log, sourcePlugins
-
-  let syncImages (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) =
+  let syncImages (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) _ =
     sourcePlugins
     |> Seq.groupBy(fun pl -> messageName pl.step)
     |> Seq.toArray
@@ -807,16 +795,15 @@ module internal PluginsHelper =
         log.WriteLine(LogLevel.Debug, sprintf "Updating Images for: %s" key)
         updatePluginImages log client (updateImages,images) plugin) )
 
-  let syncPlugins = 
+  let syncPlugins x = 
 
-    deletePluginImages
-    >> deletePluginSteps
-    >> deletePluginTypes
-    >> updateAssembly
-    >> syncTypes
-    >> syncSteps
-    >> syncImages
-    >> ignore
+    deletePluginImages x
+    >> deletePluginSteps x
+    >> deletePluginTypes x
+    >> updateAssembly x
+    >> syncTypes x
+    >> syncSteps x
+    >> syncImages x
 
   let syncSolution' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
     log.WriteLine(LogLevel.Verbose, "Checking local assembly")
@@ -861,5 +848,4 @@ module internal PluginsHelper =
         failwith x
       | Validation.Valid _ -> 
         log.WriteLine(LogLevel.Verbose, "Validation completed")
-        (solution, client, log, sourcePlugins)
-        |> syncPlugins 
+        syncPlugins (solution, client, log, sourcePlugins) ()
