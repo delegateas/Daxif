@@ -68,6 +68,10 @@ module internal PluginsHelper =
       let z = getName y'
       ((fun x -> x = (y,z)),xs) ||> Seq.exists)
 
+  let proxyContext client f =
+    use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
+    f p
+
   // TODO:
   let messageName step = // type' action entity = 
     let entity' = String.IsNullOrEmpty(step.logicalName) |> function
@@ -389,44 +393,40 @@ module internal PluginsHelper =
     entitySet 
     |> Set.toArray
     |> Array.Parallel.iter(fun x ->
+      proxyContext client (fun p -> 
+        let pt = createType assemblyId x
 
-      use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-      let pt = createType assemblyId x
-
-      log.WriteLine(LogLevel.Verbose, 
-        sprintf "Creating type: %s" (getName pt))
-      (pt, CrmData.CRUD.create p pt (ParameterCollection()))
-      |> fun (x,_) -> 
         log.WriteLine(LogLevel.Verbose, 
-          sprintf "%s: %s was created" x.LogicalName (getName x)))
+          sprintf "Creating type: %s" (getName pt))
+        (pt, CrmData.CRUD.create p pt (ParameterCollection()))
+        |> fun (x,_) -> 
+          log.WriteLine(LogLevel.Verbose, 
+            sprintf "%s: %s was created" x.LogicalName (getName x))) )
                   
 
   let createPluginSteps (log:ConsoleLogger.ConsoleLogger) (solution:Entity) 
     client entitySet plugins (pluginType: Entity) = 
       entitySet |> Set.toArray
       |> Array.Parallel.map(fun (_,y) ->
+        proxyContext client (fun p -> 
+          let step = 
+            plugins
+            |> Seq.filter(fun pl -> y = messageName pl.step)
+            |> Seq.head
+            |> (fun pl -> pl.step)
 
-        use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
+          let sdkm = CrmData.Entities.retrieveSdkMessage p step.eventOperation
+          let sdkf =
+            CrmData.Entities.retrieveSdkMessageFilter
+              p step.logicalName sdkm.Id
 
-        let step = 
-          plugins
-          |> Seq.filter(fun pl -> y = messageName pl.step)
-          |> Seq.head
-          |> (fun pl -> pl.step)
+          let ps =
+            createStep pluginType.Id sdkm.Id sdkf.Id 
+              (messageName step) step
+          let pc = ParameterCollection()
+          pc.Add("SolutionUniqueName", getAttribute "uniquename" solution)
 
-        let sdkm = CrmData.Entities.retrieveSdkMessage p step.eventOperation
-        let sdkf =
-          CrmData.Entities.retrieveSdkMessageFilter
-            p step.logicalName sdkm.Id
-
-        let ps =
-          createStep pluginType.Id sdkm.Id sdkf.Id 
-            (messageName step) step
-
-        let pc = ParameterCollection()
-        pc.Add("SolutionUniqueName", getAttribute "uniquename" solution)
-
-        ps, CrmData.CRUD.create p ps pc)
+          ps, CrmData.CRUD.create p ps pc) )
       |> Array.iter(
         fun (x,_) -> 
           log.WriteLine(LogLevel.Verbose,
@@ -436,29 +436,24 @@ module internal PluginsHelper =
     client entitySet plugins (pluginStep: Entity) = 
       entitySet |> Set.toArray
       |> Array.Parallel.iter(fun y ->
-           
-        use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-                    
-        plugins
-        |> Seq.fold(fun acc pl -> 
-          pl.images
-          |> Seq.map(fun image -> (pl.step,image))
-          |> Seq.append acc) Seq.empty
-        |> Seq.filter(fun (_,image) -> y = image.name)
-        |> Seq.toArray
-        |> Array.map(fun (step,image) -> 
-            let pm =
-                createImage pluginStep.Id step.eventOperation image
+        proxyContext client (fun p -> 
+          plugins
+          |> Seq.fold(fun acc pl -> 
+            pl.images
+            |> Seq.map(fun image -> (pl.step,image))
+            |> Seq.append acc) Seq.empty
+          |> Seq.filter(fun (_,image) -> y = image.name)
+          |> Seq.toArray
+          |> Array.map(fun (step,image) -> 
+              let pm = createImage pluginStep.Id step.eventOperation image
+              let pc = ParameterCollection()
+              pc.Add("SolutionUniqueName", getAttribute "uniquename" solution)
 
-            let pc = ParameterCollection()
-            pc.Add("SolutionUniqueName", getAttribute "uniquename" solution)
-
-            pm, CrmData.CRUD.create p pm pc)
-
+              pm, CrmData.CRUD.create p pm pc) )
         |> Array.iter(
-            fun (x,id) -> 
-                log.WriteLine(LogLevel.Verbose,
-                    sprintf "%s: (%O) was created" x.LogicalName id)))
+          fun (x,id) -> 
+            log.WriteLine(LogLevel.Verbose,
+              sprintf "%s: (%O) was created" x.LogicalName id)))
 
   let defaultAttributeVal (e:Entity) key (def:'a) =
     match e.Attributes.TryGetValue(key) with
@@ -466,60 +461,61 @@ module internal PluginsHelper =
     | (false,_) -> def
 
   // Update plugin functions
-  let updatePluginSteps (log:ConsoleLogger.ConsoleLogger) 
-    client entitySet plugins =
+  let updatePluginSteps (log:ConsoleLogger.ConsoleLogger) client entitySet plugins =
       entitySet ||> subset'
       |> Seq.toArray
       |> Array.Parallel.map(fun (_,y) ->
         
-        use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
+        proxyContext client (fun p -> 
 
-        let name = getName y
-        let stage = 
-          defaultAttributeVal y "stage" (OptionSetValue(20))
-        let deploy = 
-          defaultAttributeVal y "supporteddeployment" (OptionSetValue(0))
-        let mode = 
-          defaultAttributeVal y "mode" (OptionSetValue(0))
-        let order = 
-          defaultAttributeVal y "rank" 0
-        let filteredA = 
-          defaultAttributeVal y "filteringattributes" null
+          let name = getName y
+          let stage = 
+            defaultAttributeVal y "stage" (OptionSetValue(20))
+          let deploy = 
+            defaultAttributeVal y "supporteddeployment" (OptionSetValue(0))
+          let mode = 
+            defaultAttributeVal y "mode" (OptionSetValue(0))
+          let order = 
+            defaultAttributeVal y "rank" 0
+          let filteredA = 
+            defaultAttributeVal y "filteringattributes" null
             
-        let step, update =
-          plugins
-          |> Seq.filter(fun pl -> name = messageName pl.step)
-          |> Seq.head
-          |> fun pl -> 
-            (pl.step,(pl.step.executionStage,pl.step.deployment,pl.step.executionMode,
-              pl.step.executionOrder,pl.step.filteredAttributes))
+          let step, update =
+            plugins
+            |> Seq.filter(fun pl -> name = messageName pl.step)
+            |> Seq.head
+            |> fun pl -> 
+              (pl.step,(pl.step.executionStage,pl.step.deployment,pl.step.executionMode,
+                pl.step.executionOrder,pl.step.filteredAttributes))
 
-        match (stage.Value,deploy.Value,mode.Value,order,filteredA) = update with
-        | true ->  None
-        | false ->
-          let stepEntity = updateStep y.Id step
-          CrmData.CRUD.update p stepEntity |> ignore
-          Some y )
+          match (stage.Value,deploy.Value,mode.Value,order,filteredA) = update with
+          | true ->  None
+          | false ->
+            let stepEntity = updateStep y.Id step
+            CrmData.CRUD.update p stepEntity |> ignore
+            Some y ) )
       |> Array.choose(id)
       |> Array.iter(
-          fun x -> 
-              log.WriteLine(LogLevel.Verbose,
-                  sprintf "%s: %s was updated" x.LogicalName (getName x)))
+        fun x -> 
+          log.WriteLine(LogLevel.Verbose,
+            sprintf "%s: %s was updated" x.LogicalName (getName x)))
 
   let updatePluginImages (log:ConsoleLogger.ConsoleLogger) client entitySet plugins =
-      entitySet ||> subset
-      |> Seq.toArray
-      |> Array.Parallel.map(fun y ->
+    entitySet ||> subset
+    |> Seq.toArray
+    |> Array.Parallel.map(fun y ->
 
-        use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-
+      proxyContext client (fun p -> 
         let compareImage =
           let name = getName y
           let alias = getAttribute "entityalias" y :?> string
           let imageType = 
             defaultAttributeVal y "imagetype" (OptionSetValue(0))
           let attributes = defaultAttributeVal y "attributes" null
-          {name = name; entityAlias = alias; imageType = imageType.Value; attributes = attributes}
+          { name = name; entityAlias = alias; 
+            imageType = imageType.Value; 
+            attributes = attributes 
+          }
 
         let updates =
           plugins
@@ -535,21 +531,21 @@ module internal PluginsHelper =
         | false ->
           let psi = updateImage y.Id updates
           CrmData.CRUD.update p psi |> ignore
-          Some y)
+          Some y) )
 
-      |> Array.choose(id)
-      |> Array.iter(
-        fun x -> 
-          log.WriteLine(LogLevel.Verbose,
-            sprintf "%s: (%O) was updated" x.LogicalName x.Id)) 
+    |> Array.choose(id)
+    |> Array.iter(
+      fun x -> 
+        log.WriteLine(LogLevel.Verbose,
+          sprintf "%s: (%O) was updated" x.LogicalName x.Id)) 
 
   // Delete plugin functions
   let deleteTypes (log:ConsoleLogger.ConsoleLogger) client entitySet = 
     entitySet ||> subset
     |> Seq.toArray
     |> Array.Parallel.map(fun x ->
-      use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-      x, CrmData.CRUD.delete p x.LogicalName x.Id)
+      proxyContext client (fun p -> 
+        x, CrmData.CRUD.delete p x.LogicalName x.Id) )
     |> Array.iter(
       fun (x,_) -> 
         log.WriteLine(LogLevel.Verbose,
@@ -559,8 +555,8 @@ module internal PluginsHelper =
     entitySet ||> subset'
     |> Seq.toArray
     |> Array.Parallel.map(fun (_,y) -> 
-      use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-      y, CrmData.CRUD.delete p y.LogicalName y.Id)
+      proxyContext client (fun p -> 
+        y, CrmData.CRUD.delete p y.LogicalName y.Id) )
     |> Array.iter(
       fun (x,_) -> 
       log.WriteLine(LogLevel.Verbose,
@@ -570,8 +566,8 @@ module internal PluginsHelper =
     entitySet ||> subset
     |> Seq.toArray
     |> Array.Parallel.map(fun y -> 
-      use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-      y, CrmData.CRUD.delete p y.LogicalName y.Id)
+      proxyContext client (fun p -> 
+        y, CrmData.CRUD.delete p y.LogicalName y.Id) )
     |> Array.iter(
       fun (x,_) -> 
       log.WriteLine(LogLevel.Verbose,
@@ -607,49 +603,48 @@ module internal PluginsHelper =
   let deletePluginImages (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) = 
     log.WriteLine(LogLevel.Info, "Retrieving Steps")
 
-    use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-    let steps = CrmData.Entities.retrieveAllPluginProcessingSteps p solution.entity.Id
-    log.WriteLine(LogLevel.Debug, 
-      sprintf "Found %d steps" (Seq.length steps))
-
-    //Delete images
-    log.WriteLine(LogLevel.Info, "Deleting images")
-    steps
-    |> Seq.toArray
-    |> Array.Parallel.iter(fun step ->
-
-      use p' = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-
+    proxyContext client (fun p -> 
+      let steps = CrmData.Entities.retrieveAllPluginProcessingSteps p solution.entity.Id
       log.WriteLine(LogLevel.Debug, 
-        sprintf "Retrieving images for step: %s" (getName step))
-      let images =
-          CrmData.Entities.retrievePluginProcessingStepImages 
-              p' step.Id
-      log.WriteLine(LogLevel.Debug, 
-        sprintf "Found %d images" (Seq.length images))
+        sprintf "Found %d steps" (Seq.length steps))
+
+      //Delete images
+      log.WriteLine(LogLevel.Info, "Deleting images")
+      steps
+      |> Seq.toArray
+      |> Array.Parallel.iter(fun step ->
+
+        proxyContext client (fun p' -> 
+          log.WriteLine(LogLevel.Debug, 
+            sprintf "Retrieving images for step: %s" (getName step))
+          let images =
+              CrmData.Entities.retrievePluginProcessingStepImages 
+                  p' step.Id
+          log.WriteLine(LogLevel.Debug, 
+            sprintf "Found %d images" (Seq.length images))
                     
-      let sourceImage =
-        sourcePlugins
-        |> Seq.map(fun pl -> pl.images)
-        |> Seq.fold(fun acc i' -> 
-          i' 
-          |> Seq.map(fun i -> i.name) 
-          |> Seq.append acc
-        ) Seq.empty
-        |> Set.ofSeq
+          let sourceImage =
+            sourcePlugins
+            |> Seq.map(fun pl -> pl.images)
+            |> Seq.fold(fun acc i' -> 
+              i' 
+              |> Seq.map(fun i -> i.name) 
+              |> Seq.append acc
+            ) Seq.empty
+            |> Set.ofSeq
 
-      let targetImage = 
-          images
-          |> Seq.map(fun y ->
-            let name  = getName y
-            name)
-          |> Set.ofSeq
+          let targetImage = 
+              images
+              |> Seq.map(fun y ->
+                let name  = getName y
+                name)
+              |> Set.ofSeq
 
-      let obsoleteImage = targetImage - sourceImage
+          let obsoleteImage = targetImage - sourceImage
 
-      deleteImages log client (obsoleteImage,images))
+          deleteImages log client (obsoleteImage,images)) ) 
     
-    solution, client, log, sourcePlugins, steps
+      solution, client, log, sourcePlugins, steps )
 
   let deletePluginSteps (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins, steps) = 
     //Delete Steps
@@ -681,47 +676,45 @@ module internal PluginsHelper =
   let deletePluginTypes (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) = 
     log.WriteLine(LogLevel.Info, "Deleting types")
 
-    use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
+    proxyContext client (fun p -> 
     
-    log.WriteLine(LogLevel.Debug, "Retrieving types")
-    let types = CrmData.Entities.retrievePluginTypes p solution.assemblyId
-    log.WriteLine(LogLevel.Debug, 
-      sprintf "Retrieved %d types" (Seq.length types))
+      log.WriteLine(LogLevel.Debug, "Retrieving types")
+      let types = CrmData.Entities.retrievePluginTypes p solution.assemblyId
+      log.WriteLine(LogLevel.Debug, sprintf "Retrieved %d types" (Seq.length types))
 
-    let sourceTypes = 
-      sourcePlugins
-      |> Seq.map(fun pl -> pl.step.className)
-      |> Set.ofSeq
-    let targetTypes = 
-      types
-      |> Seq.map getName
-      |> Set.ofSeq
+      let sourceTypes = 
+        sourcePlugins
+        |> Seq.map(fun pl -> pl.step.className)
+        |> Set.ofSeq
+      let targetTypes = 
+        types
+        |> Seq.map getName
+        |> Set.ofSeq
 
-    let newTypes  = sourceTypes - targetTypes
-    let obsoleteTypes  = targetTypes - sourceTypes
+      let newTypes  = sourceTypes - targetTypes
+      let obsoleteTypes  = targetTypes - sourceTypes
             
-    deleteTypes log client (obsoleteTypes,types) 
-
-    solution, client, log, sourcePlugins, newTypes
+      deleteTypes log client (obsoleteTypes,types) 
+      
+      solution, client, log, sourcePlugins, newTypes )
 
   let updateAssembly (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins, newTypes) =
     log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
 
-    use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-    let dlls = CrmData.Entities.retrievePluginAssemblies p solution.entity.Id
+    proxyContext client (fun p -> 
+      let dlls = CrmData.Entities.retrievePluginAssemblies p solution.entity.Id
 
-    dlls
-    |> Seq.filter(fun x -> solution.dllName = getName x)
-    |> Seq.iter(fun x ->
-      match solution.hash = (getAttribute "sourcehash" x :?> string) with
-      | true -> ()
-      | false -> 
-        log.WriteLine(LogLevel.Info, "Updating Assembly")
-        CrmData.CRUD.update
-            p (updateAssembly' x.Id solution.dllPath solution.assembly hash) |> ignore
+      dlls
+      |> Seq.filter(fun x -> solution.dllName = getName x)
+      |> Seq.iter(fun x ->
+        match solution.hash = (getAttribute "sourcehash" x :?> string) with
+        | true -> ()
+        | false -> 
+          log.WriteLine(LogLevel.Info, "Updating Assembly")
+          CrmData.CRUD.update p (updateAssembly' x.Id solution.dllPath solution.assembly hash) 
+          |> ignore
 
-        log.WriteLine(LogLevel.Verbose,
-          sprintf "%s: %s was updated" x.LogicalName (getName x)))
+          log.WriteLine(LogLevel.Verbose, sprintf "%s: %s was updated" x.LogicalName (getName x)) ) )
     
     solution, client, log, sourcePlugins, newTypes
   
@@ -742,42 +735,36 @@ module internal PluginsHelper =
     |> Array.Parallel.iter(
       fun (key,values) -> 
 
-      use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
+      proxyContext client (fun p -> 
+        log.WriteLine(LogLevel.Debug, sprintf "Retrieving plugin type: %s" key)
+        let pt = CrmData.Entities.retrievePluginType p key
 
-      log.WriteLine(LogLevel.Debug, 
-        sprintf "Retrieving plugin type: %s" key)
-      let pt = CrmData.Entities.retrievePluginType p key
+        log.WriteLine(LogLevel.Debug, 
+          sprintf "Retrieving steps for type : %s" key)
+        let steps =
+          CrmData.Entities.retrievePluginProcessingSteps p pt.Id
+          |> Seq.map(fun x -> 
+            let stage = getAttribute "stage" x :?> OptionSetValue
+            stage.Value, x)
+        log.WriteLine(LogLevel.Debug, sprintf "Found %d images" (Seq.length steps))
 
-      log.WriteLine(LogLevel.Debug, 
-        sprintf "Retrieving steps for type : %s" key)
-      let steps =
-        CrmData.Entities.retrievePluginProcessingSteps
-            p pt.Id
-        |> Seq.map(fun x -> 
-          let stage = getAttribute "stage" x :?> OptionSetValue
-          stage.Value, x)
-      log.WriteLine(LogLevel.Debug, 
-        sprintf "Found %d images" (Seq.length steps))
+        let sourceStep =
+          values
+          |> Seq.map(fun pl -> pl.step.executionStage,messageName pl.step)
+          |> Set.ofSeq
+        let targetStep = 
+          steps
+          |> Seq.map(fun (x,y) -> x,getName y)
+          |> Set.ofSeq
 
-      let sourceStep =
-        values
-        |> Seq.map(fun pl -> pl.step.executionStage,messageName pl.step)
-        |> Set.ofSeq
-      let targetStep = 
-        steps
-        |> Seq.map(fun (x,y) ->
-          let name  = getName y
-          x,name)
-        |> Set.ofSeq
-
-      let newSteps = sourceStep - targetStep
-      let updateSteps = Set.intersect sourceStep targetStep
+        let newSteps = sourceStep - targetStep
+        let updateSteps = Set.intersect sourceStep targetStep
                 
-      log.WriteLine(LogLevel.Debug, sprintf "Creating steps for: %s" key)
-      createPluginSteps log solution.entity client newSteps values pt
+        log.WriteLine(LogLevel.Debug, sprintf "Creating steps for: %s" key)
+        createPluginSteps log solution.entity client newSteps values pt
 
-      log.WriteLine(LogLevel.Debug, sprintf "Updating steps for: %s" key)
-      updatePluginSteps log client (updateSteps,steps) values)
+        log.WriteLine(LogLevel.Debug, sprintf "Updating steps for: %s" key)
+        updatePluginSteps log client (updateSteps,steps) values) )
 
     solution, client, log, sourcePlugins
 
@@ -787,44 +774,38 @@ module internal PluginsHelper =
     |> Seq.toArray
     |> Array.Parallel.iter(
       fun (key,plugin)  ->
-                
-      use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-      log.WriteLine(LogLevel.Debug, 
-        sprintf "Retrieving plugin step: %s" key)
-      let ps = CrmData.Entities.retrieveSdkProcessingStep p key
 
-      log.WriteLine(LogLevel.Debug, 
-        sprintf "Retrieving images for step: %s" key)
-      let images =
-          CrmData.Entities.retrievePluginProcessingStepImages 
-              p ps.Id
-      log.WriteLine(LogLevel.Debug, 
-        sprintf "Found %d images" (Seq.length images))
-                    
-      let sourceImage =
-        plugin
-        |> Seq.map(fun pl -> pl.images)
-        |> Seq.fold(fun acc i' -> 
-          i' 
-          |> Seq.map(fun image -> image.name) 
-          |> Seq.append acc) Seq.empty
-        |> Set.ofSeq
+      proxyContext client (fun p -> 
 
-      let targetImage = 
-          images
-          |> Seq.map(fun y ->
-            let name  = getName y
-            name)
+        log.WriteLine(LogLevel.Debug, sprintf "Retrieving plugin step: %s" key)
+        let ps = CrmData.Entities.retrieveSdkProcessingStep p key
+
+        log.WriteLine(LogLevel.Debug, sprintf "Retrieving images for step: %s" key)
+        let images = CrmData.Entities.retrievePluginProcessingStepImages p ps.Id
+        log.WriteLine(LogLevel.Debug, sprintf "Found %d images" (Seq.length images))            
+
+        let sourceImage =
+          plugin
+          |> Seq.map(fun pl -> pl.images)
+          |> Seq.fold(fun acc i' -> 
+            i' 
+            |> Seq.map(fun image -> image.name) 
+            |> Seq.append acc) Seq.empty
           |> Set.ofSeq
 
-      let newImages = sourceImage - targetImage
-      let updateImages = Set.intersect sourceImage targetImage
+        let targetImage = 
+            images
+            |> Seq.map(fun y -> getName y)
+            |> Set.ofSeq
 
-      log.WriteLine(LogLevel.Debug, sprintf "Creating Images for: %s" key)
-      createPluginImages log solution.entity client newImages plugin ps
+        let newImages = sourceImage - targetImage
+        let updateImages = Set.intersect sourceImage targetImage
 
-      log.WriteLine(LogLevel.Debug, sprintf "Updating Images for: %s" key)
-      updatePluginImages log client (updateImages,images) plugin)
+        log.WriteLine(LogLevel.Debug, sprintf "Creating Images for: %s" key)
+        createPluginImages log solution.entity client newImages plugin ps
+
+        log.WriteLine(LogLevel.Debug, sprintf "Updating Images for: %s" key)
+        updatePluginImages log client (updateImages,images) plugin) )
 
   let syncPlugins = 
 
