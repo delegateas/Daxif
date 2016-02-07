@@ -18,13 +18,13 @@ DAXIF# operations
 -----------------
 
 Extract solution *)
-cfg.ensureFolder cfg.unmanaged
+cfg.ensureFolder cfg.solutions
 
 let map =   cfg.rootFolder + @"\..\..\Solution\DG.XrmOrg.XrmSolution.xml"
 let cms =   cfg.rootFolder + @"\..\..\Solution\customizations"
 let vsSol = cfg.rootFolder + @"\..\..\Solution\Solution.csproj"
 
-let zip = cfg.unmanaged + cfg.solution + @".zip"
+let zip = cfg.solutions + cfg.solution + @".zip"
 
 Solution.extract
   cfg.solution

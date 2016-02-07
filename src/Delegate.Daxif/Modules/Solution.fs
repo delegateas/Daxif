@@ -157,13 +157,13 @@ module Solution =
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
   
   // TODO: 
-  let pack solution location customizations map log = 
+  let pack solution location customizations map managed log = 
     let log' = ConsoleLogger.ConsoleLogger log
     log'.WriteLine(LogLevel.Info, @"Pack solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
     try 
-      SolutionHelper.pack' location customizations map log' log
+      SolutionHelper.pack' location customizations map managed log' log
       log'.WriteLine(LogLevel.Info, @"The solution was packed successfully")
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
   

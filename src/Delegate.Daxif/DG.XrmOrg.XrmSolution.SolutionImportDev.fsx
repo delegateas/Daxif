@@ -20,7 +20,7 @@ DAXIF# operations
 -----------------
 
 Import Dev *)
-let zip = cfg.unmanaged + cfg.solution + @".zip"
+let zip = cfg.solutions + cfg.solution + @".zip"
 
 Solution.import
   cfg.wsdlDev' cfg.solution zip false

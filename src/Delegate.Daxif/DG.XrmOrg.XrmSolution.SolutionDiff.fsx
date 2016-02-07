@@ -18,15 +18,11 @@ DAXIF# operations
 -----------------
 
 Extract solution *)
-cfg.ensureFolder cfg.unmanaged
+cfg.ensureFolder cfg.solutions
 
-let map =   cfg.rootFolder + @"\..\..\Solution\DG.XrmOrg.XrmSolution.xml"
-let cms =   cfg.rootFolder + @"\..\..\Solution\customizations"
-let vsSol = cfg.rootFolder + @"\..\..\Solution\Solution.csproj"
-
-let zipSource = cfg.unmanaged + cfg.solution + @".zip"
-let zipTarget = cfg.unmanaged + cfg.solution + @"_" + @".zip"
-
-Diff.solution zipSource zipTarget cfg.log
+let zipSource = cfg.solutions + cfg.solution + @".zip"
+let zipTarget = cfg.solutions + cfg.solution + @"_" + @".zip"
 
 Diff.summary zipSource zipTarget cfg.log |> ignore
+
+Diff.solution zipSource zipTarget cfg.log

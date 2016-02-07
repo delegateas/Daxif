@@ -145,7 +145,6 @@
     <None Include="DG.XrmOrg.XrmSolution.Config.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.SolutionCreateDev.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.SolutionExportDev.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionExportTest.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.SolutionExtract.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.SolutionImportDev.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.SolutionImportTest.fsx" />
