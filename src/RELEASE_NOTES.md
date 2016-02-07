@@ -1,7 +1,7 @@
 # Release Notes
 
 #### 2.2.0.0 - Feb 07 2016
-* Daxif is released under our [Open Source License](http://delegateas.github.io/Delegate.Daxif/license.html)
+* Daxif is released under our [Open Source License](http://delegateas.github.io/Delegate.Daxif/LICENSE.html)
 
 #### 2.1.3.6 - Jan 07 2016
 * Removed WebUI
