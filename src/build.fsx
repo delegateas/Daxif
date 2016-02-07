@@ -135,7 +135,9 @@ Target "ReleaseDocs" (fun _ ->
   Commit tempProjDocsDir 
     (sprintf "Update generated documentation for version %s" 
        release.NugetVersion)
-  Branches.push tempDocsDir)
+  Branches.push tempDocsDir
+)
+
 Target "Release" DoNothing
 // --------------------------------------------------------------------------------------
 // Run all targets by default. Invoke 'build <Target>' to override
