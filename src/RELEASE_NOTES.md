@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.2.0.2 - Feb 10 2016
+* Fsharp.Core complains about sigdata file. Updated DG.EnsureAssemblies file
+
 #### 2.2.0.1 - Feb 10 2016
 * Updated to Blueprint naming convetion SolutionExtract and SolutionPack script
   files
