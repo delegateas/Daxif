@@ -20,8 +20,8 @@ DAXIF# operations
 Pack solution *)
 cfg.ensureFolder cfg.solutions
 
-let map =   cfg.rootFolder + @"\..\..\Solution\DG.XrmOrg.XrmSolution.xml"
-let cms =   cfg.rootFolder + @"\..\..\Solution\customizations"
+let map  = cfg.rootFolder + @"\..\..\Blueprint\DG.XrmOrg.XrmBlueprint.xml"
+let cms  = cfg.rootFolder + @"\..\..\Blueprint\customizations"
 
 let zipu = cfg.solutions + cfg.solution + @"_.zip"
 let zipm = cfg.solutions + cfg.solution + @"_managed_.zip"
