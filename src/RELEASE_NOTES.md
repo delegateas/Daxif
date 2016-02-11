@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.2.0.3 - Feb 11 2016
+* Fixed mapping name for Blueprint naming convetion 
+
 #### 2.2.0.2 - Feb 10 2016
 * Fsharp.Core complains about sigdata file. Updated DG.EnsureAssemblies file
 
