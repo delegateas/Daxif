@@ -13,6 +13,10 @@ open DG.Daxif.HelperModules.Common.Utility
 
 module internal PluginsHelper =
 
+  type UserContext = 
+    | CallingUser = 0
+    | System = 1
+
   // Records for encapsulating step and images in a plugin
   type Step =
     { className: String
@@ -23,7 +27,8 @@ module internal PluginsHelper =
       executionMode: int
       name: String
       executionOrder: int
-      filteredAttributes: String }
+      filteredAttributes: String
+      userContext: int }
 
   type Image = 
     { name: string
@@ -79,7 +84,7 @@ module internal PluginsHelper =
   let messageName step =
     let entity' = String.IsNullOrEmpty(step.logicalName) |> function
         | true -> "any Entity" | false -> step.logicalName
-    sprintf "%s: %s of %s" step.className step.eventOperation entity'
+    sprintf "%s: %s of %s" step.className step.eventOperation entity' 
 
   (* Module used to validate that each step and images are correctly configured  *)
   module Validation =
@@ -276,11 +281,12 @@ module internal PluginsHelper =
 
   // Transforms the received tuple from the assembly file through invocation into
   // plugin, step and image records
-  let tupleToRecord ((a,b,c,d),(e,f,g,h,i),images) = 
+  let tupleToRecord ((a,b,c,d),(e,f,g,h,i,j),images) = 
     let step = 
       { className = a; executionStage = b; eventOperation = c;
         logicalName = d; deployment = e; executionMode = f;
-        name = g; executionOrder = h; filteredAttributes = i; }
+        name = g; executionOrder = h; filteredAttributes = i; 
+        userContext = j}
     let images' =
       images
       |> Seq.map( fun (j,k,l,m) ->
@@ -301,7 +307,7 @@ module internal PluginsHelper =
       |> Array.Parallel.map (fun (x, (y:MethodInfo)) -> 
           y.Invoke(x, [||]) :?> 
             ((string * int * string * string) * 
-              (int * int * string * int * string) * 
+              (int * int * string * int * string * int) * 
                 seq<(string * string * int * string)>) seq)
       |> Array.toSeq
       |> Seq.concat
@@ -361,6 +367,10 @@ module internal PluginsHelper =
       | false ->
         ps.Attributes.Add("sdkmessagefilterid",
           EntityReference("sdkmessagefilter",filterId))
+    enum<UserContext>(step.userContext) |> function
+      | UserContext.System -> ps.Attributes.Add("impersonatinguserid", CrmData.Entities.retrieveSystemUser)
+      | UserContext.CallingUser -> ps.Attributes.Add("impersonatinguserid",null)
+      | _ -> ps.Attributes.Add("impersonatinguserid",null)
     ps
 
   // Create a new image with the provided image informations under the defined step

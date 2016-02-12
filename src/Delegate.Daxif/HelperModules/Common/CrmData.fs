@@ -207,6 +207,7 @@ module internal CrmData =
           | false -> 0
           | true -> x.GetAttributeValue<AliasedValue>("count").Value :?> int
     
+    // TODO: Ensure that the right system user is returned
     let retrieveSystemUser proxy domainName = 
       let (domainName : string) = domainName
       let ln = @"systemuser"
