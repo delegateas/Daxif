@@ -851,11 +851,13 @@ module internal PluginsHelper =
         |> Set.map(fun x -> File.ReadAllBytes(x) |> sha1CheckSum')
         |> Set.fold(fun a x -> a + x |> sha1CheckSum) String.Empty
 
-    log.WriteLine(LogLevel.Verbose, "Connecting to CRM")
+    log.WriteLine(LogLevel.Verbose, "Authenticating credentials")
     
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     let client = { IServiceM = m; authCred = tc}
+
+    log.WriteLine(LogLevel.Verbose, "Authentication completed")
 
     let asm = Assembly.LoadFile(dllPath); 
     let dllName = Path.GetFileNameWithoutExtension(dll'); 
@@ -880,4 +882,5 @@ module internal PluginsHelper =
         failwith x
       | Validation.Valid _ -> 
         log.WriteLine(LogLevel.Verbose, "Validation completed")
+        log.WriteLine(LogLevel.Verbose, "Syncing plugins")
         syncPlugins (solution, client, log, sourcePlugins) ()

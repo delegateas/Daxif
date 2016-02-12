@@ -31,13 +31,13 @@ Pre-build Unit Tests
 
 Load all UnitTest files *)
 
-#load "DataUnitTests.fsx"
-#load "MetadataIntegrationTests.fsx"
-#load "SolutionIntegrationTests.fsx"
+//#load "DataUnitTests.fsx"
+//#load "MetadataIntegrationTests.fsx"
+//#load "SolutionIntegrationTests.fsx"
 #load "PluginIntegrationTests.fsx"
-#load "WorkflowIntegrationTests.fsx"
-#load "SerializationUnitTests.fsx"
-#load "WebResourcesHelperIntegrationTests.fsx"
+//#load "WorkflowIntegrationTests.fsx"
+//#load "SerializationUnitTests.fsx"
+//#load "WebResourcesHelperIntegrationTests.fsx"
 
 (** Open libraries for use *)
 open System
@@ -54,15 +54,15 @@ Run test cases
 
 Place test cases result in a list *)
 // TODO: test on a test environment
-let unitTest = [|"TODO", [| fun () -> true |] |]
-//  [| "Data", DataUnitTests.unitTest;
+let unitTest = //[|"TODO", [| fun () -> true |] |]
+  [| //"Data", DataUnitTests.unitTest;
 //     "Metadata", MetadataIntegrationTests.unitTest;
 //     "Serialization", SerializationUnitTests.unitTest;
 //     "Solution", SolutionIntegrationTests.unitTest;
-//     "Plugin", PluginIntegrationTests.unitTest;
+     "Plugin", PluginIntegrationTests.unitTest;
 //     "Workflow", WorkflowIntegrationTests.unitTest;
 //     "WebResources", WebResourcesHelperIntegrationTests.unitTest; 
-//  |]
+  |]
 
 let unitTest' = 
   unitTest
