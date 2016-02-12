@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.2.0.4 - Feb 12 2016
+* Fixed CRMUG in naming
+
 #### 2.2.0.3 - Feb 11 2016
 * Fixed mapping name for Blueprint naming convetion 
 
