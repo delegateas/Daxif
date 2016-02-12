@@ -167,7 +167,12 @@ module internal SolutionHelper =
     log.WriteLine(LogLevel.Verbose, @"Solution was exported successfully")
 
     let zipFile = resp.ExportSolutionFile
-    let filename = solution + ".zip"
+    let filename =
+      let managed' =
+        match managed with
+        | true -> "_managed"
+        | false -> ""
+      sprintf "%s%s.zip" solution managed'
 
     File.WriteAllBytes(location + filename, zipFile)
 
@@ -267,9 +272,7 @@ module internal SolutionHelper =
         match CrmData.Info.version p with
         | (_, CrmReleases.CRM2011) -> 
           p.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
-        | (_, CrmReleases.CRM2013) | (_, CrmReleases.CRM2015) -> 
-          importHelperAsync()
-        | (_, _) -> failwith "Version not supported."
+        | (_, _) -> importHelperAsync()
         let! waitForProgress = progress
         waitForProgress
       }
@@ -304,6 +307,7 @@ module internal SolutionHelper =
     // Use parser to ensure proper initialization of arguments
     Parser.ParseArgumentsWithUsage(
       [| "/action:Extract";
+         "/packagetype:Both";
           sprintf @"/zipfile:%s" location;
           sprintf @"/folder:%s" customizations;
           sprintf @"/map:%s" map;
@@ -320,13 +324,15 @@ module internal SolutionHelper =
     ()
       
   //TODO:
-  let pack' location customizations map (log : ConsoleLogger.ConsoleLogger) logl = 
+  let pack' location customizations map managed (log : ConsoleLogger.ConsoleLogger) logl = 
     let logl' = Enum.GetName(typeof<LogLevel>, logl)
     let pa = new PackagerArguments()
+    let managed' = match managed with | true -> "Managed" | false -> "Unmanaged"
     log.WriteLine(LogLevel.Info, "Start output from SolutionPackager")
     // Use parser to ensure proper initialization of arguments
     Parser.ParseArgumentsWithUsage(
       [| "/action:Pack";
+          sprintf @"/packagetype:%s" managed'; 
           sprintf @"/zipfile:%s" location;
           sprintf @"/folder:%s" customizations;
           sprintf @"/map:%s" map;

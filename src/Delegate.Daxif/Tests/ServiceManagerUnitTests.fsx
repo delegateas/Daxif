@@ -10,9 +10,9 @@ open DG.Daxif.HelperModules.Common
 
 let org = AuthInfo.wsdl//Uri(@"http://dg-crmdev-1.delegate.local:80/XrmFramework/XRMServices/2011/Organization.svc")
 let ac = 
-    Authentication.getCredentials
+    Authentication.getCredentials // https://twitter.com/genTauro42/status/697358926870921217 :)
         AuthenticationProviderType.ActiveDirectory
-        @"crminstall" @"cbudj76!=aas" @"DELEGATE"
+        @"foo" @"bar" @"DELEGATE"
 
 let m = ServiceManager.createOrgService org
 let tc = m.Authenticate(ac)

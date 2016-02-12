@@ -27,7 +27,7 @@ module internal CrmData =
       resp.Version, resp.Version |> versionHelper
   
   module internal Metadata = 
-    let private entityHelper proxy logicalName filter = 
+    let private entityHelper proxy (logicalName:string) filter = 
       let (proxy : OrganizationServiceProxy) = proxy
       let (filter : EntityFilters) = filter
       let req = OrganizationRequest()

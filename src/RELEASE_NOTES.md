@@ -1,7 +1,17 @@
 # Release Notes
 
-#### 2.2.0.0 - Feb 08 2016
-* Daxif is released under our [Open Source License](http://delegateas.github.io/Delegate.Daxif/license.html)
+#### 2.2.0.3 - Feb 11 2016
+* Fixed mapping name for Blueprint naming convetion 
+
+#### 2.2.0.2 - Feb 10 2016
+* Fsharp.Core complains about sigdata file. Updated DG.EnsureAssemblies file
+
+#### 2.2.0.1 - Feb 10 2016
+* Updated to Blueprint naming convetion SolutionExtract and SolutionPack script
+  files
+
+#### 2.2.0.0 - Feb 07 2016
+* Daxif is released under our [Open Source License](http://delegateas.github.io/Delegate.Daxif/LICENSE.html)
 
 #### 2.1.3.6 - Jan 07 2016
 * Removed WebUI

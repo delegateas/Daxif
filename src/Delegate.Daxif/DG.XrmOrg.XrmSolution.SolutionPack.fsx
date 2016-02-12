@@ -18,12 +18,16 @@ DAXIF# operations
 -----------------
 
 Pack solution *)
-cfg.ensureFolder cfg.unmanaged
+cfg.ensureFolder cfg.solutions
 
-let map =   cfg.rootFolder + @"\..\..\Solution\DG.XrmOrg.XrmSolution.xml"
-let cms =   cfg.rootFolder + @"\..\..\Solution\customizations"
+let map  = cfg.rootFolder + @"\..\..\Blueprint\DG.XrmOrg.XrmSolution.xml"
+let cms  = cfg.rootFolder + @"\..\..\Blueprint\customizations"
 
-let zip = cfg.unmanaged + cfg.solution + @"_.zip"
+let zipu = cfg.solutions + cfg.solution + @"_.zip"
+let zipm = cfg.solutions + cfg.solution + @"_managed_.zip"
 
 Solution.pack
-  cfg.solution zip cms map cfg.log
+  cfg.solution zipu cms map false cfg.log
+
+Solution.pack
+  cfg.solution zipm cms map true cfg.log

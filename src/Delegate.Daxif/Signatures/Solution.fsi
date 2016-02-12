@@ -102,7 +102,8 @@ module Solution =
   /// Packs the solution to the given location.
   val public pack : solution:string
      -> location:string
-     -> customizations:string -> map:string -> logLevel:LogLevel -> unit
+     -> customizations:string
+     -> map:string -> managed:bool -> logLevel:LogLevel -> unit
   (**
   Updates the service context files, including option sets, to the given 
   `location` with the CrmSvcUtil provided with the SDK.

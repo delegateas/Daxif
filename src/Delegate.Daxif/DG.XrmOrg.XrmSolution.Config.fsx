@@ -117,8 +117,7 @@ let wsdlTarget' = Uri(wsdlTarget)
 (** Shared environment information *)
 let rootFolder = __SOURCE_DIRECTORY__
 
-let unmanaged = rootFolder + @"\unmanaged\"
-let managed = rootFolder + @"\managed\"
+let solutions = rootFolder + @"\solutions\"
 
 let translations = rootFolder + @"\translations\"
 
