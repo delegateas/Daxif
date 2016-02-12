@@ -636,6 +636,7 @@ module internal PluginsHelper =
 
       //Delete images
       log.WriteLine(LogLevel.Info, "Deleting images")
+
       steps
       |> Seq.toArray
       |> Array.Parallel.iter(fun step ->
@@ -681,7 +682,7 @@ module internal PluginsHelper =
 
     let sourceStep =
       sourcePlugins
-      |> Seq.map(fun pl -> pl.step.executionStage ,messageName pl.step)
+      |> Seq.map(fun pl -> pl.step.executionStage, messageName pl.step)
       |> Set.ofSeq
 
     let targetStep' = 
