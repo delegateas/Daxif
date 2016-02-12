@@ -9,9 +9,11 @@ open DG.Daxif
 open DG.Daxif.HelperModules.Common
 open DG.Daxif.HelperModules.Common.Utility
 
+(* This module is used to synchronize plugin sollution assembly to a CRM. *)
+
 module internal PluginsHelper =
 
-
+  // Records for encapsulating step and images in a plugin
   type Step =
     { className: String
       executionStage: int
@@ -33,6 +35,8 @@ module internal PluginsHelper =
     { step: Step
       images: seq<Image> }  
 
+  // Records holding variouse information regarding the Solution and connecting
+  // to a CRM instance.
   type Solution =
     { assembly: Assembly
       assemblyId: Guid
@@ -45,9 +49,11 @@ module internal PluginsHelper =
     { IServiceM: Client.IServiceManagement<IOrganizationService>
       authCred: Client.AuthenticationCredentials }
 
-  // Helpers functions
+  /// Helpers functions
+  // Fetches the name of an entity
   let getName (x:Entity) = x.Attributes.["name"] :?> string
 
+  // Tries to get an attribute from an entit. Fails if the attribute does not exist.
   let getAttribute key (x:Entity) = 
     try
       x.Attributes.[key]
@@ -68,12 +74,14 @@ module internal PluginsHelper =
       let z = getName y'
       ((fun x -> x = (y,z)),xs) ||> Seq.exists)
 
-  // TODO:
-  let messageName step = // type' action entity = 
+  // Returns the message name of a step consisting of class name, event operation and 
+  // logical name. If the step does not contain a logical name then it targets any entity
+  let messageName step =
     let entity' = String.IsNullOrEmpty(step.logicalName) |> function
         | true -> "any Entity" | false -> step.logicalName
     sprintf "%s: %s of %s" step.className step.eventOperation entity'
 
+  (* Module used to validate that each step and images are correctly configured  *)
   module Validation =
       
     type ExecutionMode =
@@ -266,6 +274,8 @@ module internal PluginsHelper =
 
     projDependencies' vsproj
 
+  // Transforms the received tuple from the assembly file through invocation into
+  // plugin, step and image records
   let tupleToRecord ((a,b,c,d),(e,f,g,h,i),images) = 
     let step = 
       { className = a; executionStage = b; eventOperation = c;
@@ -278,7 +288,8 @@ module internal PluginsHelper =
           imageType = l; attributes = m; } )
     { step = step; images = images' }  
 
-  // TODO:
+  // Calls "PluginProcessingStepConfigs" in the plugin assembly that returns a
+  // tuple contaning the plugin informations
   let typesAndMessages (asm:Assembly) =
     asm.GetTypes() |> fun xs -> 
       let y = xs |> Array.filter (fun x -> x.Name = @"Plugin") |> Array.toList
@@ -296,11 +307,12 @@ module internal PluginsHelper =
       |> Seq.concat
       |> Seq.map( fun x -> tupleToRecord x )
   
+  // Used to create a temprorary organization proxy to connect to CRM
   let proxyContext client f =
     use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
     f p
 
-  // TODO:
+  // Creates a new assembly in CRM with the provided information
   let createAssembly name dll (asm:Assembly) hash =
     let pa = Entity("pluginassembly")
     pa.Attributes.Add("name", name)
@@ -311,7 +323,7 @@ module internal PluginsHelper =
     pa.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
     pa
 
-  // TODO:
+  // Updates an existing assembly in CRM with the provided assembly information
   let updateAssembly' (paid:Guid) dll (asm:Assembly) hash =
     let pa = Entity("pluginassembly")
     pa.Attributes.Add("pluginassemblyid", paid)
@@ -321,7 +333,7 @@ module internal PluginsHelper =
     pa.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
     pa
 
-  // TODO:
+  // Create a new type in CRM under the defined assembly id
   let createType (asmId:Guid) (name:string) =
     let pt = Entity("plugintype")
     pt.Attributes.Add("name", name)
@@ -331,7 +343,7 @@ module internal PluginsHelper =
     pt.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
     pt
 
-  // TODO:
+  // Create a new step with the provided step information in CRM under the defined type
   let createStep (typeId:Guid) (messageId:Guid) (filterId:Guid) name step =
     let ps = Entity("sdkmessageprocessingstep")
     ps.Attributes.Add("name", name)
@@ -351,6 +363,7 @@ module internal PluginsHelper =
           EntityReference("sdkmessagefilter",filterId))
     ps
 
+  // Create a new image with the provided image informations under the defined step
   let createImage (stepId:Guid) stepName image =
     let psi = Entity("sdkmessageprocessingstepimage")
     psi.Attributes.Add("name", image.name)
@@ -362,6 +375,7 @@ module internal PluginsHelper =
       EntityReference("sdkmessageprocessingstep",stepId))
     psi
 
+  // Used to update an existing step with changes to its attributes
   // Only check for updated on stage, deployment, mode, rank and filteredAttributes. 
   // The rest must be update by UI
   let updateStep (pmid:Guid) step =
@@ -375,6 +389,7 @@ module internal PluginsHelper =
     ps.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
     ps
 
+  // Used to update an existing image with changes to its attributes
   let updateImage (pmid:Guid) image = 
     let psi = Entity("sdkmessageprocessingstepimage")
     psi.Attributes.Add("sdkmessageprocessingstepimageid", pmid)
@@ -384,7 +399,8 @@ module internal PluginsHelper =
     psi.Attributes.Add("attributes", image.attributes)
     psi
 
-  // Create plugin functions
+  /// Functions for creating typers, steps and images in a plugin
+
   let createTypes (log:ConsoleLogger.ConsoleLogger) client entitySet assemblyId =
     entitySet 
     |> Set.toArray
@@ -451,12 +467,15 @@ module internal PluginsHelper =
             log.WriteLine(LogLevel.Verbose,
               sprintf "%s: (%O) was created" x.LogicalName id)))
 
+  // Tries to fetch an attribute. If the attribute does not exist,
+  // a default value is returned.
   let defaultAttributeVal (e:Entity) key (def:'a) =
     match e.Attributes.TryGetValue(key) with
     | (true,v) -> v :?> 'a
     | (false,_) -> def
 
-  // Update plugin functions
+  /// Functions for update types, steps and images in a plugin
+
   let updatePluginSteps (log:ConsoleLogger.ConsoleLogger) client entitySet plugins =
       entitySet ||> subset'
       |> Seq.toArray
@@ -535,7 +554,8 @@ module internal PluginsHelper =
         log.WriteLine(LogLevel.Verbose,
           sprintf "%s: (%O) was updated" x.LogicalName x.Id)) 
 
-  // Delete plugin functions
+  /// Functions for deleting types, steps and images in a plugin functions
+
   let deleteTypes (log:ConsoleLogger.ConsoleLogger) client entitySet = 
     entitySet ||> subset
     |> Seq.toArray
@@ -569,6 +589,7 @@ module internal PluginsHelper =
       log.WriteLine(LogLevel.Verbose,
         sprintf "%s: (%O) was deleted" x.LogicalName x.Id))
     
+  // Instantiates a new assembly in CRM if an existing assembly does not exist
   let instantiateAssembly (solution:Entity) dllName dllPath asm hash p 
     (log:ConsoleLogger.ConsoleLogger) =
       log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
@@ -595,6 +616,15 @@ module internal PluginsHelper =
         guid
       | Some id -> 
         id
+
+
+  // The following functions are used to find the difference between the plugins 
+  // in the assembly and the plugins in CRM by using source and target. 
+  // Where sources is the items in the provided assembly and targets are the items
+  // in CRM.
+  // Items existing only in target will be deleted.
+  // Items existing in both will be updated if there are changes to them
+  // Items existing only in source will be created
 
   let deletePluginImages (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) _ = 
     log.WriteLine(LogLevel.Info, "Retrieving Steps")
@@ -641,8 +671,7 @@ module internal PluginsHelper =
           deleteImages log client (obsoleteImage,images)) )
       steps )
 
-  let deletePluginSteps (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) steps = 
-    //Delete Steps
+  let deletePluginSteps (_, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) steps = 
     let targetSteps =
       steps
       |> Seq.map(fun (x:Entity) -> 
@@ -691,7 +720,7 @@ module internal PluginsHelper =
       
       newTypes )
 
-  let updateAssembly (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) newTypes =
+  let updateAssembly (solution, client, (log:ConsoleLogger.ConsoleLogger), _) newTypes =
     log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
 
     proxyContext client (fun p -> 
@@ -710,15 +739,14 @@ module internal PluginsHelper =
           log.WriteLine(LogLevel.Verbose, sprintf "%s: %s was updated" x.LogicalName (getName x)) ) )
     newTypes
   
-  let syncTypes (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) newTypes =
-    // Create Plugin Types
+  let syncTypes (solution, client, (log:ConsoleLogger.ConsoleLogger), _) newTypes =
+
     log.WriteLine(LogLevel.Info, "Creating types")
     createTypes log client newTypes solution.assemblyId
 
   let syncSteps (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) _ =
     log.WriteLine(LogLevel.Info, sprintf "Creating and updating steps")
 
-    // Create and update Plugin Steps
     sourcePlugins
     |> Seq.groupBy(fun pl -> pl.step.className)
     |> Seq.toArray
@@ -795,6 +823,9 @@ module internal PluginsHelper =
         log.WriteLine(LogLevel.Debug, sprintf "Updating Images for: %s" key)
         updatePluginImages log client (updateImages,images) plugin) )
 
+  // Function that chains the previous functions into one larger function 
+  // and provide each function with a commone parameters and a value that can
+  // be carried over from the previous function in the chain.
   let syncPlugins x = 
 
     deletePluginImages x
@@ -805,6 +836,7 @@ module internal PluginsHelper =
     >> syncSteps x
     >> syncImages x
 
+  // Main function to syncronize a solution
   let syncSolution' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
     log.WriteLine(LogLevel.Verbose, "Checking local assembly")
     let dll'  = Path.GetFullPath(dll)
