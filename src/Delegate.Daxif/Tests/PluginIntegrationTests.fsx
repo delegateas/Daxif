@@ -43,16 +43,16 @@ File.Copy(dll',tmp,true)
 
 let dllPath = Path.GetFullPath(tmp)
 let dllName = Path.GetFileNameWithoutExtension(dll'); 
-
 (** Instantiate service manager and service proxy *)
 let m = ServiceManager.createOrgService wsdl
 let tc = m.Authenticate(ac)
+let internal client = { PluginsHelper.IServiceM = m; PluginsHelper.authCred = tc}
 let p = ServiceProxy.getOrganizationServiceProxy m tc
-let internal (log:ConsoleLogger.ConsoleLogger) = ConsoleLogger.ConsoleLogger LogLevel.Debug
+let internal log = ConsoleLogger.ConsoleLogger LogLevel.Debug
 //let solution = CrmData.Entities.retrieveSolution p solutionName
 let asm = Assembly.LoadFile(dllPath); 
 
-let pluginEntity = PluginsHelper.typesAndMessages asm
+let internal pluginEntity = PluginsHelper.typesAndMessages asm
 
 match CrmData.Entities.retrievePluginAssembly p AuthInfo.pluginDll with
 | s when Seq.isEmpty s -> ()
@@ -90,10 +90,10 @@ let tc1() =
 
   let pluginType =
     pluginEntity 
-    |> Seq.map(fun ((t,_,_,_),_,_) -> t ) 
+    |> Seq.map(fun p -> p.step.className) 
     |> Set.ofSeq
 
-  PluginsHelper.createTypes log m tc pluginType asmId 
+  PluginsHelper.createTypes log client pluginType asmId 
 
    // Test that the solution contains a type
   pluginType
@@ -108,11 +108,11 @@ let tc2() =
   let solution = CrmData.Entities.retrieveSolution p solutionName
 
   // Setup the needed data
-  let pluginType = pluginEntity |> Seq.map(fun ((t,_,_,_),_,_) -> t ) |> Seq.head |> CrmData.Entities.retrievePluginType p
+  let pluginType = pluginEntity |> Seq.map(fun p -> p.step.className ) |> Seq.head |> CrmData.Entities.retrievePluginType p
   let pluginStep =
-    pluginEntity |> Seq.map(fun ((t,s,a,e),_,_) -> s,PluginsHelper.messageName t a e) |> Set.ofSeq
+    pluginEntity |> Seq.map(fun p -> p.step.executionStage, PluginsHelper.messageName p.step) |> Set.ofSeq
 
-  PluginsHelper.createPluginSteps log solution m tc pluginStep pluginEntity pluginType
+  PluginsHelper.createPluginSteps log solution client pluginStep pluginEntity pluginType
 
    // Test that the solution contains a step
   CrmData.Entities.retrievePluginProcessingSteps p pluginType.Id
@@ -125,18 +125,18 @@ let tc3() =
   let solution = CrmData.Entities.retrieveSolution p solutionName
 
   // Setup the needed data
-  let pluginStep = pluginEntity |> Seq.map(fun ((t,_,a,e),_,_) -> PluginsHelper.messageName t a e) |> Seq.head |> CrmData.Entities.retrieveSdkProcessingStep p
+  let pluginStep = pluginEntity |> Seq.map(fun p -> PluginsHelper.messageName p.step) |> Seq.head |> CrmData.Entities.retrieveSdkProcessingStep p
   let pluginImage =
     pluginEntity 
-    |> Seq.map(fun (_,_,i) -> i) 
+    |> Seq.map(fun p -> p.images) 
     |> Seq.fold(fun acc i' -> 
           i' 
-          |> Seq.map(fun (n,_,_,_) -> n) 
+          |> Seq.map(fun image -> image.name) 
           |> Seq.append acc) Seq.empty
         |> Set.ofSeq
     |> Set.ofSeq
 
-  PluginsHelper.createPluginImages log solution m tc pluginImage pluginEntity pluginStep
+  PluginsHelper.createPluginImages log solution client pluginImage pluginEntity pluginStep
 
    // Test that the solution contains a images
   CrmData.Entities.retrieveAllPluginProcessingSteps p solution.Id
@@ -145,11 +145,12 @@ let tc3() =
     |> Seq.isEmpty
     |> not)
 
+// TODO:
 (* Update the plugin steps in an existing step in the CRM solution and check that it has been update*)
 let tc4() =
     //PluginsHelper.updatePluginSteps
     true
-
+// TODO:
 (* Update the plugin steps in an existing step in the CRM solution and check that it has been update*)
 let tc5() =
     //PluginsHelper.updatePluginImages
@@ -163,20 +164,20 @@ let tc6() =
   // Setup the needed data
   let pluginStep = 
     pluginEntity 
-    |> Seq.map(fun ((t,_,a,e),_,_) -> PluginsHelper.messageName t a e) 
+    |> Seq.map(fun p -> PluginsHelper.messageName p.step) 
     |> Seq.head |> CrmData.Entities.retrieveSdkProcessingStep p
   let targetImages = CrmData.Entities.retrievePluginProcessingStepImages p pluginStep.Id
   let deleteImages =
     pluginEntity 
-    |> Seq.map(fun (_,_,i) -> i) 
+    |> Seq.map(fun p -> p.images) 
     |> Seq.fold(fun acc i' -> 
           i' 
-          |> Seq.map(fun (n,_,_,_) -> n) 
+          |> Seq.map(fun image -> image.name) 
           |> Seq.append acc) Seq.empty
        |> Set.ofSeq
     |> Set.ofSeq
 
-  PluginsHelper.deleteImages log m tc (deleteImages |> Set.toSeq, targetImages)
+  PluginsHelper.deleteImages log client (deleteImages |> Set.toSeq, targetImages)
 
   // Test that the solution no longer contains images
   CrmData.Entities.retrieveAllPluginProcessingSteps p solution.Id
@@ -190,7 +191,7 @@ let tc7() =
 
   let solution = CrmData.Entities.retrieveSolution p solutionName
 
-  let pluginType = pluginEntity |> Seq.map(fun ((t,_,_,_),_,_) -> t ) |> Seq.head |> CrmData.Entities.retrievePluginType p
+  let pluginType = pluginEntity |> Seq.map(fun p -> p.step.className ) |> Seq.head |> CrmData.Entities.retrievePluginType p
   let targetSteps = 
     CrmData.Entities.retrieveAllPluginProcessingSteps p solution.Id
     |> Seq.map(fun (x:Entity) -> 
@@ -198,9 +199,9 @@ let tc7() =
       stage.Value, x)
     |> Array.ofSeq |> Seq.ofArray
   let deleteStep =
-    pluginEntity |> Seq.map(fun ((t,s,a,e),_,_) -> s,PluginsHelper.messageName t a e) |> Set.ofSeq
+    pluginEntity |> Seq.map(fun p -> p.step.executionStage, PluginsHelper.messageName p.step) |> Set.ofSeq
 
-  PluginsHelper.deleteSteps log m tc (deleteStep, targetSteps)
+  PluginsHelper.deleteSteps log client (deleteStep, targetSteps)
 
   // Test that the solution no longer contains steps
   CrmData.Entities.retrievePluginProcessingSteps p pluginType.Id
@@ -216,9 +217,9 @@ let tc8() =
 
   let targetTypes = CrmData.Entities.retrievePluginTypes p asmId
   let pluginType =
-    pluginEntity |> Seq.map(fun ((t,_,_,_),_,_) -> t ) |> Set.ofSeq
+    pluginEntity |> Seq.map(fun p -> p.step.className ) |> Set.ofSeq
 
-  PluginsHelper.deleteTypes log m tc (pluginType, targetTypes)
+  PluginsHelper.deleteTypes log client (pluginType, targetTypes)
 
   // Test that the solution no longer contains types
   pluginType

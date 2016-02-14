@@ -157,23 +157,6 @@
     <None Include="DG.XrmOrg.XrmSolution.WorkflowSyncDev.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.PluginsSyncDev.fsx" />
     <None Include="packages.config" />
-    <None Include="bin\coretools\WebsiteCopy.exe" />
-    <Content Include="bin\coretools\Other Redistributable.txt" />
-    <None Include="bin\coretools\Microsoft.Xrm.Tooling.CrmConnectControl.dll" />
-    <None Include="bin\coretools\Microsoft.Xrm.Tooling.Connector.dll" />
-    <None Include="bin\coretools\Microsoft.Xrm.Sdk.dll" />
-    <None Include="bin\coretools\Microsoft.Xrm.Sdk.Deployment.dll" />
-    <None Include="bin\coretools\Microsoft.Xrm.Portal.dll" />
-    <None Include="bin\coretools\Microsoft.Xrm.Client.dll" />
-    <None Include="bin\coretools\Microsoft.Xrm.Client.CodeGeneration.dll" />
-    <None Include="bin\coretools\Microsoft.IdentityModel.Clients.ActiveDirectory.WindowsForms.dll" />
-    <None Include="bin\coretools\Microsoft.IdentityModel.Clients.ActiveDirectory.dll" />
-    <None Include="bin\coretools\Microsoft.Crm.Sdk.Proxy.dll" />
-    <None Include="bin\coretools\LicenseTerms.docx" />
-    <Content Include="bin\coretools\CrmSvcUtil.xml" />
-    <Content Include="bin\coretools\CrmSvcUtil.exe.config" />
-    <None Include="bin\coretools\CrmSvcUtil.exe" />
-    <None Include="bin\coretools\AntiXSSLibrary.dll" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">

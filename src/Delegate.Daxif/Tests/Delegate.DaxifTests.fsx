@@ -53,7 +53,6 @@ Run test cases
 ==============
 
 Place test cases result in a list *)
-// TODO: test on a test environment
 let unitTest = [|"TODO", [| fun () -> true |] |]
 //  [| "Data", DataUnitTests.unitTest;
 //     "Metadata", MetadataIntegrationTests.unitTest;

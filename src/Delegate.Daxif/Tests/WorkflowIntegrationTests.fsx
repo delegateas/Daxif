@@ -46,7 +46,7 @@ let dllName = Path.GetFileNameWithoutExtension(dll');
 let m = ServiceManager.createOrgService wsdl
 let tc = m.Authenticate(ac)
 let p = ServiceProxy.getOrganizationServiceProxy m tc
-let internal (log:ConsoleLogger.ConsoleLogger) = ConsoleLogger.ConsoleLogger LogLevel.Debug
+let internal log = ConsoleLogger.ConsoleLogger LogLevel.Debug
 
 try 
   CrmData.Entities.createPublisher p pubName pubDisplay pubPrefix |> ignore
