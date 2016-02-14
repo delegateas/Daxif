@@ -48,7 +48,7 @@ Configuration settings
 ----------------------
 
 Log level *)
-let (log:ConsoleLogger.ConsoleLogger) = LogLevel.Verbose
+let log = LogLevel.Verbose
 
 (** Serialize Type *)
 let xml = SerializeType.XML
