@@ -734,7 +734,7 @@ module internal PluginsHelper =
         | true -> ()
         | false -> 
           log.WriteLine(LogLevel.Info, "Updating Assembly")
-          CrmData.CRUD.update p (updateAssembly' x.Id solution.dllPath solution.assembly hash) 
+          CrmData.CRUD.update p (updateAssembly' x.Id solution.dllPath solution.assembly solution.hash) 
           |> ignore
 
           log.WriteLine(LogLevel.Verbose, sprintf "%s: %s was updated" x.LogicalName (getName x)) ) )
