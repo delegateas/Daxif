@@ -1,5 +1,11 @@
 # Release Notes
 
+#### 2.2.0.6 - Feb 14 2016
+* Fixed Log in Config script
+
+#### 2.2.0.5 - Feb 14 2016
+* Update Ensure Assemblies to also work with standalone
+
 #### 2.2.0.4 - Feb 12 2016
 * Fixed CRMUG in naming
 

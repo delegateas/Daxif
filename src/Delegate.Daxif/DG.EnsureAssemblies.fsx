@@ -12,11 +12,10 @@ open System.IO
 
 /// Executed only once in order to ensure .dll from nuget packages are copied to .lib
 let root =  __SOURCE_DIRECTORY__
-let pkgs = root + @"/.." + @"/.." + @"/packages"
+let pkgs = root + @"/.." + @"/packages"
 
 /// Exclude older or portable .NET versions
 let blacklist = [ "net20"; "portable-" ]
-
 let exclude (path:string) = 
   blacklist |> List.fold(fun a y -> path.Contains(y) || a) false |> not
 
@@ -30,5 +29,6 @@ let helper paths =
 Directory.EnumerateFiles(pkgs, @"*.dll", SearchOption.AllDirectories) |> helper 
 Directory.EnumerateFiles(pkgs, @"*.exe", SearchOption.AllDirectories) |> helper 
 
+/// Added because of issues with F# Core
 Directory.EnumerateFiles(pkgs, @"*.optdata", SearchOption.AllDirectories) |> helper
 Directory.EnumerateFiles(pkgs, @"*.sigdata", SearchOption.AllDirectories) |> helper
