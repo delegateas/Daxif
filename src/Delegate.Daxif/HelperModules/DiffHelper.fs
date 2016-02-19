@@ -58,10 +58,12 @@ module internal DiffHelper =
     | NotInSource = 2
     | NotInTarget = 3
 
+  // encodes url and ensure that latters a upper case
   let urlEncodeUpper (url:string) =
     HttpUtility.UrlEncode url
     |> fun x ->  Regex.Replace( x, @"%[0-9a-f][0-9a-f]", (fun x -> x.Value.ToUpper()))
 
+  // extract a solution from a package
   let extractSP zip path (log:ConsoleLogger) =
     let logl = Enum.GetName(typeof<LogLevel>,log.LogLevel)
     
@@ -85,7 +87,7 @@ module internal DiffHelper =
     with 
       ex -> log.WriteLine(LogLevel.Error,sprintf "%s" ex.Message )
     
-
+  // unpack the solution to a defined folder
   let unpackSolution zip temp (log:ConsoleLogger.ConsoleLogger) = 
     let tmpFolder = Path.Combine(Path.GetTempPath(), temp)
 
@@ -126,6 +128,7 @@ module internal DiffHelper =
             "<font style=\"background-color: blue\" color=\"white\">")
     |> fun sb -> Encoding.UTF8.GetBytes(sb.ToString())
 
+  // produce html text containing the sha hash of two packaged files
   let htmlBinaryShaDiff pathSource pathTarget = 
     let hashSource = 
       match File.Exists(pathSource) with 
@@ -139,6 +142,7 @@ module internal DiffHelper =
     match hashSource = hashTarget with
     | true -> ""
     | false -> sprintf "<tr><td>%s</td><td>%s</td></tr>" hashSource hashTarget  
+
 
   let textToXml (path:string) = 
     let xmlPath = path + ".xml"
@@ -182,6 +186,7 @@ module internal DiffHelper =
       sourceFile.Close()
       diffFile.Close()
 
+  // Produced a string containing xml with the diff of two packaged files
   let diff pathSource pathTarget (log:ConsoleLogger) =
     let diff' = XmlDiff(diffOptions ())
     do diff'.Algorithm <- XmlDiffAlgorithm.Precise
@@ -200,6 +205,9 @@ module internal DiffHelper =
       xtw.Close()
       sw.Close()
 
+  // Produces a sequence containing the parts that are changed, unchanged, 
+  // not in source and not in target of two packaged solutions.
+  // The output files 
   let diffs pathSource pathTarget (log:ConsoleLogger.ConsoleLogger) =
 
     let guidSource = Guid.NewGuid().ToString()
@@ -341,6 +349,7 @@ module internal DiffHelper =
       yield! notSource'; 
       yield! notTarget'; } 
 
+  // Module for constructing a walkable tree datastructure of the diff
   module DiffTree =
     type Tree =
           | Node of string * string * Tree list
@@ -361,45 +370,61 @@ module internal DiffHelper =
       | Leaf(_,_,_,leafType) when leafType = diffType -> 1
       | Leaf(_,_,_,_) -> 0
 
+    // Recursive function for building the diff tree
+    // takes in a sequence of tuples containing 
+    // the file path in the package, list of the parent folders, 
+    // the content of the difference in the file and the difference type
     let treeDataBuild input =
         let rec loop acc parentName inp =
+          // Uses the root folder name as key to group the subfolder/files together
           let inp' =
             inp
             |> Seq.groupBy(fun (_,header,_,_) ->
-                match header with // Always check for hd and tl !!!
+                match header with
                   | [] -> String.Empty
                   | hd -> List.head hd)
             |> Seq.toList
 
+          // If the input is not empty then collect the files by their root 
+          // folder
           match inp' with
             | [] -> acc
             | y ->
               y |> List.collect(fun (key,t) -> 
+
+                // Goes trough the grouped folders and construct a new node or leaf
                 match t |> Seq.toList with
+                  // No children.
                   | [] -> []
-                  | (id,header,data,diffType)::[] ->  // one child
-                    match header with // Always check for hd and tl !!!
+                  // One child. If no children then it is a leaf else 
+                  // call loop and parse in the child
+                  | (id,header,data,diffType)::[] ->  
+                    match header with
                     | [ ] -> [ ]
-                    | [x] -> [Tree.Leaf(id,key,data,diffType)]
+                    | [x] -> [Tree.Leaf(id,key,data,diffType)] 
                     | x :: xs -> 
                       let newName = (parentName + key + "\\")
                       [ [(id,xs,data,diffType)] 
                         |> List.toSeq
                         |> loop (Tree.Node(newName,key,List.empty)) newName ]
-                  | (id,header,data,diffType)::xs as zs -> // multiple children:
+                  // Multiple children. Call loop and parse in a seq of childrens
+                  | (id,header,data,diffType)::xs as zs -> 
                     let newName = (parentName + key + "\\")
                     [(id,header,data,diffType)::xs
                       |> List.map(fun (id,t,d,diffType) -> 
-                          match t with // Always check for hd and tl !!!
+                          match t with
                             | [] -> None
                             | z :: zs ->  Some (id,zs,d,diffType))
-                      |> List.choose (fun x -> x) // Never use "id" as it's defined as the identity fn (fun x -> x)
+                      |> List.choose (fun x -> x)
                       |> List.toSeq
                       |> loop (Tree.Node(newName,key,List.empty)) newName ])
               |> addToNode acc
         loop (Tree.Node("Root","Root",List.empty)) "" input
 
-    let rec treeHtmlWalker (sw:StreamWriter) spaces = function
+
+    // Walks through the constructed tree and produce html for the first row of 
+    // the display table that contains the name of the Node/Leaf and with expand link
+    let rec treeHtmlWalkerNameRow (sw:StreamWriter) spaces = function
         | Leaf(id,name,data,diffType) ->
           match String.IsNullOrWhiteSpace(data) with
             | false -> 
@@ -418,12 +443,14 @@ module internal DiffHelper =
           |> sw.WriteLine
 
           branches
-          |> List.iter(fun x -> treeHtmlWalker sw (sprintf "\t%s" spaces) x)
+          |> List.iter(fun x -> treeHtmlWalkerNameRow sw (sprintf "\t%s" spaces) x)
           sw.WriteLine(spaces+"</ul>")
           sw.WriteLine(spaces+"</li>")
           sw.Flush()
 
-    let rec treeHtmlTypeWalker (sw:StreamWriter) diffType spaces = function
+    // Walks through the constructed tree and produce html for the other rows 
+    // containing the difftype of the row and display the number of children in a node
+    let rec treeHtmlTypeWalkerTypeRows (sw:StreamWriter) diffType spaces = function
         | Leaf(_,_,_,_) -> 
           sw.WriteLine(spaces + "<li> &nbsp; </li>")
         | Node(id,name,branches) -> 
@@ -436,11 +463,12 @@ module internal DiffHelper =
           |> sw.WriteLine
 
           branches
-          |> List.iter(fun x -> treeHtmlTypeWalker sw diffType (sprintf "    %s" spaces) x)
+          |> List.iter(fun x -> treeHtmlTypeWalkerTypeRows sw diffType (sprintf "    %s" spaces) x)
           sw.WriteLine(spaces+"</ul>")
           sw.WriteLine(spaces+"</li>")
           sw.Flush()
 
+  //Produces the a table which displays the diff three
   let diffBlock (ds:seq<string*string*DiffType>) spaces =
     
     use ms = new MemoryStream()
@@ -465,7 +493,7 @@ module internal DiffHelper =
     |> List.iter(fun t -> 
 
       sw.WriteLine(spaces + "    <ul>")  
-      DiffTree.treeHtmlWalker sw (spaces + "\t")  t
+      DiffTree.treeHtmlWalkerNameRow sw (spaces + "\t")  t
       sw.WriteLine(spaces + "    </ul>")
       sw.Flush())
     
@@ -480,14 +508,15 @@ module internal DiffHelper =
       |> List.iter(fun t -> 
 
         sw.WriteLine(spaces + "    <ul>")  
-        DiffTree.treeHtmlTypeWalker sw diffT (spaces + "\t") t
+        DiffTree.treeHtmlTypeWalkerTypeRows sw diffT (spaces + "\t") t
         sw.WriteLine(spaces + "    </ul>"))
 
       sw.WriteLine(spaces + "</th>")
       sw.Flush())
     
     System.Text.Encoding.UTF8.GetString(ms.ToArray())
-      
+
+  // Produces a WebPart used for Suave 
   let app pathSource pathTarget ds = 
 
     let getSolutionName (path:string) =
@@ -502,6 +531,7 @@ module internal DiffHelper =
         .Replace(@"{{assemblyVersion}}",Utility.assemblyVersion())
         .Replace(@"{{timeStamp}}",Utility.timeStamp())
 
+    // Produces the link for ajax call to fetch the diff content of a file
     let treeLinks = 
       ds 
       |> Seq.filter(fun (_,data,_) -> not (String.IsNullOrWhiteSpace(data)))
@@ -527,13 +557,13 @@ module internal DiffHelper =
         path "/close" >=> CLOSE
         RequestErrors.NOT_FOUND "Found no handlers"]
 
-  let solutionApp pathSource pathTarget (log:ConsoleLogger.ConsoleLogger) =
-    diffs pathSource pathTarget log
-    |> app pathSource pathTarget
+  // Creates the app for displaying the diff page and start the webserver and 
+  // opens the web page in the default webbrowser 
+  let solution' pathSource pathTarget log =
 
-  let solution' pathSource pathTarget (log:ConsoleLogger.ConsoleLogger) =
-
-    let app' = solutionApp pathSource pathTarget log
+    let app' =
+      diffs pathSource pathTarget log
+      |> app pathSource pathTarget
 
     let port = 
       availablePort
@@ -547,6 +577,8 @@ module internal DiffHelper =
     System.Diagnostics.Process.Start( sprintf "http://localhost:%s" (port.ToString()) + "/Daxif/diff") |> ignore;
     startWebServer cfg app'
 
+
+  // Module for producing a csv version of the diff
   module Summary =
     let rec nameTreeWalker (sw:StreamWriter) = function
           | DiffTree.Leaf(id,_,_,diffType) ->
