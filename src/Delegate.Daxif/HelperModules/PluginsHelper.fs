@@ -13,10 +13,6 @@ open DG.Daxif.HelperModules.Common.Utility
 
 module internal PluginsHelper =
 
-  type UserContext = 
-    | CallingUser = 0
-    | System = 1
-
   // Records for encapsulating step and images in a plugin
   type Step =
     { className: String
@@ -28,7 +24,7 @@ module internal PluginsHelper =
       name: String
       executionOrder: int
       filteredAttributes: String
-      userContext: int }
+      userContext: Guid }
 
   type Image = 
     { name: string
@@ -78,6 +74,9 @@ module internal PluginsHelper =
     |> Seq.filter(fun (y,y') -> 
       let z = getName y'
       ((fun x -> x = (y,z)),xs) ||> Seq.exists)
+
+  let isDefaultGuid guid =
+    guid = Guid.Empty
 
   // Returns the message name of a step consisting of class name, event operation and 
   // logical name. If the step does not contain a logical name then it targets any entity
@@ -286,7 +285,7 @@ module internal PluginsHelper =
       { className = a; executionStage = b; eventOperation = c;
         logicalName = d; deployment = e; executionMode = f;
         name = g; executionOrder = h; filteredAttributes = i; 
-        userContext = j}
+        userContext = Guid.Parse(j)}
     let images' =
       images
       |> Seq.map( fun (j,k,l,m) ->
@@ -307,7 +306,7 @@ module internal PluginsHelper =
       |> Array.Parallel.map (fun (x, (y:MethodInfo)) -> 
           y.Invoke(x, [||]) :?> 
             ((string * int * string * string) * 
-              (int * int * string * int * string * int) * 
+              (int * int * string * int * string * string) * 
                 seq<(string * string * int * string)>) seq)
       |> Array.toSeq
       |> Seq.concat
@@ -362,15 +361,14 @@ module internal PluginsHelper =
     ps.Attributes.Add("filteringattributes", step.filteredAttributes)
     ps.Attributes.Add("supporteddeployment", OptionSetValue(step.deployment))
     ps.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
+    match isDefaultGuid step.userContext with
+     | true -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser",step.userContext))
+     | false -> ()
     String.IsNullOrEmpty(step.logicalName) |> function
       | true  -> ()
       | false ->
         ps.Attributes.Add("sdkmessagefilterid",
           EntityReference("sdkmessagefilter",filterId))
-    enum<UserContext>(step.userContext) |> function
-      | UserContext.System -> ps.Attributes.Add("impersonatinguserid", CrmData.Entities.retrieveSystemUser)
-      | UserContext.CallingUser -> ps.Attributes.Add("impersonatinguserid",null)
-      | _ -> ps.Attributes.Add("impersonatinguserid",null)
     ps
 
   // Create a new image with the provided image informations under the defined step
@@ -397,6 +395,9 @@ module internal PluginsHelper =
     ps.Attributes.Add("mode", OptionSetValue(step.executionMode))
     ps.Attributes.Add("rank", step.executionOrder)
     ps.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
+    match isDefaultGuid step.userContext with
+     | true -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser",step.userContext))
+     | false -> ps.Attributes.Add("impersonatinguserid", null)
     ps
 
   // Used to update an existing image with changes to its attributes
@@ -504,6 +505,8 @@ module internal PluginsHelper =
             defaultAttributeVal y "rank" 0
           let filteredA = 
             defaultAttributeVal y "filteringattributes" null
+          let userContext = 
+            defaultAttributeVal y "impersonatinguserid" Guid.Empty
             
           let step, update =
             plugins
@@ -511,9 +514,9 @@ module internal PluginsHelper =
             |> Seq.head
             |> fun pl -> 
               (pl.step,(pl.step.executionStage,pl.step.deployment,pl.step.executionMode,
-                pl.step.executionOrder,pl.step.filteredAttributes))
+                pl.step.executionOrder,pl.step.filteredAttributes,pl.step.userContext))
 
-          match (stage.Value,deploy.Value,mode.Value,order,filteredA) = update with
+          match (stage.Value,deploy.Value,mode.Value,order,filteredA,userContext) = update with
           | true ->  None
           | false ->
             let stepEntity = updateStep y.Id step
@@ -744,7 +747,7 @@ module internal PluginsHelper =
         | true -> ()
         | false -> 
           log.WriteLine(LogLevel.Info, "Updating Assembly")
-          CrmData.CRUD.update p (updateAssembly' x.Id solution.dllPath solution.assembly hash) 
+          CrmData.CRUD.update p (updateAssembly' x.Id solution.dllPath solution.assembly solution.hash) 
           |> ignore
 
           log.WriteLine(LogLevel.Verbose, sprintf "%s: %s was updated" x.LogicalName (getName x)) ) )
