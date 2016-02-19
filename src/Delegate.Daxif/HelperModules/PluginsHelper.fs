@@ -9,7 +9,13 @@ open DG.Daxif
 open DG.Daxif.HelperModules.Common
 open DG.Daxif.HelperModules.Common.Utility
 
-(* This module is used to synchronize plugin sollution assembly to a CRM. *)
+(*
+  This module is used to synchronize a plugin solution assembly to a CRM. 
+  The assembloes are build with an extended Plugin.cs see http://delegateas.github.io/Delegate.Daxif/plugin-reg-setup.html
+  This script enables Daxif to fetch data of each plugin through incovation.
+  Each plugin is validated in order to ensure that the plugins are correclty configured.
+  If the plugin is valid then Daxif will syncronize the plugins in CRM.
+*)
 
 module internal PluginsHelper =
 
@@ -78,6 +84,11 @@ module internal PluginsHelper =
   let isDefaultGuid guid =
     guid = Guid.Empty
 
+  // Used to create a temprorary organization proxy to connect to CRM
+  let proxyContext client f =
+    use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
+    f p
+
   // Returns the message name of a step consisting of class name, event operation and 
   // logical name. If the step does not contain a logical name then it targets any entity
   let messageName step =
@@ -85,9 +96,14 @@ module internal PluginsHelper =
         | true -> "any Entity" | false -> step.logicalName
     sprintf "%s: %s of %s" step.className step.eventOperation entity' 
 
-  (* Module used to validate that each step and images are correctly configured  *)
+  (* 
+    Module used to validate that each step and images are correctly configured.
+    If an invalid step or image is found and error is produced an no further 
+    test are performed
+  *)
   module Validation =
-      
+     
+     // Types for steps and image parameters
     type ExecutionMode =
       | Synchronous = 0
       | Asynchronous = 1
@@ -102,6 +118,7 @@ module internal PluginsHelper =
       | PostImage = 1
       | Both = 2
 
+    // Helper functions and monads for step based testing
     type Result<'TValid,'TInvalid> = 
       | Valid of 'TValid
       | Invalid of 'TInvalid
@@ -115,7 +132,7 @@ module internal PluginsHelper =
         | Some(name,_) -> Invalid (sprintf msg name)
         | None -> Valid plugins
 
-      
+    // Functions testing different aspects of the plugins
     let preOperationNoPreImages plugins =
       let invalids =
         plugins
@@ -194,23 +211,41 @@ module internal PluginsHelper =
           not (Seq.isEmpty i'))
             
       findInvalid plugins invalidPlugins "%s: Post-events does not support post-images"
-      
+
+    let validUserContext client plugins =
+      let invalidPlugins =
+        plugins
+        |> Seq.filter(fun (_,pl) -> isDefaultGuid pl.step.userContext |> not)
+        |> Seq.filter(fun (_,pl) ->
+          proxyContext client (fun p ->
+            try 
+              match CrmData.CRUD.retrieve p "systemuser" pl.step.userContext with
+              | _ -> false
+            with _ -> true 
+          )
+        )
+
+      findInvalid plugins invalidPlugins "%s: Defined user context is not in the system"
+    
+    // Collection of all validation steps
+
     let validateAssociateDisassosiate =
       associateDisassociateNoFilters
       >> bind associateDisassociateNoImages
       >> bind associateDisassociateAllEntity
 
-    let validate =
+    let validate client =
       postOperationNoAsync
       >> bind preOperationNoPreImages
       >> bind validateAssociateDisassosiate
       >> bind preEventsNoPreImages
       >> bind postEventsNoPostImages
+      >> bind (validUserContext client)
 
-    let validatePlugins plugins =
+    let validatePlugins plugins client =
       plugins
       |> Seq.map(fun pl -> ((messageName pl.step),pl))
-      |> validate
+      |> validate client
 
   // Used to set the requied attribute messagePropertyName 
   // based on the message class when creating images
@@ -311,11 +346,6 @@ module internal PluginsHelper =
       |> Array.toSeq
       |> Seq.concat
       |> Seq.map( fun x -> tupleToRecord x )
-  
-  // Used to create a temprorary organization proxy to connect to CRM
-  let proxyContext client f =
-    use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-    f p
 
   // Creates a new assembly in CRM with the provided information
   let createAssembly name dll (asm:Assembly) hash =
@@ -362,8 +392,8 @@ module internal PluginsHelper =
     ps.Attributes.Add("supporteddeployment", OptionSetValue(step.deployment))
     ps.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
     match isDefaultGuid step.userContext with
-     | true -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser",step.userContext))
-     | false -> ()
+     | true -> ()
+     | false -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser",step.userContext))
     String.IsNullOrEmpty(step.logicalName) |> function
       | true  -> ()
       | false ->
@@ -396,8 +426,8 @@ module internal PluginsHelper =
     ps.Attributes.Add("rank", step.executionOrder)
     ps.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
     match isDefaultGuid step.userContext with
-     | true -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser",step.userContext))
-     | false -> ps.Attributes.Add("impersonatinguserid", null)
+     | true -> ps.Attributes.Add("impersonatinguserid", null)
+     | false -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser",step.userContext))
     ps
 
   // Used to update an existing image with changes to its attributes
@@ -506,8 +536,11 @@ module internal PluginsHelper =
           let filteredA = 
             defaultAttributeVal y "filteringattributes" null
           let userContext = 
-            defaultAttributeVal y "impersonatinguserid" Guid.Empty
-            
+            defaultAttributeVal y "impersonatinguserid" null
+            |> function
+              | null -> Guid.Empty
+              | (x: EntityReference) -> x.Id
+
           let step, update =
             plugins
             |> Seq.filter(fun pl -> name = messageName pl.step)
@@ -891,7 +924,7 @@ module internal PluginsHelper =
     let sourcePlugins = typesAndMessages asm
 
     log.WriteLine(LogLevel.Verbose, "Validating plugins to be registered")
-    match Validation.validatePlugins sourcePlugins with
+    match Validation.validatePlugins sourcePlugins client with
       | Validation.Invalid x ->
         failwith x
       | Validation.Valid _ -> 
