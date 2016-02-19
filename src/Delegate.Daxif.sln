@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{F456FA03-61C5-4086-B1C5-76EEAE961134}"
 	ProjectSection(SolutionItems) = preProject
@@ -21,8 +21,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "project", "project", "{91D2
 		RELEASE_NOTES.md = RELEASE_NOTES.md
 		uninstall.ps1 = uninstall.ps1
 	EndProjectSection
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "DebugProject", "DebugProject\DebugProject.fsproj", "{360D2D15-D402-41E7-B673-38D0F272D327}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,18 +42,6 @@ Global
 		{380BA6A3-8276-490C-B9F9-4CAD64035AE3}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{380BA6A3-8276-490C-B9F9-4CAD64035AE3}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{380BA6A3-8276-490C-B9F9-4CAD64035AE3}.Release|x86.ActiveCfg = Release|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Debug|x86.Build.0 = Debug|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Release|Any CPU.Build.0 = Release|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Release|x86.ActiveCfg = Release|Any CPU
-		{360D2D15-D402-41E7-B673-38D0F272D327}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
