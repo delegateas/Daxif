@@ -128,8 +128,8 @@ let associations = rootFolder + @"\associations\"
 let mapping = rootFolder + @"\mapping\"
 let imported = rootFolder + @"\imported\"
 
-let webresources = rootFolder + @"\..\..\WebResources\src\"
-let tools = rootFolder + @"\..\..\..\Tools\"
+let webresources = rootFolder + @"\..\WebResources\src\"
+let tools = rootFolder + @"\..\..\Tools\"
 
 let pubPrefix = @"dg"
 let pubName = @"delegateas"

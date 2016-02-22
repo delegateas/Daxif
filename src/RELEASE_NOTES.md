@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.2.0.7 - Feb 22 2016
+* Fixed path in script files after removel of folder level in 2.2.0.5
+
 #### 2.2.0.6 - Feb 14 2016
 * Fixed Log in Config script
 
