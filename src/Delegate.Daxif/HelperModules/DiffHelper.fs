@@ -557,13 +557,15 @@ module internal DiffHelper =
         path "/close" >=> CLOSE
         RequestErrors.NOT_FOUND "Found no handlers"]
 
+  let solutionApp pathSource pathTarget (log:ConsoleLogger.ConsoleLogger) =
+    diffs pathSource pathTarget log
+    |> app pathSource pathTarget
+
   // Creates the app for displaying the diff page and start the webserver and 
   // opens the web page in the default webbrowser 
   let solution' pathSource pathTarget log =
 
-    let app' =
-      diffs pathSource pathTarget log
-      |> app pathSource pathTarget
+    let app' = solutionApp pathSource pathTarget log
 
     let port = 
       availablePort
