@@ -20,9 +20,9 @@ DAXIF# operations
 Extract solution *)
 cfg.ensureFolder cfg.solutions
 
-let map   = cfg.rootFolder + @"\..\..\Blueprint\DG.XrmOrg.XrmSolution.xml"
-let cms   = cfg.rootFolder + @"\..\..\Blueprint\customizations"
-let vsSol = cfg.rootFolder + @"\..\..\Blueprint\Blueprint.csproj"
+let map   = cfg.rootFolder + @"\..\Blueprint\DG.XrmOrg.XrmSolution.xml"
+let cms   = cfg.rootFolder + @"\..\Blueprint\customizations"
+let vsSol = cfg.rootFolder + @"\..\Blueprint\Blueprint.csproj"
 
 let zip = cfg.solutions + cfg.solution + @".zip"
 

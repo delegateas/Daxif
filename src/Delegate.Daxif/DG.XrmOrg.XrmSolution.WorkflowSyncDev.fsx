@@ -18,7 +18,7 @@ DAXIF# operations
 -----------------
 
 Sync Plugins Dev *)
-let dll  = cfg.rootFolder + @"\..\..\Workflow\bin\Release\ILMerged.Delegate.XrmOrg.XrmSolution.Plugins.dll"
+let dll  = cfg.rootFolder + @"\..\Workflow\bin\Release\ILMerged.Delegate.XrmOrg.XrmSolution.Plugins.dll"
 
 Workflow.syncSolution
   cfg.wsdlDev' cfg.solution dll

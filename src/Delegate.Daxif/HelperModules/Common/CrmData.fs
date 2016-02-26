@@ -196,13 +196,13 @@ module internal CrmData =
       let conditionString = 
         List.fold (fun state condition -> state + conditionToString condition) 
           String.Empty conditions
-      let fetchxml = (sprintf "<fetch mapping='logical' distinct='false' no-lock='true' aggregate='true'>\              
-               <entity name='%s'>\
-                 <attribute name='%s' alias='count' aggregate='count'/>\
+      let fetchxml = (sprintf "<fetch mapping='logical' distinct='false' no-lock='true' aggregate='true'>\
+           <entity name='%s'>\
+             <attribute name='%s' alias='count' aggregate='count'/>\
                  <filter>\
                    %s
                  </filter>\
-               </entity>\
+           </entity>\
              </fetch>" logicalName em.PrimaryIdAttribute conditionString)
       let fetch = new FetchExpression(fetchxml)
       
@@ -223,6 +223,7 @@ module internal CrmData =
           ("componenttype", "neq", "60") ] 
       countHelper proxy "solutioncomponent" conditions
 
+    // TODO: Ensure that the right system user is returned
     let retrieveSystemUser proxy domainName = 
       let (domainName : string) = domainName
       let ln = @"systemuser"
@@ -299,19 +300,6 @@ module internal CrmData =
       q.ColumnSet <- ColumnSet(true)
       CRUD.retrieveMultiple proxy logicalName q
     
-    let retrieveAllComponents proxy solutionId = 
-      let (solutionId : Guid) = solutionId
-      let ln = @"solutioncomponent"
-      let an = @"solutionid"
-      let em = Metadata.entity proxy ln
-      let f = FilterExpression()
-      f.AddCondition
-        (ConditionExpression(an, ConditionOperator.Equal, solutionId))
-      let q = QueryExpression(ln)
-      q.ColumnSet <- ColumnSet(true)
-      q.Criteria <- f
-      CRUD.retrieveMultiple proxy ln q
-
     let retrieveAllEntitiesLight proxy logicalName = 
       let em = Metadata.entity proxy logicalName
       let q = QueryExpression(logicalName)
