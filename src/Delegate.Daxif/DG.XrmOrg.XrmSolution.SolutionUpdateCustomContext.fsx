@@ -19,7 +19,7 @@ DAXIF# operations
 
 Generate System Context *)
 let ccs = cfg.tools + @"\DG\XrmContext\XrmContext.exe"
-let ctx = cfg.rootFolder + @"\..\..\BusinessDomain"
+let ctx = cfg.rootFolder + @"\..\BusinessDomain"
 
 Solution.updateCustomServiceContext
   cfg.wsdlDev' ctx

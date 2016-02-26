@@ -19,7 +19,7 @@ DAXIF# operations
 
 Generate System Context *)
 let csu = cfg.tools + @"\MS\CrmSvcUtil\CrmSvcUtil.exe"
-let ctx = cfg.rootFolder + @"\..\..\BusinessDomain"
+let ctx = cfg.rootFolder + @"\..\BusinessDomain"
 
 Solution.updateServiceContext
   cfg.wsdlDev' ctx

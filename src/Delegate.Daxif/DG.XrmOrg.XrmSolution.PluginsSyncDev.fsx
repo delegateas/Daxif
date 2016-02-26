@@ -18,8 +18,8 @@ DAXIF# operations
 -----------------
 
 Sync Plugins Dev *)
-let dll  = cfg.rootFolder + @"\..\..\Plugins\bin\Debug\ILMerged.Delegate.XrmOrg.XrmSolution.Plugins.dll"
-let proj = cfg.rootFolder + @"\..\..\Plugins\Plugins.csproj"
+let dll  = cfg.rootFolder + @"\..\Plugins\bin\Debug\ILMerged.Delegate.XrmOrg.XrmSolution.Plugins.dll"
+let proj = cfg.rootFolder + @"\..\Plugins\Plugins.csproj"
 
 Plugins.syncSolution
   cfg.wsdlDev' cfg.solution proj dll
