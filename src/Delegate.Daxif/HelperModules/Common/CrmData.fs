@@ -189,24 +189,40 @@ module internal CrmData =
       let req = assignReq userid logicalName guid
       proxy.Execute(req) :?> Messages.AssignResponse |> ignore
     
-    let count proxy logicalName = 
+    let countHelper proxy logicalName conditions = 
       let em = Metadata.entity proxy logicalName
-      let fetchxml = (sprintf "<fetch mapping='logical' distinct='false' no-lock='true' aggregate='true'>\
-           <entity name='%s'>\
-             <attribute name='%s' alias='count' aggregate='count'/>\
-           </entity>\
-         </fetch>" logicalName em.PrimaryIdAttribute)
+      let conditionToString (att, op, value) = 
+        sprintf "<condition attribute='%s' operator='%s' value='%s'/>" att op value
+      let conditionString = 
+        List.fold (fun state condition -> state + conditionToString condition) 
+          String.Empty conditions
+      let fetchxml = (sprintf "<fetch mapping='logical' distinct='false' no-lock='true' aggregate='true'>\              
+               <entity name='%s'>\
+                 <attribute name='%s' alias='count' aggregate='count'/>\
+                 <filter>\
+                   %s
+                 </filter>\
+               </entity>\
+             </fetch>" logicalName em.PrimaryIdAttribute conditionString)
       let fetch = new FetchExpression(fetchxml)
-      match em.IsManaged.Value && not em.IsCustomizable.Value with
-      | true -> 0
-      | false -> 
-        proxy.RetrieveMultiple(fetch).Entities
-        |> Seq.head
-        |> fun x -> 
-          match x.Attributes.Contains("count") with
-          | false -> 0
-          | true -> x.GetAttributeValue<AliasedValue>("count").Value :?> int
+      
+      proxy.RetrieveMultiple(fetch).Entities
+      |> Seq.head
+      |> fun x -> 
+        match x.Attributes.Contains("count") with
+        | false -> 0
+        | true -> x.GetAttributeValue<AliasedValue>("count").Value :?> int
     
+    let count proxy logicalName = countHelper proxy logicalName List.Empty
+    
+    // Why we don't take System Form codes
+    // http://www.resultondemand.nl/support/sdk/d14563f7-1fae-4a54-82af-afacf5c8fd56.htm#BKMK_SystemForm
+    let countEntities proxy solutionId = 
+      let conditions = 
+        [ ("solutionid", "eq", string solutionId)
+          ("componenttype", "neq", "60") ] 
+      countHelper proxy "solutioncomponent" conditions
+
     let retrieveSystemUser proxy domainName = 
       let (domainName : string) = domainName
       let ln = @"systemuser"
@@ -283,6 +299,19 @@ module internal CrmData =
       q.ColumnSet <- ColumnSet(true)
       CRUD.retrieveMultiple proxy logicalName q
     
+    let retrieveAllComponents proxy solutionId = 
+      let (solutionId : Guid) = solutionId
+      let ln = @"solutioncomponent"
+      let an = @"solutionid"
+      let em = Metadata.entity proxy ln
+      let f = FilterExpression()
+      f.AddCondition
+        (ConditionExpression(an, ConditionOperator.Equal, solutionId))
+      let q = QueryExpression(ln)
+      q.ColumnSet <- ColumnSet(true)
+      q.Criteria <- f
+      CRUD.retrieveMultiple proxy ln q
+
     let retrieveAllEntitiesLight proxy logicalName = 
       let em = Metadata.entity proxy logicalName
       let q = QueryExpression(logicalName)

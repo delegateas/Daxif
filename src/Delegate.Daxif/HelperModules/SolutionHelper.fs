@@ -424,7 +424,17 @@ module internal SolutionHelper =
           "entities", (entities |> fun es -> String.Join(",", es)) ]
         
       let args = args @ extraArgs
-      Utility.executeProcess (exe, args |> toArgString) |> Some
-    dts() |> printProcess "Delegate XrmDefinitelyTyped" log
+      Utility.executeProcess (exe, args |> toArgString)
+    let (code, es, os) = dts()
+    (code, es, os) |> Some |> printProcess "Delegate XrmDefinitelyTyped" log
+    match code with
+    | 0 -> ()
+    | _ -> failwith (sprintf "Delegate XrmDefinitelyTyped failed")
 
-        
+  let count' org solutionName ac (log : ConsoleLogger.ConsoleLogger) = 
+    let m = ServiceManager.createOrgService org
+    let tc = m.Authenticate(ac)
+    use p = ServiceProxy.getOrganizationServiceProxy m tc
+    let solution = CrmData.Entities.retrieveSolution p solutionName
+    CrmData.Entities.countEntities p solution.Id
+    

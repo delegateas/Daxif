@@ -235,3 +235,23 @@ module Solution =
       log'.WriteLine
         (LogLevel.Info, @"The service context was updated successfully")
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+
+  // Counts all the components in the solution.
+  let count org solution ap usr pwd domain log = 
+    let org' : Uri = org
+    let ac = Authentication.getCredentials ap usr pwd domain
+    let log' = ConsoleLogger.ConsoleLogger log
+    let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, @"Count components in: " + solution)
+    log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
+    log'.WriteLine(LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
+    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
+    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
+    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    try 
+      let _count = SolutionHelper.count' org' solution ac log'
+      log'.WriteLine
+        (LogLevel.Info, @"The solution components were counted successfully")
+      log'.WriteLine
+        (LogLevel.Info, @"The solution contains " + string _count + " components")
+    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)

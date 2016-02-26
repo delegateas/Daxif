@@ -43,7 +43,7 @@ module Data =
     try 
       DataHelper.count' org ac entityNames log'
       log'.WriteLine
-        (LogLevel.Info, @"The data counts was retrieved successfully")
+        (LogLevel.Info, @"The data count was retrieved successfully")
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
   
   let updateState org entityName filter state ap usr pwd domain log = 

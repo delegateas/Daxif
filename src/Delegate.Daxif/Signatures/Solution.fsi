@@ -148,3 +148,16 @@ module Solution =
      -> logLevel:LogLevel
      -> solutions:string list
      -> entities:string list -> extraArgs:(string * string) list -> unit
+
+  (**
+  Counts all the components in the solution.
+  *)
+  /// Counts all the components in the solution. 
+  val public count : wsdl:Uri
+     -> solution:string
+     -> ap:AuthenticationProviderType
+     -> usr:string
+     -> pwd:string
+     -> domain:string
+     -> log:LogLevel
+     -> unit

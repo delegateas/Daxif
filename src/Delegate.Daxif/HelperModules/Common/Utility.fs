@@ -156,18 +156,20 @@ module internal Utility =
     let dir = (System.IO.DirectoryInfo(exe)).FullName.Replace(fn, "")
     (exe, args, dir) |> executeProcess'
   
-  let printProcessHelper proc ss log logl = 
+  let printProcessHelper ss log logl = 
     let ss : string = ss
     let log : ConsoleLogger = log
     let logl : LogLevel = logl
-    ss.Split('\n') |> Array.iter (fun x -> log.WriteLine(logl, x))
+    ss.Split('\n')
+    |> Array.filter (fun x -> not (String.IsNullOrWhiteSpace x))
+    |> Array.iter (fun x -> log.WriteLine(logl, x))
   
   let printProcess proc (log : ConsoleLogger) = 
     function 
-    | Some(0, os, es) -> printProcessHelper proc os log LogLevel.Verbose
+    | Some(0, os, _) -> printProcessHelper os log LogLevel.Verbose
     | Some(_, os, es) -> 
-      printProcessHelper proc os log LogLevel.Verbose
-      printProcessHelper proc es log LogLevel.Warning
+      printProcessHelper os log LogLevel.Verbose
+      printProcessHelper es log LogLevel.Error
     | ex -> failwith (sprintf "%s threw an unexpected error: %A" proc ex)
   
   let availablePort = 

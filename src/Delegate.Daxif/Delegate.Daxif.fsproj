@@ -156,6 +156,7 @@
     <None Include="DG.XrmOrg.XrmSolution.SolutionDiff.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.WorkflowSyncDev.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.PluginsSyncDev.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.CountEntities.fsx" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
