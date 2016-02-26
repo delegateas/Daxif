@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.2.0.8 - Feb 26 2016
+* Added the script CountEntites.fsx which counts the entities in the solution
+
 #### 2.2.0.7 - Feb 22 2016
 * Fixed path in script files after removel of folder level in 2.2.0.5
 
