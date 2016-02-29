@@ -360,7 +360,7 @@ module internal SolutionHelper =
       | Some v -> string v
       | None -> System.String.Empty
 
-    let csu () =
+    let csu() =
       let args = 
         (sprintf "/metadataproviderservice:\"DG.MetadataProvider.IfdMetadataProviderService, Delegate.MetadataProvider\" \
                   /url:\"%s\" \
@@ -373,7 +373,7 @@ module internal SolutionHelper =
                   /out:\"%s\Xrm.cs\"" (org.ToString()) usr pwd domain location)
       Utility.executeProcess(exe,args)
 
-    let csu' () =
+    let csu'() =
       let args =
         (sprintf "/metadataproviderservice:\"DG.MetadataProvider.IfdMetadataProviderService, Delegate.MetadataProvider\" \
                   /codewriterfilter:\"Microsoft.Crm.Sdk.Samples.FilteringService, Delegate.GeneratePicklistEnums\" \
@@ -397,7 +397,7 @@ module internal SolutionHelper =
 
   let updateCustomServiceContext' org location ap usr pwd domain exe log 
       (solutions : string list) (entities : string list) extraArgs = 
-    let output = 
+    let ccs() = 
       let args = 
         [ "url", org.ToString()
           "username", usr
@@ -412,11 +412,11 @@ module internal SolutionHelper =
       
       let args = args @ extraArgs
       Utility.executeProcess (exe, args |> toArgString)
-    postProcess output log "DG XrmContext"
+    postProcess (ccs()) log "DG XrmContext"
     
   let updateTypeScriptContext' org location ap usr pwd domain exe log 
       (solutions : string list) (entities : string list) extraArgs = 
-    let output = 
+    let dts() = 
       let args = 
         [ "url", org.ToString()
           "username", usr
@@ -429,7 +429,7 @@ module internal SolutionHelper =
       
       let args = args @ extraArgs
       Utility.executeProcess (exe, args |> toArgString)
-    postProcess output log "Delegate XrmDefinitelyTyped"
+    postProcess (dts()) log "Delegate XrmDefinitelyTyped"
 
   let count' org solutionName ac = 
     let m = ServiceManager.createOrgService org
