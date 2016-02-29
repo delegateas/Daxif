@@ -390,10 +390,19 @@ module internal SolutionHelper =
 
   let toArgString = 
     Seq.map (fun (k, v) -> sprintf "/%s:\"%s\"" k v) >> String.concat " "
+
+  let postProcess (code, es, os) log proc = 
+    (code, es, os)
+    |> Some
+    |> printProcess proc log
+    match code with
+    | 0 -> ()
+    | _ -> failwith (sprintf "%s failed" proc)
+
     
   let updateCustomServiceContext' org location ap usr pwd domain exe log 
       (solutions : string list) (entities : string list) extraArgs = 
-    let ccs() = 
+    let output = 
       let args = 
         [ "url", org.ToString()
           "username", usr
@@ -405,14 +414,14 @@ module internal SolutionHelper =
           "entities", (entities |> fun es -> String.Join(",", es))
           "servicecontextname", "Xrm"
           "namespace", "DG.XrmFramework.BusinessDomain.ServiceContext" ]
-        
+      
       let args = args @ extraArgs
-      Utility.executeProcess (exe, args |> toArgString) |> Some
-    ccs() |> printProcess "DG XrmContext" log
+      Utility.executeProcess (exe, args |> toArgString)
+    postProcess output log "DG XrmContext"
     
   let updateTypeScriptContext' org location ap usr pwd domain exe log 
       (solutions : string list) (entities : string list) extraArgs = 
-    let dts() = 
+    let output = 
       let args = 
         [ "url", org.ToString()
           "username", usr
@@ -422,16 +431,12 @@ module internal SolutionHelper =
           "out", location
           "solutions", (solutions |> fun ss -> String.Join(",", ss))
           "entities", (entities |> fun es -> String.Join(",", es)) ]
-        
+      
       let args = args @ extraArgs
       Utility.executeProcess (exe, args |> toArgString)
-    let (code, es, os) = dts()
-    (code, es, os) |> Some |> printProcess "Delegate XrmDefinitelyTyped" log
-    match code with
-    | 0 -> ()
-    | _ -> failwith (sprintf "Delegate XrmDefinitelyTyped failed")
+    postProcess output log "Delegate XrmDefinitelyTyped"
 
-  let count' org solutionName ac (log : ConsoleLogger.ConsoleLogger) = 
+  let count' org solutionName ac = 
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc

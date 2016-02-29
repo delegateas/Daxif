@@ -249,7 +249,7 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
     try 
-      let _count = SolutionHelper.count' org' solution ac log'
+      let _count = SolutionHelper.count' org' solution ac
       log'.WriteLine
         (LogLevel.Info, @"The solution components were counted successfully")
       log'.WriteLine
