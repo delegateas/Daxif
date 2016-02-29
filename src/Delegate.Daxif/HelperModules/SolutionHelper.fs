@@ -344,9 +344,18 @@ module internal SolutionHelper =
     with ex -> log.WriteLine(LogLevel.Error, ex.Message)
     log.WriteLine(LogLevel.Info, "End output from SolutionPackager")
 
+  // Prints the output and throws an exception if the process failed
+  let postProcess (code, es, os) log proc = 
+    (code, es, os)
+    |> Some
+    |> printProcess proc log
+    match code with
+    | 0 -> ()
+    | _ -> failwith (sprintf "%s failed" proc)
+
   let updateServiceContext' org location ap usr pwd domain exe lcid (log:ConsoleLogger.ConsoleLogger) =
-    let lcid:int option = lcid
-    let lcid' =
+    let lcid : int option = lcid
+    let lcid' = 
       match lcid with
       | Some v -> string v
       | None -> System.String.Empty
@@ -362,8 +371,7 @@ module internal SolutionHelper =
                   /namespace:DG.XrmFramework.BusinessDomain.ServiceContext \
                   /serviceContextName:Xrm \
                   /out:\"%s\Xrm.cs\"" (org.ToString()) usr pwd domain location)
-
-      Utility.executeProcess(exe,args) |> Some 
+      Utility.executeProcess(exe,args)
 
     let csu' () =
       let args =
@@ -379,27 +387,14 @@ module internal SolutionHelper =
                   /namespace:\"DG.XrmFramework.BusinessDomain.ServiceContext.OptionSets\" \
                   /serviceContextName:\"XrmOptionSets\" \
                   /out:\"%s\XrmOptionSets.cs\"" lcid' (org.ToString()) usr pwd domain location)
-      Utility.executeProcess(exe,args) |> Some 
+      Utility.executeProcess(exe,args)
 
-    csu ()
-    |> printProcess "MS CrmSvcUtil SDK" log
-
-    csu' ()
-    |> printProcess "MS CrmSvcUtil SDK (Option Sets)" log
-
+    postProcess (csu()) log "MS CrmSvcUtil SDK"
+    postProcess (csu'()) log "MS CrmSvcUtil SDK (Option Sets)"
 
   let toArgString = 
     Seq.map (fun (k, v) -> sprintf "/%s:\"%s\"" k v) >> String.concat " "
 
-  let postProcess (code, es, os) log proc = 
-    (code, es, os)
-    |> Some
-    |> printProcess proc log
-    match code with
-    | 0 -> ()
-    | _ -> failwith (sprintf "%s failed" proc)
-
-    
   let updateCustomServiceContext' org location ap usr pwd domain exe log 
       (solutions : string list) (entities : string list) extraArgs = 
     let output = 
