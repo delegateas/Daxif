@@ -12,7 +12,7 @@ open DG.Daxif.HelperModules.Common.Utility
 
 let rootFolder = __SOURCE_DIRECTORY__
 
-Directory.EnumerateFiles(rootFolder + @"\packages\", @"*.dll", SearchOption.AllDirectories)
+Directory.EnumerateFiles(rootFolder + @"\lib\", @"*.dll", SearchOption.AllDirectories)
 |> Seq.iter(fun x -> File.Copy(x, rootFolder + @"\..\lib\" + Path.GetFileName(x), true))
 
 printfn "%O" @"Copied all assemblies to ..\lib\"
