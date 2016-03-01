@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.2.0.10 - Mar 01 2016
+* Removed Daxif folder from content in NuGet specs
+
 #### 2.2.0.9 - Mar 01 2016
 * Updated PowerShell scripts after updating Daxif script path
 
