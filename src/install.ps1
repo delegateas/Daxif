@@ -1,7 +1,6 @@
 ﻿param($installPath, $toolsPath, $package, $project)
 
-$sampleFolder = "Daxif"
-$dest = "{0}\{1}\" -f $project.Name, $sampleFolder
+$dest = "{0}\" -f $project.Name
 
 write-host "Copying required .dll and .xml files to scripts folder:" $dest
 

@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.2.0.9 - Mar 01 2016
+* Updated PowerShell scripts after updating Daxif script path
+
 #### 2.2.0.8 - Feb 26 2016
 * Added the script CountEntites.fsx which counts the entities in the solution
 
