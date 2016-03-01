@@ -103,8 +103,8 @@ Target "NuGet" (fun _ ->
              Publish = hasBuildParam "delegateas-nugetkey"
              Dependencies = 
                [ "FSharp.Core", "[4.0.0.1]"
-                 "Microsoft.CrmSdk.CoreAssemblies", "[8.0.1]"
-                 "Microsoft.CrmSdk.CoreTools", "[8.0.1]"
+                 "Microsoft.CrmSdk.CoreAssemblies", "[8.0.2.1]"
+                 "Microsoft.CrmSdk.CoreTools", "[8.0.2.1]"
                  "Suave", "[1.1.0]"
                  "XMLDiffPatch", "[1.0.8.28]" ]
              References = [] }) (@"nuget/" + project + ".nuspec"))

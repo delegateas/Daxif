@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.2.0.11 - Mar 01 2016
+* Upgraded to newest Microsoft.CrmSdk.CoreAssemblies and Microsoft.CrmSdk.CoreTools
+
 #### 2.2.0.10 - Mar 01 2016
 * Removed Daxif folder from content in NuGet specs
 
