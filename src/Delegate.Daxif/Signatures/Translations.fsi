@@ -6,11 +6,11 @@ open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
 
 module Translations = 
-  (**
-  Translations
-  ==================
+(**
+Translations
+==================
 
-  *)
+*)
   /// TODO:
   val public export : wsdl:Uri
      -> solution:string

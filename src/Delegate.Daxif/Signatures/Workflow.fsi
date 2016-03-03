@@ -7,11 +7,11 @@ open DG.Daxif
 
 /// Implements function which allow you to synchronize workflows in a solution
 module Workflow = 
-  (**
-  Workflow
-  ========
+(**
+Workflow
+========
 
-  *)
+*)
   /// Syncronize workflow with a solution
   val public syncSolution : wsdl:Uri
      -> solution:string

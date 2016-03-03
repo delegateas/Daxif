@@ -8,11 +8,11 @@ open Suave
 
 /// Contains several ways of seeing the difference between two packaged Crm solutions
 module Diff = 
-  (**
-  Diff
-  ==========
+(**
+Diff
+==========
 
-  *)
+*)
   /// Interactive service for exploring the difference between two package solutions. Starts a local webserver and opens the default browser.
   val public solution : source:string
      -> target:string -> logLevel:LogLevel -> unit

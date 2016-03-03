@@ -1,5 +1,12 @@
 # Release Notes
 
+#### 2.2.0.12 - Mar 03 2016
+* Fixed issue where interfaces documentation where not displayed on the GitHub
+  page. FSharp.Literate is sensitive to indentation and recently the .fsi files
+  where altered. The markdown notation in the .fsi files was indented resulting 
+  in only the first markdown notation which hid everything between two markdown
+  notations.
+
 #### 2.2.0.11 - Mar 01 2016
 * Upgraded to newest Microsoft.CrmSdk.CoreAssemblies and Microsoft.CrmSdk.CoreTools
 
@@ -14,6 +21,9 @@
 
 #### 2.2.0.7 - Feb 22 2016
 * Fixed path in script files after removel of folder level in 2.2.0.5
+* Updated PluginSync to handle user context and accept a guid of a user entity 
+  to impersonate as. This enables a plugin to be executed under that user.
+  A new [Plugin.cs](https://gist.github.com/TomMalow/b9301e024879639a6918) is requried from the current version and up
 
 #### 2.2.0.6 - Feb 14 2016
 * Fixed Log in Config script

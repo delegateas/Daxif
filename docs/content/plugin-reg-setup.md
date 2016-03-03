@@ -65,5 +65,5 @@ This completely eliminates the need to use the
 [PluginRegistration tool][plugin-reg-tool] for registering plugins.
 
 
-[plugin-gist]: https://gist.github.com/TomMalow/b9301e024879639a6918
+[plugin-gist]: https://github.com/TomMalow/ExtendedPlugin.cs
 [plugin-reg-tool]: https://msdn.microsoft.com/en-us/library/gg309580.aspx
