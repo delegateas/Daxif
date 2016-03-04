@@ -173,17 +173,15 @@ module internal WebResourcesHelper =
              let guid = CrmData.CRUD.create p' y pc
              let msg = sprintf "%s: (%O,%s) was created" y.LogicalName guid yrn
              log.WriteLine(LogLevel.Verbose, msg)
-             true
            | WebResourceAction.Update -> 
              CrmData.CRUD.update p' y |> ignore
              let msg = sprintf "%s: (%O,%s) was updated" yrn y.Id yrn //y.LogicalName y.Id yrn?
              log.WriteLine(LogLevel.Verbose, msg)
-             true
            | WebResourceAction.Delete -> 
              CrmData.CRUD.delete p' y.LogicalName y.Id |> ignore
              let msg = sprintf "%s: (%O,%s) was deleted" y.LogicalName y.Id yrn
              log.WriteLine(LogLevel.Verbose, msg)
-             true
+           true
          with ex -> 
            log.WriteLine(LogLevel.Error, ex.Message.Replace(string y.Id, yrn))
            false)
@@ -201,4 +199,3 @@ module internal WebResourcesHelper =
           (LogLevel.Verbose, 
            "All accepted changes (if any) were successfully published")
         failwith "Some changes failed")
-  
