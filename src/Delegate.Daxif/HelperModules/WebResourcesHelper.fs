@@ -116,7 +116,8 @@ module internal WebResourcesHelper =
     let create' = 
       create
       |> Set.toArray
-      |> Array.Parallel.map (fun x -> 
+      |> Array.Parallel.map 
+           (fun x -> 
            localResourceToWebResource ((location, x) ||> fullpath) prefix 
              solutionName log)
       |> Array.choose (fun x -> id x)
@@ -161,7 +162,7 @@ module internal WebResourcesHelper =
       yield! update'
     }
     |> Seq.toArray
-    |> Array.Parallel.iter (fun (x, y) -> 
+    |> Array.forall (fun (x, y) -> 
          use p' = ServiceProxy.getOrganizationServiceProxy m tc
          let yrn = y.Attributes.["name"] :?> string
          try 
@@ -172,21 +173,32 @@ module internal WebResourcesHelper =
              let guid = CrmData.CRUD.create p' y pc
              let msg = sprintf "%s: (%O,%s) was created" y.LogicalName guid yrn
              log.WriteLine(LogLevel.Verbose, msg)
+             true
            | WebResourceAction.Update -> 
              CrmData.CRUD.update p' y |> ignore
-             let msg = sprintf "%s: (%O,%s) was updated" yrn y.Id yrn
+             let msg = sprintf "%s: (%O,%s) was updated" yrn y.Id yrn //y.LogicalName y.Id yrn?
              log.WriteLine(LogLevel.Verbose, msg)
+             true
            | WebResourceAction.Delete -> 
              CrmData.CRUD.delete p' y.LogicalName y.Id |> ignore
              let msg = sprintf "%s: (%O,%s) was deleted" y.LogicalName y.Id yrn
              log.WriteLine(LogLevel.Verbose, msg)
-         with ex -> log.WriteLine(LogLevel.Error, ex.Message))
-    match create'.Length, delete'.Length, update'.Length with
-    | (0, 0, 0) -> ()
-    | _ -> 
+             true
+         with ex -> 
+           log.WriteLine(LogLevel.Error, ex.Message.Replace(string y.Id, yrn))
+           false)
+    |> (fun noError -> 
+    match create'.Length, delete'.Length, update'.Length, noError with
+    | (0, 0, 0, _) -> ()
+    | (_, _, _, noError) -> 
       log.WriteLine(LogLevel.Verbose, @"Publishing changes to the solution")
-
       CrmData.CRUD.publish p
-
-      log.WriteLine
-        (LogLevel.Verbose, @"The changes were successfully published")
+      match noError with
+      | true -> 
+        log.WriteLine(LogLevel.Verbose, "All changes were successfully published")
+      | false -> 
+        log.WriteLine
+          (LogLevel.Verbose, 
+           "All accepted changes (if any) were successfully published")
+        failwith "Some changes failed")
+  
