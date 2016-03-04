@@ -162,7 +162,7 @@ module internal WebResourcesHelper =
       yield! update'
     }
     |> Seq.toArray
-    |> Array.forall (fun (x, y) -> 
+    |> Array.Parallel.partition (fun (x, y) -> 
          use p' = ServiceProxy.getOrganizationServiceProxy m tc
          let yrn = y.Attributes.["name"] :?> string
          try 
@@ -187,17 +187,17 @@ module internal WebResourcesHelper =
              (LogLevel.Error, 
               ex.Message.Replace(string y.Id, string y.Id + ", " + yrn))
            false)
-    |> (fun noError -> 
-    match create'.Length, delete'.Length, update'.Length, noError with
-    | (0, 0, 0, _) -> ()
-    | (_, _, _, noError) -> 
+    |> (fun partition -> 
+    match partition with
+    | [||], [||] -> ()
+    | [||], ____ -> failwith "Nothing to publish, all changes failed"
+    | ____, fail -> 
       log.WriteLine(LogLevel.Verbose, @"Publishing changes to the solution")
       CrmData.CRUD.publish p
-      match noError with
-      | true -> 
+      match fail with
+      | [||] -> 
         log.WriteLine(LogLevel.Verbose, "All changes were successfully published")
-      | false -> 
+      | ____ -> 
         log.WriteLine
-          (LogLevel.Verbose, 
-           "All accepted changes (if any) were successfully published")
+          (LogLevel.Verbose, "Some changes were successfully published")
         failwith "Some changes failed")
