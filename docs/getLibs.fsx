@@ -1,4 +1,4 @@
-﻿#r @"..\src\packages\Microsoft.CrmSdk.CoreAssemblies.8.0.1\lib\net45\Microsoft.Xrm.Sdk.dll"
+﻿#r @"..\src\packages\Microsoft.CrmSdk.CoreAssemblies.8.0.2.1\lib\net45\Microsoft.Xrm.Sdk.dll"
 #load @"..\src\Delegate.Daxif\Daxif.fs"
 #load @"..\src\Delegate.Daxif\HelperModules\Common\ConsoleLogger.fs"
 #load @"..\src\Delegate.Daxif\HelperModules\Common\Utility.fs"

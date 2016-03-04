@@ -7,11 +7,11 @@ open DG.Daxif
 
 /// Implements function which allow you to synchronize plugins in a solution
 module Plugins = 
-  (**
-  Plugins
-  ==================
+(**
+Plugins
+==================
 
-  *)
+*)
   /// Synchronize plugins in a solution
   val public syncSolution : wsdl:Uri
      -> solution:string

@@ -23,7 +23,7 @@ Interface documentation
 -----------------------
 
 Besides what is found in the [API Reference](reference/index.html), here is
-a list of the signature files for each of the available s in the project 
+a list of the signature files for each of the available models in the project 
 with some extra documentation.
 
 * [Data](Data.html)

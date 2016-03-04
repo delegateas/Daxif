@@ -6,11 +6,11 @@ open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
 
 module WebResources = 
-  (**
-  WebResources
-  ==================
+(**
+WebResources
+==================
 
-  *)
+*)
   /// TODO:
   val public syncSolution : wsdl:Uri
      -> solution:string

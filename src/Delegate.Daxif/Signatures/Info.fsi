@@ -7,12 +7,12 @@ open DG.Daxif
 
 /// Implements functions to get information about the CRM
 module Info = 
-  (**
-  Info
-  ==========
+(**
+Info
+==========
 
-  Retrieves and outputs the CRM version to the log.
-  *)
+Retrieves and outputs the CRM version to the log.
+*)
   /// Retrieves and outputs the CRM version to the log.
   val public version : wsdl:Uri
      -> ap:AuthenticationProviderType

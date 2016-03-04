@@ -8,11 +8,11 @@ open DG.Daxif
 
 /// Contains several functions to help the serialization process of data.
 module Serialization =
-    (**
-    Serialization 
-    ====================
+(**
+Serialization 
+====================
 
-    *)
+*)
     /// TODO:
     val public map2Dictionary :
         Map<'a,'b> -> 
