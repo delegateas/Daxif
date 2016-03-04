@@ -183,7 +183,9 @@ module internal WebResourcesHelper =
              log.WriteLine(LogLevel.Verbose, msg)
            true
          with ex -> 
-           log.WriteLine(LogLevel.Error, ex.Message.Replace(string y.Id, yrn))
+           log.WriteLine
+             (LogLevel.Error, 
+              ex.Message.Replace(string y.Id, string y.Id + ", " + yrn))
            false)
     |> (fun noError -> 
     match create'.Length, delete'.Length, update'.Length, noError with
