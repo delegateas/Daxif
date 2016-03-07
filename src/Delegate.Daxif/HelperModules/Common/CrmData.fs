@@ -198,7 +198,7 @@ module internal CrmData =
           String.Empty conditions
       let fetchxml = (sprintf "<fetch mapping='logical' distinct='false' no-lock='true' aggregate='true'>\
            <entity name='%s'>\
-             <attribute name='%s' alias='count' aggregate='count'/>\
+             <attribute name='%s' alias='count' aggregate='countcolumn'/>\
                  <filter>\
                    %s
                  </filter>\

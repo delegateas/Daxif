@@ -11,7 +11,8 @@ WebResources
 ==================
 
 *)
-  /// TODO:
+  /// Synchronizes all web resources in `location` and any of its subfolders to 
+  /// the solution at `wsdl`.
   val public syncSolution : wsdl:Uri
      -> solution:string
      -> location:string
