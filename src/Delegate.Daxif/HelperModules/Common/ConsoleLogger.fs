@@ -1,5 +1,7 @@
 ﻿namespace DG.Daxif.HelperModules.Common
 
+#nowarn "40"
+
 open System
 open System.IO
 open System.Reflection
@@ -10,6 +12,8 @@ open DG.Daxif
 // TODO: 
 module internal ConsoleLogger = 
   type private cc = ConsoleColor
+
+  type Agent = MailboxProcessor<LogLevel * string>
   
   type ConsoleLogger(logLevel : LogLevel) = 
     let threadSafe = ref String.Empty
@@ -35,10 +39,10 @@ module internal ConsoleLogger =
         let pre = ts + " - " + level''.ToString() + ": "
         Console.ForegroundColor <- fc
         Console.BackgroundColor <- bc
-        let msg = sprintf "%s" (pre + str)
+//        let msg = sprintf "%s" (pre + str)
         match level with
-        | LogLevel.Warning | LogLevel.Error -> Console.Error.WriteLine(msg)
-        | _ -> Console.WriteLine(msg)
+        | LogLevel.Warning | LogLevel.Error -> eprintfn "%s" (pre + str)
+        | _ -> printfn "%s" (pre + str)
       finally
         Console.ForegroundColor <- ofc
         Console.BackgroundColor <- obc
@@ -53,16 +57,32 @@ module internal ConsoleLogger =
       | LogLevel.File -> failwith "LogLevel.File is @deprecated."
       | LogLevel.Debug -> prettyPrint cc.DarkYellow obc LogLevel.Debug str
       | _ -> ()
+
+//    let agent fn = 
+    let agent () =
+      Agent.Start(fun inbox -> 
+        let rec loop = async { 
+          let! (logLevel, msg) = inbox.Receive()
+//          fn logLevel msg
+          logger logLevel msg
+          return! loop }
+        loop)
+
+    // Reducer (one single agent). Side effects thread-safe
+//    let reducerFun = fun logLevel msg -> logger logLevel msg
+//    let reducer = agent reducerFun
+    let reducer = agent ()
     
     member t.WriteLine(logLevel, str) = 
       match (level.HasFlag logLevel) with
       | false -> ()
-      | true -> logger logLevel str
+      | true -> reducer.Post(logLevel, str)
 
+    // TODO: Currently obsolete, as it works exactly as WriteLine
     member t.Write(logLevel, str) = 
       match (level.HasFlag logLevel) with
       | false -> ()
-      | true -> logger logLevel str
+      | true -> reducer.Post(logLevel, str)
 
     member t.overwriteLastLine() = 
       Console.SetCursorPosition(0,Console.CursorTop-1)

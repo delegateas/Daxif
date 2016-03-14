@@ -97,7 +97,6 @@
     <Compile Include="Signatures\TypeProvider.fsi" />
     <Compile Include="Signatures\Diff.fsi" />
     <Compile Include="HelperModules\Common\ConsoleLogger.fs" />
-    <Compile Include="HelperModules\Common\ConsoleLogger2.fs" />
     <Compile Include="HelperModules\Common\Utility.fs" />
     <Compile Include="HelperModules\Common\Resource.fs" />
     <Compile Include="HelperModules\Common\FSharpCoreExt.fs" />
