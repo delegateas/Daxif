@@ -12,9 +12,9 @@ open DG.Daxif
 // TODO: 
 module internal ConsoleLogger = 
   type private cc = ConsoleColor
-
-  type Agent = MailboxProcessor<LogLevel * string>
   
+  type Agent = MailboxProcessor<LogLevel * string>
+
   type ConsoleLogger(logLevel : LogLevel) = 
     let threadSafe = ref String.Empty
     let level = logLevel
@@ -39,7 +39,6 @@ module internal ConsoleLogger =
         let pre = ts + " - " + level''.ToString() + ": "
         Console.ForegroundColor <- fc
         Console.BackgroundColor <- bc
-//        let msg = sprintf "%s" (pre + str)
         match level with
         | LogLevel.Warning | LogLevel.Error -> eprintfn "%s" (pre + str)
         | _ -> printfn "%s" (pre + str)
@@ -58,20 +57,18 @@ module internal ConsoleLogger =
       | LogLevel.Debug -> prettyPrint cc.DarkYellow obc LogLevel.Debug str
       | _ -> ()
 
-//    let agent fn = 
-    let agent () =
+    let agent() = 
       Agent.Start(fun inbox -> 
-        let rec loop = async { 
-          let! (logLevel, msg) = inbox.Receive()
-//          fn logLevel msg
-          logger logLevel msg
-          return! loop }
+        let rec loop = 
+          async { 
+            let! (logLevel, msg) = inbox.Receive()
+            logger logLevel msg
+            return! loop
+          }
         loop)
 
     // Reducer (one single agent). Side effects thread-safe
-//    let reducerFun = fun logLevel msg -> logger logLevel msg
-//    let reducer = agent reducerFun
-    let reducer = agent ()
+    let reducer = agent()
     
     member t.WriteLine(logLevel, str) = 
       match (level.HasFlag logLevel) with
