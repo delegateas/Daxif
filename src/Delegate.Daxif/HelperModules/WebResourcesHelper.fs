@@ -162,7 +162,7 @@ module internal WebResourcesHelper =
       yield! update'
     }
     |> Seq.toArray
-    |> Array.Parallel.partition (fun (x, y) -> 
+    |> Array.Parallel.map (fun (x, y) -> 
          use p' = ServiceProxy.getOrganizationServiceProxy m tc
          let yrn = y.Attributes.["name"] :?> string
          try 
@@ -188,16 +188,16 @@ module internal WebResourcesHelper =
               ex.Message.Replace(string y.Id, string y.Id + ", " + yrn))
            false)
     |> (fun partition -> 
-    match partition with
-    | [||], [||] -> ()
-    | [||], ____ -> failwith "Nothing to publish, all changes failed"
-    | ____, fail -> 
+    match (Seq.exists id partition), (Seq.exists not partition) with
+    | false, false -> ()
+    | false, true -> failwith "Nothing to publish, all changes failed"
+    | true, fail -> 
       log.WriteLine(LogLevel.Verbose, @"Publishing changes to the solution")
       CrmData.CRUD.publish p
       match fail with
-      | [||] -> 
+      | false -> 
         log.WriteLine(LogLevel.Verbose, "All changes were successfully published")
-      | ____ -> 
+      | true -> 
         log.WriteLine
           (LogLevel.Verbose, "Some changes were successfully published")
         failwith "Some changes failed")
