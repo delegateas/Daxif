@@ -11,7 +11,7 @@ open DG.Daxif
 open DG.Daxif.HelperModules.Common.Utility
 
 // http://msdn.microsoft.com/en-us/library/microsoft.xrm.sdk.organizationrequest.requestname.aspx
-module internal CrmData = 
+module CrmData = 
   module internal Info = 
     let private versionHelper v = 
       match v |> Seq.head with
@@ -26,7 +26,7 @@ module internal CrmData =
       let resp = proxy.Execute(req) :?> Messages.RetrieveVersionResponse
       resp.Version, resp.Version |> versionHelper
   
-  module internal Metadata = 
+  module Metadata = 
     let private entityHelper proxy (logicalName:string) filter = 
       let (proxy : OrganizationServiceProxy) = proxy
       let (filter : EntityFilters) = filter
@@ -65,7 +65,7 @@ module internal CrmData =
       let resp = proxy.Execute(req)
       (Seq.head resp.Results).Value :?> seq<EntityMetadata>
   
-  module internal CRUD = 
+  module CRUD = 
     let createReq entity parameters = 
       let (parameters : ParameterCollection) = parameters
       let req = Messages.CreateRequest()
