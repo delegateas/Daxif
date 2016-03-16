@@ -468,9 +468,9 @@ module internal PluginsHelper =
             |> Seq.head
             |> (fun pl -> pl.step)
 
-          let sdkm = CrmData.Entities.retrieveSdkMessage p step.eventOperation
+          let sdkm = CrmDataInternal.Entities.retrieveSdkMessage p step.eventOperation
           let sdkf =
-            CrmData.Entities.retrieveSdkMessageFilter
+            CrmDataInternal.Entities.retrieveSdkMessageFilter
               p step.logicalName sdkm.Id
 
           let ps =
@@ -639,7 +639,7 @@ module internal PluginsHelper =
   let instantiateAssembly (solution:Entity) dllName dllPath asm hash p 
     (log:ConsoleLogger.ConsoleLogger) =
       log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
-      let dlls = CrmData.Entities.retrievePluginAssemblies p solution.Id
+      let dlls = CrmDataInternal.Entities.retrievePluginAssemblies p solution.Id
 
       let matchingAssembly = 
         dlls
@@ -676,7 +676,7 @@ module internal PluginsHelper =
     log.WriteLine(LogLevel.Info, "Retrieving Steps")
 
     proxyContext client (fun p -> 
-      let steps = CrmData.Entities.retrieveAllPluginProcessingSteps p solution.entity.Id
+      let steps = CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p solution.entity.Id
       log.WriteLine(LogLevel.Debug, 
         sprintf "Found %d steps" (Seq.length steps))
 
@@ -691,7 +691,7 @@ module internal PluginsHelper =
           log.WriteLine(LogLevel.Debug, 
             sprintf "Retrieving images for step: %s" (getName step))
           let images =
-              CrmData.Entities.retrievePluginProcessingStepImages 
+              CrmDataInternal.Entities.retrievePluginProcessingStepImages 
                   p' step.Id
           log.WriteLine(LogLevel.Debug, 
             sprintf "Found %d images" (Seq.length images))
@@ -748,7 +748,7 @@ module internal PluginsHelper =
     proxyContext client (fun p -> 
     
       log.WriteLine(LogLevel.Debug, "Retrieving types")
-      let types = CrmData.Entities.retrievePluginTypes p solution.assemblyId
+      let types = CrmDataInternal.Entities.retrievePluginTypes p solution.assemblyId
       log.WriteLine(LogLevel.Debug, sprintf "Retrieved %d types" (Seq.length types))
 
       let sourceTypes = 
@@ -771,7 +771,7 @@ module internal PluginsHelper =
     log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
 
     proxyContext client (fun p -> 
-      let dlls = CrmData.Entities.retrievePluginAssemblies p solution.entity.Id
+      let dlls = CrmDataInternal.Entities.retrievePluginAssemblies p solution.entity.Id
 
       dlls
       |> Seq.filter(fun x -> solution.dllName = getName x)
@@ -802,12 +802,12 @@ module internal PluginsHelper =
 
       proxyContext client (fun p -> 
         log.WriteLine(LogLevel.Debug, sprintf "Retrieving plugin type: %s" key)
-        let pt = CrmData.Entities.retrievePluginType p key
+        let pt = CrmDataInternal.Entities.retrievePluginType p key
 
         log.WriteLine(LogLevel.Debug, 
           sprintf "Retrieving steps for type : %s" key)
         let steps =
-          CrmData.Entities.retrievePluginProcessingSteps p pt.Id
+          CrmDataInternal.Entities.retrievePluginProcessingSteps p pt.Id
           |> Seq.map(fun x -> 
             let stage = getAttribute "stage" x :?> OptionSetValue
             stage.Value, x)
@@ -841,10 +841,10 @@ module internal PluginsHelper =
       proxyContext client (fun p -> 
 
         log.WriteLine(LogLevel.Debug, sprintf "Retrieving plugin step: %s" key)
-        let ps = CrmData.Entities.retrieveSdkProcessingStep p key
+        let ps = CrmDataInternal.Entities.retrieveSdkProcessingStep p key
 
         log.WriteLine(LogLevel.Debug, sprintf "Retrieving images for step: %s" key)
-        let images = CrmData.Entities.retrievePluginProcessingStepImages p ps.Id
+        let images = CrmDataInternal.Entities.retrievePluginProcessingStepImages p ps.Id
         log.WriteLine(LogLevel.Debug, sprintf "Found %d images" (Seq.length images))            
 
         let sourceImage =
@@ -910,7 +910,7 @@ module internal PluginsHelper =
     let dllName = Path.GetFileNameWithoutExtension(dll'); 
   
     use p = ServiceProxy.getOrganizationServiceProxy m tc
-    let solutionEntity = CrmData.Entities.retrieveSolution p solutionName
+    let solutionEntity = CrmDataInternal.Entities.retrieveSolution p solutionName
     let asmId = instantiateAssembly solutionEntity dllName dllPath asm hash p log
 
     let solution =

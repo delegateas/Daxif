@@ -1,5 +1,11 @@
 # Release Notes
 
+#### 2.3.0.0 - Mar 16 2016
+* Exposed CrmData module (metadata and CRUD) in order to make F# scripting easier.
+* Fixed issue with WebResources always succeding (even if they don't).
+* Console will is re-written from previous "blocking" to new based on async 
+  agents with a producer / reduce pattern.
+
 #### 2.2.0.12 - Mar 03 2016
 * Fixed issue where interfaces documentation where not displayed on the GitHub
   page. FSharp.Literate is sensitive to indentation and recently the .fsi files

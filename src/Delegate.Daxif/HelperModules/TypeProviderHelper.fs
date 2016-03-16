@@ -30,11 +30,11 @@ module internal TypeProviderHelper =
         |> List.map (fun em ->
           (em.LogicalName,
             lazy 
-              CrmData.Entities.retrieveAllEntitiesLight
+              CrmDataInternal.Entities.retrieveAllEntitiesLight
                 proxy.Value em.LogicalName))
         |> Map.ofList
 
-    member this.version = lazy CrmData.Info.version proxy.Value
+    member this.version = lazy CrmDataInternal.Info.version proxy.Value
 
   // Get relationship information based on what type of relationship it is
   let getRelationshipInfo eName (rel:obj) = 

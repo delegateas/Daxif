@@ -23,7 +23,7 @@ module internal DataHelper =
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
-    CrmData.Entities.existCrmGuid p entityName filter
+    CrmDataInternal.Entities.existCrmGuid p entityName filter
     
   let count' org ac entityNames (log : ConsoleLogger.ConsoleLogger) = 
     let m = ServiceManager.createOrgService org
@@ -34,7 +34,7 @@ module internal DataHelper =
           try 
             log.WriteLine
               (LogLevel.Verbose, 
-              sprintf "%s: %i record(s)" en (CrmData.Entities.count p en))
+              sprintf "%s: %i record(s)" en (CrmDataInternal.Entities.count p en))
           with ex -> 
             log.WriteLine(LogLevel.Warning, sprintf "%s: %s" en ex.Message))
 
@@ -45,7 +45,7 @@ module internal DataHelper =
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
     // TODO: Would be nice with TypeProviders based on target system
-    CrmData.Entities.retrieveEntitiesLight p entityName filter
+    CrmDataInternal.Entities.retrieveEntitiesLight p entityName filter
     |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
     |> Seq.iter 
           (fun xs -> 
@@ -55,7 +55,7 @@ module internal DataHelper =
               let en' = entityName
               let ei' = e.Id.ToString()
               try 
-                CrmData.Entities.updateState p' en' e.Id state status
+                CrmDataInternal.Entities.updateState p' en' e.Id state status
                 log.WriteLine
                   (LogLevel.Verbose, sprintf "%s:%s state was updated" en' ei')
               with ex -> 
@@ -68,7 +68,7 @@ module internal DataHelper =
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
-    CrmData.Entities.retrieveEntitiesLight p entityName filter
+    CrmDataInternal.Entities.retrieveEntitiesLight p entityName filter
     |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
     |> Seq.iter (fun xs -> 
           xs
@@ -83,7 +83,7 @@ module internal DataHelper =
               em.Requests <- new OrganizationRequestCollection()
               es
               |> Array.Parallel.map (fun e -> 
-                    CrmData.Entities.updateStateReq entityName e.Id state status)
+                    CrmDataInternal.Entities.updateStateReq entityName e.Id state status)
               |> Array.iter (fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
               em, es)
           |> Array.Parallel.map (fun (em, es) -> 
@@ -130,7 +130,7 @@ module internal DataHelper =
     |> Seq.toArray
     |> Array.Parallel.iter (fun y -> 
           use p' = ServiceProxy.getOrganizationServiceProxy m tc
-          CrmData.Entities.retrieveEntitiesLight p' y 
+          CrmDataInternal.Entities.retrieveEntitiesLight p' y 
             (Map.empty |> Map.add (@"ownerid") (userFrom :> obj))
           |> Seq.toArray
           |> Array.Parallel.iter (fun z -> 
@@ -139,7 +139,7 @@ module internal DataHelper =
               let ei = z.Id
               let ei' = ei.ToString()
               try 
-                CrmData.Entities.assign p'' userTo en' ei
+                CrmDataInternal.Entities.assign p'' userTo en' ei
                 log.WriteLine
                   (LogLevel.Verbose, 
                     sprintf "%s:%s record was assigned from:%A to:%A " en' ei' 
@@ -166,7 +166,7 @@ module internal DataHelper =
     |> Seq.iter (fun entityName -> 
           use p' = ServiceProxy.getOrganizationServiceProxy m tc
           let filter = (Map.empty |> Map.add (@"ownerid") (userFrom :> obj))
-          CrmData.Entities.retrieveEntitiesLight p' entityName filter
+          CrmDataInternal.Entities.retrieveEntitiesLight p' entityName filter
           |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
           |> Seq.iter (fun xs -> 
               xs
@@ -181,7 +181,7 @@ module internal DataHelper =
                     em.Requests <- new OrganizationRequestCollection()
                     es
                     |> Array.Parallel.map (fun e -> 
-                        CrmData.Entities.assignReq userTo entityName e.Id)
+                        CrmDataInternal.Entities.assignReq userTo entityName e.Id)
                     |> Array.iter (fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
                     em, es)
               |> Array.Parallel.map (fun (em, es) -> 
@@ -224,7 +224,7 @@ module internal DataHelper =
           use p = ServiceProxy.getOrganizationServiceProxy m tc
           let eLoc = location + en
           ensureDirectory eLoc
-          CrmData.Entities.retrieveAllEntities p en
+          CrmDataInternal.Entities.retrieveAllEntities p en
           |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
           |> Seq.iter (fun xs -> 
               xs 
@@ -257,7 +257,7 @@ module internal DataHelper =
 
       ensureDirectory eLoc
 
-      CrmData.Entities.retrieveEntitiesDelta p en date
+      CrmDataInternal.Entities.retrieveEntitiesDelta p en date
       |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
       |> Seq.iter(fun xs ->
         xs
@@ -288,7 +288,7 @@ module internal DataHelper =
 
     use p = ServiceProxy.getOrganizationServiceProxy m tc
 
-    CrmData.Entities.retrieveFromView p view user
+    CrmDataInternal.Entities.retrieveFromView p view user
     |> Seq.toArray
     |> Array.Parallel.iter(fun e ->
       let en = e.LogicalName
@@ -347,7 +347,7 @@ module internal DataHelper =
           // Add memoization to avoid to many network queries (concurrent thread-safe)
           let dMem = 
               let dMemHelper (proxy,(entityname,entityid,primaryattribute)) =
-                  CrmData.Entities.existCrm proxy entityname entityid primaryattribute
+                  CrmDataInternal.Entities.existCrm proxy entityname entityid primaryattribute
               memoizeConcurrent' dMemHelper
 
           Directory.GetDirectories(location)
@@ -433,7 +433,7 @@ module internal DataHelper =
                 | true -> File.Delete(f')
 
                 try
-                  match CrmData.Entities.existCrm p en ei (em.PrimaryIdAttribute |> Some) with
+                  match CrmDataInternal.Entities.existCrm p en ei (em.PrimaryIdAttribute |> Some) with
                   | true ->   
                       CrmData.CRUD.update p e |> ignore
                       
@@ -484,7 +484,7 @@ module internal DataHelper =
       // Add memoization to avoid to many network queries (concurrent thread-safe)
       let dMem = 
         let dMemHelper (proxy,(entityname,entityid,primaryattribute)) =
-          CrmData.Entities.existCrm proxy entityname entityid primaryattribute
+          CrmDataInternal.Entities.existCrm proxy entityname entityid primaryattribute
         memoizeConcurrent' dMemHelper
 
       Directory.GetDirectories(location)
@@ -567,7 +567,7 @@ module internal DataHelper =
 
               // check if create or update
               try
-                match CrmData.Entities.existCrm p en ei (em'.PrimaryIdAttribute |> Some) with
+                match CrmDataInternal.Entities.existCrm p en ei (em'.PrimaryIdAttribute |> Some) with
                   | true ->
                     CrmData.CRUD.updateReq e :> OrganizationRequest
                   | false -> 
@@ -705,7 +705,7 @@ module internal DataHelper =
                 | Some v -> keyValuePair<string,Guid>(x.Key, v)
               (matchToData x, matchToData y) 
 
-            CrmData.Entities.createMany2ManyReq sn x' y')
+            CrmDataInternal.Entities.createMany2ManyReq sn x' y')
           |> Array.iter(fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
           em,files)
         |> Array.Parallel.map(fun (em,files) ->
@@ -801,7 +801,7 @@ module internal DataHelper =
                 | false -> None
               match owner with
               | Some v -> 
-                CrmData.Entities.assign p v e.LogicalName e.Id
+                CrmDataInternal.Entities.assign p v e.LogicalName e.Id
                 File.Move(f, f')
                 log.WriteLine
                   (LogLevel.Verbose, sprintf "%s:%s was reassigned" en ei')
@@ -863,7 +863,7 @@ module internal DataHelper =
                 |> Array.Parallel.choose (id)
                 |> Array.Parallel.map 
                       (fun (e, owner) -> 
-                      CrmData.Entities.assignReq owner e.LogicalName e.Id)
+                      CrmDataInternal.Entities.assignReq owner e.LogicalName e.Id)
                 |> Array.iter (fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
                 em, files)
             |> Array.Parallel.map (fun (em, files) -> 
@@ -1008,7 +1008,7 @@ module internal DataHelper =
                       let eri = er.Id
                       let eri' = eri.ToString()
                       // if not, add for later removal
-                      let et = CrmData.Entities.existCrm p ern eri None
+                      let et = CrmDataInternal.Entities.existCrm p ern eri None
                       match et with
                       | false -> 
                         log.WriteLine
@@ -1027,7 +1027,7 @@ module internal DataHelper =
               // add extra attributes
               map |> Map.iter (fun k v -> e.Attributes.Add(k, v))
               try 
-                match CrmData.Entities.existCrm p en ei None with
+                match CrmDataInternal.Entities.existCrm p en ei None with
                 | true -> 
                   CrmData.CRUD.update p e |> ignore
                   log.WriteLine
@@ -1065,7 +1065,7 @@ module internal DataHelper =
                       let eri = er.Id
                       let eri' = eri.ToString()
                       // if not, add for later removal
-                      let et = CrmData.Entities.existCrm p ern eri None
+                      let et = CrmDataInternal.Entities.existCrm p ern eri None
                       match et with
                       | false -> 
                         log.WriteLine
@@ -1084,7 +1084,7 @@ module internal DataHelper =
               // add extra attributes
               map |> Map.iter (fun k v -> e.Attributes.Add(k, v))
               try 
-                match CrmData.Entities.existCrm p en ei None with
+                match CrmDataInternal.Entities.existCrm p en ei None with
                 | true -> 
                   CrmData.CRUD.update p e |> ignore
                   log.WriteLine

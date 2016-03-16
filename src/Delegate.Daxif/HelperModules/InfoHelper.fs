@@ -7,4 +7,4 @@ module internal InfoHelper =
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
-    CrmData.Info.version p
+    CrmDataInternal.Info.version p

@@ -49,15 +49,15 @@ let p = ServiceProxy.getOrganizationServiceProxy m tc
 let internal log = ConsoleLogger.ConsoleLogger LogLevel.Debug
 
 try 
-  CrmData.Entities.createPublisher p pubName pubDisplay pubPrefix |> ignore
-  CrmData.Entities.createSolution p solutionName solDisplay pubPrefix |> ignore
+  CrmDataInternal.Entities.createPublisher p pubName pubDisplay pubPrefix |> ignore
+  CrmDataInternal.Entities.createSolution p solutionName solDisplay pubPrefix |> ignore
 with 
 | ex -> ()
 let asm = Assembly.LoadFile(dllPath); 
 let activities = WorkflowHelper.getActivities asm solutionName |> Set.ofSeq
 
 // Delete existing assembly
-match CrmData.Entities.retrievePluginAssembly p AuthInfo.workflowDll with
+match CrmDataInternal.Entities.retrievePluginAssembly p AuthInfo.workflowDll with
 | s when Seq.isEmpty s -> ()
 | s ->
   s
@@ -73,12 +73,12 @@ Test cases
 (* Create the workflow assembly in CRM and check that it exist in CRM *)
 let tc0() =
 
-  let solution = CrmData.Entities.retrieveSolution p solutionName
+  let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
 
   PluginsHelper.instantiateAssembly solution dllName dllPath asm "" p log |> ignore
 
   // Test that the solution contains a workflow assembly
-  CrmData.Entities.retrievePluginAssembly p AuthInfo.workflowDll 
+  CrmDataInternal.Entities.retrievePluginAssembly p AuthInfo.workflowDll 
   |> Seq.isEmpty 
   |> not
 
@@ -87,7 +87,7 @@ let tc1() =
 
   // Fetch assembly id
   let asmId = 
-    CrmData.Entities.retrievePluginAssembly p AuthInfo.workflowDll 
+    CrmDataInternal.Entities.retrievePluginAssembly p AuthInfo.workflowDll 
     |> Seq.head 
     |> fun x -> x.Id
 
@@ -96,7 +96,7 @@ let tc1() =
   // Test that the solution contains a type
   activities
   |> Set.exists(fun x -> 
-    match CrmData.Entities.tryRetrievePluginType p x with
+    match CrmDataInternal.Entities.tryRetrievePluginType p x with
     | Some(_) -> true
     | None -> false)
 
@@ -105,29 +105,29 @@ let tc2() =
 
   // Fetch assembly id
   let asmId = 
-    CrmData.Entities.retrievePluginAssembly p AuthInfo.workflowDll 
+    CrmDataInternal.Entities.retrievePluginAssembly p AuthInfo.workflowDll 
     |> Seq.head 
     |> fun x -> x.Id
   
-  let targetTypes = CrmData.Entities.retrievePluginTypes p asmId
+  let targetTypes = CrmDataInternal.Entities.retrievePluginTypes p asmId
 
   WorkflowHelper.deleteActivity log m tc (activities, targetTypes)
 
   //Test that it is Deleted
   activities
   |> Set.exists(fun x -> 
-    match CrmData.Entities.tryRetrievePluginType p x with
+    match CrmDataInternal.Entities.tryRetrievePluginType p x with
     | Some(_) -> false
     | None -> true)
 
 (* Delete the workflow assembly in CRM and check that it no longer exist in CRM *)
 let tc3() =
     
-  CrmData.Entities.retrievePluginAssembly p AuthInfo.workflowDll
+  CrmDataInternal.Entities.retrievePluginAssembly p AuthInfo.workflowDll
   |> Seq.head
   |> fun x -> 
     CrmData.CRUD.delete p x.LogicalName x.Id |> ignore
-    CrmData.Entities.existCrm p x.LogicalName x.Id None
+    CrmDataInternal.Entities.existCrm p x.LogicalName x.Id None
     |> not
 
 

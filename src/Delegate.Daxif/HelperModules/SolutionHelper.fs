@@ -21,7 +21,7 @@ module internal SolutionHelper =
     log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
     log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-    let pid = CrmData.Entities.createPublisher p name display prefix
+    let pid = CrmDataInternal.Entities.createPublisher p name display prefix
     let msg = 
       @"Publisher was created successfully (Publisher ID: " + pid.ToString() 
       + @")"
@@ -36,7 +36,7 @@ module internal SolutionHelper =
     log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
     log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-    let sid = CrmData.Entities.createSolution p name display pubPrefix
+    let sid = CrmDataInternal.Entities.createSolution p name display pubPrefix
     let msg = 
       @"Solution was created successfully (Solution ID: " + sid.ToString() + @")"
 
@@ -51,7 +51,7 @@ module internal SolutionHelper =
     log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
     log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-    let s = CrmData.Entities.retrieveSolution p solution
+    let s = CrmDataInternal.Entities.retrieveSolution p solution
     CrmData.CRUD.delete p s.LogicalName s.Id |> ignore
     let msg = 
       @"Solution was deleted successfully (Solution ID: " + s.Id.ToString() + @")"
@@ -75,8 +75,8 @@ module internal SolutionHelper =
     log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
     log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-    let s = CrmData.Entities.retrieveSolution p solution
-    CrmData.Entities.retrieveAllPluginProcessingSteps p s.Id
+    let s = CrmDataInternal.Entities.retrieveSolution p solution
+    CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p s.Id
     |> Seq.toArray
     |> Array.Parallel.iter 
           (fun e -> 
@@ -84,7 +84,7 @@ module internal SolutionHelper =
           let en' = e.LogicalName
           let ei' = e.Id.ToString()
           try 
-            CrmData.Entities.updateState p' en' e.Id state status
+            CrmDataInternal.Entities.updateState p' en' e.Id state status
             log.WriteLine
               (LogLevel.Verbose, sprintf "%s:%s state was updated" en' ei')
           with ex -> 
@@ -116,8 +116,8 @@ module internal SolutionHelper =
     log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
     log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-    let s = CrmData.Entities.retrieveSolution p solution
-    CrmData.Entities.retrieveWorkflowsOfStatus p s.Id retrievedStatus
+    let s = CrmDataInternal.Entities.retrieveSolution p solution
+    CrmDataInternal.Entities.retrieveWorkflowsOfStatus p s.Id retrievedStatus
     |> Seq.toArray
     |> fun w -> 
       match w.Length with
@@ -129,7 +129,7 @@ module internal SolutionHelper =
               let en' = e.LogicalName
               let ei' = e.Id.ToString()
               try 
-                CrmData.Entities.updateState p' en' e.Id state status
+                CrmDataInternal.Entities.updateState p' en' e.Id state status
                 log.WriteLine
                   (LogLevel.Verbose, sprintf "%s:%s state was updated" en' ei')
               with ex -> 
@@ -209,7 +209,7 @@ module internal SolutionHelper =
           // Indicated by exist always being false 
           let exists' = 
             use p' = ServiceProxy.getOrganizationServiceProxy m tc
-            CrmData.Entities.existCrm p' @"importjob" jobId None
+            CrmDataInternal.Entities.existCrm p' @"importjob" jobId None
           do! importHelper' exists' completed progress
         | true -> 
           match completed with
@@ -219,7 +219,7 @@ module internal SolutionHelper =
             let (pct, completed') = 
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
               try 
-                let j = CrmData.Entities.retrieveImportJob p' jobId
+                let j = CrmDataInternal.Entities.retrieveImportJob p' jobId
                 let progress' = j.Attributes.["progress"] :?> double
                 (progress', j.Attributes.Contains("completedon"))
               with _ -> (progress, false)
@@ -234,7 +234,7 @@ module internal SolutionHelper =
                 
               let status = 
                 try 
-                  let j = CrmData.Entities.retrieveImportJob p' jobId
+                  let j = CrmDataInternal.Entities.retrieveImportJob p' jobId
                   let progress' = j.Attributes.["progress"] :?> double
                   progress' = 100.
                 with _ -> false
@@ -269,7 +269,7 @@ module internal SolutionHelper =
     let importHelper() = 
       async { 
         let! progress = Async.StartChild(importHelper' false false 0.)
-        match CrmData.Info.version p with
+        match CrmDataInternal.Info.version p with
         | (_, CrmReleases.CRM2011) -> 
           p.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
         | (_, _) -> importHelperAsync()
@@ -435,6 +435,6 @@ module internal SolutionHelper =
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
-    let solution = CrmData.Entities.retrieveSolution p solutionName
-    CrmData.Entities.countEntities p solution.Id
+    let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
+    CrmDataInternal.Entities.countEntities p solution.Id
     

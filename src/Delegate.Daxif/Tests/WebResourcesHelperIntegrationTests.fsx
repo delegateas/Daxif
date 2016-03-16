@@ -61,8 +61,8 @@ Setup of shared values *)
 let location = AuthInfo.resourceRoot + @"\WebResources\src"
 //let prefix = AuthInfo.pubPrefix
 //let solutionName = AuthInfo.solutionName
-//let publisher = CrmData.Entities.retrievePublisher p prefix
-//let solution = CrmData.Entities.retrieveSolution p solutionName
+//let publisher = CrmDataInternal.Entities.retrievePublisher p prefix
+//let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
 
 (**
 Test cases

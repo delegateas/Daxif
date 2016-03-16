@@ -52,50 +52,50 @@ let tc1 () =
   
   
   try
-    CrmData.Entities.retrievePublisher p pubPrefix |> ignore
+    CrmDataInternal.Entities.retrievePublisher p pubPrefix |> ignore
     true
   with
   | _ -> 
     let ac' = Authentication.getCredentials ap usr pwd domain
     SolutionHelper.createPublisher' wsdl ac' pubName pubDisplay pubPrefix log
-    let pubId = CrmData.Entities.retrievePublisher p pubPrefix |> fun x -> x.Id
-    CrmData.Entities.existCrm p pubName pubId None  
+    let pubId = CrmDataInternal.Entities.retrievePublisher p pubPrefix |> fun x -> x.Id
+    CrmDataInternal.Entities.existCrm p pubName pubId None  
 
 (* We check if there exist a solution or else we create a new *)
 let tc2 () =
   
   try
-    CrmData.Entities.retrieveSolution p solutionName |> ignore
+    CrmDataInternal.Entities.retrieveSolution p solutionName |> ignore
     true
   with
   | _ ->
     let ac' = Authentication.getCredentials ap usr pwd domain
     SolutionHelper.create' wsdl ac' solutionName solDisplay pubPrefix log
-    let solutionId = CrmData.Entities.retrieveSolution p solutionName |> fun x -> x.Id
-    CrmData.Entities.existCrm p solutionName solutionId None
+    let solutionId = CrmDataInternal.Entities.retrieveSolution p solutionName |> fun x -> x.Id
+    CrmDataInternal.Entities.existCrm p solutionName solutionId None
 
 (* We import a packaged solution into CRM and check the solution contains both plugin types, steps and images *)
 let tc3 () =
 
   let zip = unmanaged + solutionName + @".zip"
   let ac' = Authentication.getCredentials ap usr pwd domain
-  let solution = CrmData.Entities.retrieveSolution p solutionName
+  let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
 
   try 
     SolutionHelper.import' wsdl ac' solutionName zip false log |> ignore
 
     //check that the solution contains types, steps and images
-    let pluginsAsmid = ((CrmData.Entities.retrievePluginAssembly p AuthInfo.pluginDll) |> Seq.head).Id
-    match CrmData.Entities.retrievePluginTypes p pluginsAsmid |> Seq.isEmpty with
+    let pluginsAsmid = ((CrmDataInternal.Entities.retrievePluginAssembly p AuthInfo.pluginDll) |> Seq.head).Id
+    match CrmDataInternal.Entities.retrievePluginTypes p pluginsAsmid |> Seq.isEmpty with
     | true -> false
     | false -> 
-      let steps = CrmData.Entities.retrieveAllPluginProcessingSteps p solution.Id
+      let steps = CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p solution.Id
       match steps |> Seq.isEmpty with
       | true -> false
       | false ->
         steps
         |> Seq.exists(fun e -> 
-          CrmData.Entities.retrievePluginProcessingStepImages p e.Id
+          CrmDataInternal.Entities.retrievePluginProcessingStepImages p e.Id
           |> Seq.isEmpty
           |> not)
   finally
@@ -109,7 +109,7 @@ let tc4 () =
   let ac' = Authentication.getCredentials ap usr pwd domain
   let exportPath = unmanaged + @"exported\"
   Utility.ensureDirectory exportPath
-  let solution = CrmData.Entities.retrieveSolution p solutionName
+  let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
 
   try
 
@@ -118,30 +118,30 @@ let tc4 () =
 
   finally
     
-    let workflowAsmid = ((CrmData.Entities.retrievePluginAssembly p AuthInfo.workflowDll) |> Seq.head).Id
-    let pluginsAsmid = ((CrmData.Entities.retrievePluginAssembly p AuthInfo.pluginDll) |> Seq.head).Id
+    let workflowAsmid = ((CrmDataInternal.Entities.retrievePluginAssembly p AuthInfo.workflowDll) |> Seq.head).Id
+    let pluginsAsmid = ((CrmDataInternal.Entities.retrievePluginAssembly p AuthInfo.pluginDll) |> Seq.head).Id
 
     // Delete exported solution
     Directory.Delete(exportPath,true)
     // clear the imported plugins
-    CrmData.Entities.retrievePluginTypes p pluginsAsmid
+    CrmDataInternal.Entities.retrievePluginTypes p pluginsAsmid
     |> Seq.iter(fun t -> 
-      CrmData.Entities.retrieveAllPluginProcessingSteps p solution.Id
+      CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p solution.Id
       |> Seq.iter(fun s -> 
-        CrmData.Entities.retrievePluginProcessingStepImages p s.Id
+        CrmDataInternal.Entities.retrievePluginProcessingStepImages p s.Id
         |> Seq.iter(fun i -> 
           CrmData.CRUD.delete p i.LogicalName i.Id |> ignore)
         CrmData.CRUD.delete p s.LogicalName s.Id |> ignore)
       CrmData.CRUD.delete p t.LogicalName t.Id |> ignore)
 
     // clear the imported workflow
-    CrmData.Entities.retrievePluginTypes p workflowAsmid
+    CrmDataInternal.Entities.retrievePluginTypes p workflowAsmid
     |> Seq.iter(fun a ->
       CrmData.CRUD.delete p a.LogicalName a.Id |> ignore )
 
     // Delete assemblies
     [AuthInfo.workflowDll; AuthInfo.pluginDll]
-    |> List.map (CrmData.Entities.retrievePluginAssembly p)
+    |> List.map (CrmDataInternal.Entities.retrievePluginAssembly p)
     |> List.iter(fun s ->
       s
       |> Seq.head

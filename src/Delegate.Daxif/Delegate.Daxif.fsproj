@@ -86,6 +86,7 @@
     <Compile Include="Daxif.fs" />
     <Compile Include="ProvidedTypes\ProvidedTypes.fsi" />
     <Compile Include="ProvidedTypes\ProvidedTypes.fs" />
+    <Compile Include="Signatures\CrmData.fsi" />
     <Compile Include="Signatures\Data.fsi" />
     <Compile Include="Signatures\Info.fsi" />
     <Compile Include="Signatures\Serialization.fsi" />
@@ -104,6 +105,7 @@
     <Compile Include="HelperModules\Common\ServiceManager.fs" />
     <Compile Include="HelperModules\Common\ServiceProxy.fs" />
     <Compile Include="HelperModules\Common\CrmData.fs" />
+    <Compile Include="HelperModules\Common\CrmDataInternal.fs" />
     <Compile Include="HelperModules\SerializationHelper.fs" />
     <Compile Include="HelperModules\DataHelper.fs" />
     <Compile Include="HelperModules\InfoHelper.fs" />

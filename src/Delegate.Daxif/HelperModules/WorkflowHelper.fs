@@ -102,7 +102,7 @@ module internal WorkflowHelper =
   let updateAssembly (log:ConsoleLogger.ConsoleLogger) (dllName:string) 
     (dllPath:string) (asm:Assembly)  p (solution:Entity) = 
 
-      let dlls = CrmData.Entities.retrievePluginAssemblies p solution.Id
+      let dlls = CrmDataInternal.Entities.retrievePluginAssemblies p solution.Id
 
       dlls
       |> Seq.filter(fun x -> dllName = getName x)
@@ -118,7 +118,7 @@ module internal WorkflowHelper =
     (log:ConsoleLogger.ConsoleLogger) =
 
       log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
-      let dlls = CrmData.Entities.retrievePluginAssembly p dllName
+      let dlls = CrmDataInternal.Entities.retrievePluginAssembly p dllName
 
       match Seq.isEmpty dlls with
       | true -> 
@@ -156,7 +156,7 @@ module internal WorkflowHelper =
     log.WriteLine(LogLevel.Debug, "Retrieving workflow activities")
 
     let sourceActivities = getActivities asm solutionName
-    let targetActivities = CrmData.Entities.retrievePluginTypes p asmId
+    let targetActivities = CrmDataInternal.Entities.retrievePluginTypes p asmId
 
     log.WriteLine(LogLevel.Debug, 
       sprintf "Retrieved %d plugin types" (Seq.length targetActivities))
@@ -188,7 +188,7 @@ module internal WorkflowHelper =
     use p = ServiceProxy.getOrganizationServiceProxy m tc
     let asm = Assembly.LoadFile(dllPath); 
     let dllName = Path.GetFileNameWithoutExtension(dll'); 
-    let solution = CrmData.Entities.retrieveSolution p solutionName
+    let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
 
     let asmId = instantiateAssembly solution dllName dllPath asm p log
 
