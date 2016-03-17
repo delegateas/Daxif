@@ -147,6 +147,7 @@
     <EmbeddedResource Include="Resources\img\favicon.ico" />
     <EmbeddedResource Include="Resources\img\delegate_daxif_logo.png" />
     <None Include="DG.EnsureAssemblies.fsx" />
+    <None Include="DG.EnsureAssemblies.Standalone.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.AuthInfo.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.Config.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.SolutionCreateDev.fsx" />

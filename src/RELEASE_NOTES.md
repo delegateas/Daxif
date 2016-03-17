@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.3.0.2 - Mar 17 2016
+* Added DG.EnsureAssemblies.Standalone.fsx version
+
 #### 2.3.0.1 - Mar 17 2016
 * Updated to newest TypeProvider files from [FSharp.TypeProviders.StarterPack](https://github.com/fsprojects/FSharp.TypeProviders.StarterPack).
 * Remark: We migth refactor the provider to be a cross-targeting erasing type provider.
