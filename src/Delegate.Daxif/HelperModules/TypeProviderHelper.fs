@@ -5,7 +5,8 @@ open DG.Daxif.HelperModules.Common
 
 open Microsoft.Xrm.Sdk.Metadata
 open Microsoft.Xrm.Sdk.Client
-open Microsoft.FSharp.ProvidedTypes
+
+open ProviderImplementation.ProvidedTypes
 
 module internal TypeProviderHelper =
 

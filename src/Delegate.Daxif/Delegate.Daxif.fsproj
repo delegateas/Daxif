@@ -84,8 +84,12 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Daxif.fs" />
+    <Compile Include="ProvidedTypes\AssemblyReader.fs" />
+    <Compile Include="ProvidedTypes\AssemblyReaderReflection.fs" />
     <Compile Include="ProvidedTypes\ProvidedTypes.fsi" />
     <Compile Include="ProvidedTypes\ProvidedTypes.fs" />
+    <Compile Include="ProvidedTypes\ProvidedTypesContext.fs" />
+    <Compile Include="ProvidedTypes\ProvidedTypesTesting.fs" />
     <Compile Include="Signatures\CrmData.fsi" />
     <Compile Include="Signatures\Data.fsi" />
     <Compile Include="Signatures\Info.fsi" />

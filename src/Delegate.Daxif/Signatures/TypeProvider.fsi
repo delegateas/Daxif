@@ -5,7 +5,7 @@ open System
 open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
 open Microsoft.FSharp.Core.CompilerServices
-open Microsoft.FSharp.ProvidedTypes
+open ProviderImplementation.ProvidedTypes
 
 (**
 TypeProvider
@@ -17,8 +17,8 @@ a basic and readonly xRM F# TypeProvider that is able to retrieve data/metadata
 from a given MS CRM instance, and provide it as Intellisense in Visual Studio. 
 *)
 
-/// Basic and simple/read-only F# xRM TypeProvider (F# 3.0)
-[<TypeProvider>]
+/// Basic and simple/read-only F# xRM TypeProvider
+[<CompilerServices.TypeProviderAttribute ()>]
 type XrmProvider = 
   inherit TypeProviderForNamespaces
-  new : TypeProviderConfig -> XrmProvider
+  new : config:TypeProviderConfig -> XrmProvider

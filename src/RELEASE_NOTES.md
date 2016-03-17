@@ -1,5 +1,9 @@
 # Release Notes
 
+#### 2.3.0.1 - Mar 17 2016
+* Updated to newest TypeProvider files from [FSharp.TypeProviders.StarterPack](https://github.com/fsprojects/FSharp.TypeProviders.StarterPack).
+* Remark: We migth refactor the provider to be a cross-targeting erasing type provider.
+
 #### 2.3.0.0 - Mar 16 2016
 * Exposed CrmData module (metadata and CRUD) in order to make F# scripting easier.
 * Fixed issue with WebResources always succeding (even if they don't).
