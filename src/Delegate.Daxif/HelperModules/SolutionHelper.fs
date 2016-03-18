@@ -234,9 +234,9 @@ module internal SolutionHelper =
                 
               let status = 
                 try 
-                  let j = CrmDataInternal.Entities.retrieveImportJob p' jobId
-                  let progress' = j.Attributes.["progress"] :?> double
-                  progress' = 100.
+                  let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' jobId
+                  let data = j.Attributes.["data"] :?> string
+                  not (data.Contains """<result result="failure""")
                 with _ -> false
               match status with
               | true -> 
@@ -278,12 +278,12 @@ module internal SolutionHelper =
       }
       
     log.WriteLine(LogLevel.Verbose, @"Import solution: " + solution + @" (0%)")
-    importHelper()
-    |> Async.Catch
-    |> Async.RunSynchronously
-    |> function 
-    | Choice2Of2 exn -> printfn "Error: %A" exn
-    | _ -> ()
+    let status = 
+      importHelper()
+      |> Async.Catch
+      |> Async.RunSynchronously
+
+    // Save the XML file
     let location' = location.Replace(@".zip", "")
     let excel = location' + @"_" + Utility.timeStamp'() + @".xml"
     let req' = new Messages.RetrieveFormattedImportJobResultsRequest()
@@ -296,7 +296,11 @@ module internal SolutionHelper =
     let xml' = "<?xml version=\"1.0\"?>\n" + (Encoding.UTF8.GetString(bytes'))
     File.WriteAllText(excel, xml')
     log.WriteLine(LogLevel.Verbose, @"Import solution results saved to: " + excel)
-    excel
+
+    // Rethrow exception in case of failure
+    match status with
+    | Choice2Of2 exn -> raise exn
+    | _ -> excel
 
   //TODO:
   let extract' location (customizations : string) (map : string) project 
