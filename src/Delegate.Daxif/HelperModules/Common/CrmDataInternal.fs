@@ -299,31 +299,19 @@ module CrmDataInternal =
       q.Criteria <- f
       CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln uniqueName
     
-    let retrieveImportJobHelper proxy importJobId includeXML = 
+    let retrieveImportJob proxy importJobId = 
       let (importJobId : Guid) = importJobId
       let ln = @"importjob"
-      let ans = [ @"progress"; @"completedon" ]
-      let ans' = 
-        match includeXML with
-        | true -> @"data" :: ans
-        | false -> ans
-        |> List.toArray
-      
+      let ans = [ @"progress"; @"completedon" ] |> List.toArray
       let f = FilterExpression()
       f.AddCondition
         (ConditionExpression
            (@"importjobid", ConditionOperator.Equal, importJobId))
       let q = QueryExpression(ln)
-      q.ColumnSet <- ColumnSet(ans')
+      q.ColumnSet <- ColumnSet(ans)
       q.Criteria <- f
       q.NoLock <- true
       CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln (importJobId.ToString())
-
-    let retrieveImportJob proxy importJobId = 
-      retrieveImportJobHelper proxy importJobId false
-
-    let retrieveImportJobWithXML proxy importJobId = 
-      retrieveImportJobHelper proxy importJobId true
     
     let retrievePluginType proxy uniqueName = 
       let (uniqueName : string) = uniqueName
