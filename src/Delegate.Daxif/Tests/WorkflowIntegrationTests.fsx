@@ -54,7 +54,7 @@ try
 with 
 | ex -> ()
 let asm = Assembly.LoadFile(dllPath); 
-let activities = WorkflowHelper.getActivities asm solutionName |> Set.ofSeq
+let activities = WorkflowHelper.getActivities asm |> Set.ofSeq
 
 // Delete existing assembly
 match CrmDataInternal.Entities.retrievePluginAssembly p AuthInfo.workflowDll with
