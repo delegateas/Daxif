@@ -41,6 +41,7 @@
 #load "..\\HelperModules\\Common\\ServiceManager.fs"
 #load "..\\HelperModules\\Common\\ServiceProxy.fs"
 #load "..\\HelperModules\\Common\\CrmData.fs"
+#load "..\\HelperModules\\Common\\CrmDatainternal.fs"
 #load "..\\HelperModules\\SerializationHelper.fs"
 #load "..\\HelperModules\\DataHelper.fs"
 #load "..\\HelperModules\\InfoHelper.fs"

@@ -31,9 +31,13 @@ module internal WorkflowHelper =
       ((fun y -> y = z),a) ||> Seq.exists)
 
    // TODO:
-  let getActivities (asm:Assembly) solutionName =
+  let getActivities (asm:Assembly) =
     asm.GetTypes() |> fun xs -> 
-      xs |> Array.filter (fun x -> x.BaseType.Name = @"CodeActivity") 
+      xs 
+      |> Array.filter (fun x -> 
+        x.BaseType <> null && 
+        x.BaseType.Name = @"CodeActivity" &&
+        x.FullName <> null)
       |> Array.map(fun x -> x.FullName)
       |> Array.toSeq
 
@@ -151,11 +155,11 @@ module internal WorkflowHelper =
         | Some x -> 
           x.Id
 
-  let solutionDiff asm asmId p solutionName (log:ConsoleLogger.ConsoleLogger) = 
+  let solutionDiff asm asmId p (log:ConsoleLogger.ConsoleLogger) = 
 
     log.WriteLine(LogLevel.Debug, "Retrieving workflow activities")
 
-    let sourceActivities = getActivities asm solutionName
+    let sourceActivities = getActivities asm
     let targetActivities = CrmDataInternal.Entities.retrievePluginTypes p asmId
 
     log.WriteLine(LogLevel.Debug, 
@@ -193,7 +197,7 @@ module internal WorkflowHelper =
     let asmId = instantiateAssembly solution dllName dllPath asm p log
 
     let newActivities, oldActivities, targetActivities = 
-      solutionDiff asm asmId p solutionName log
+      solutionDiff asm asmId p log
 
     log.WriteLine(LogLevel.Info, "Deleting workflow activities")
     deleteActivity log m tc (oldActivities,targetActivities) 
