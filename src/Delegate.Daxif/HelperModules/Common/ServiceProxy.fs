@@ -6,6 +6,7 @@ open Microsoft.Xrm.Sdk.Client
 open Microsoft.Xrm.Sdk.Discovery
 
 module internal ServiceProxy = 
+
   let getDiscoveryServiceProxy (serviceManagement : IServiceManagement<IDiscoveryService>) 
       (authCredentials : AuthenticationCredentials) = 
     let ac = authCredentials
@@ -27,3 +28,7 @@ module internal ServiceProxy =
       new OrganizationServiceProxy(serviceManagement, ac.SecurityTokenResponse) |> fun osp -> 
         osp.Timeout <- new TimeSpan(0, 59, 0)
         osp // Almost 1-hour timeout
+
+  let proxyContext iServiceM authCred f =
+    use p = getOrganizationServiceProxy iServiceM authCred
+    f p

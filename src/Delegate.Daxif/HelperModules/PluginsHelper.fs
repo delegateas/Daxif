@@ -10,8 +10,8 @@ open DG.Daxif.HelperModules.Common
 open DG.Daxif.HelperModules.Common.Utility
 
 (*
-  This module is used to synchronize a plugin solution assembly to a CRM. 
-  The assembloes are build with an extended Plugin.cs see http://delegateas.github.io/Delegate.Daxif/plugin-reg-setup.html
+  This module is used to synchronize a plugin assembly to a solution in CRM. 
+  The assemblies are build with an extended Plugin.cs see http://delegateas.github.io/Delegate.Daxif/plugin-reg-setup.html
   This script enables Daxif to fetch data of each plugin through incovation.
   Each plugin is validated in order to ensure that the plugins are correclty configured.
   If the plugin is valid then Daxif will syncronize the plugins in CRM.
@@ -85,9 +85,8 @@ module internal PluginsHelper =
     guid = Guid.Empty
 
   // Used to create a temprorary organization proxy to connect to CRM
-  let proxyContext client f =
-    use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-    f p
+  let proxyContext' client f =
+    ServiceProxy.proxyContext client.IServiceM client.authCred f
 
   // Returns the message name of a step consisting of class name, event operation and 
   // logical name. If the step does not contain a logical name then it targets any entity
@@ -217,7 +216,7 @@ module internal PluginsHelper =
         plugins
         |> Seq.filter(fun (_,pl) -> isDefaultGuid pl.step.userContext |> not)
         |> Seq.filter(fun (_,pl) ->
-          proxyContext client (fun p ->
+          proxyContext' client (fun p ->
             try 
               match CrmData.CRUD.retrieve p "systemuser" pl.step.userContext with
               | _ -> false
@@ -446,7 +445,7 @@ module internal PluginsHelper =
     entitySet 
     |> Set.toArray
     |> Array.Parallel.iter(fun x ->
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         let pt = createType assemblyId x
 
         log.WriteLine(LogLevel.Verbose, 
@@ -461,7 +460,7 @@ module internal PluginsHelper =
     client entitySet plugins (pluginType: Entity) = 
       entitySet |> Set.toArray
       |> Array.Parallel.map(fun (_,y) ->
-        proxyContext client (fun p -> 
+        proxyContext' client (fun p -> 
           let step = 
             plugins
             |> Seq.filter(fun pl -> y = messageName pl.step)
@@ -489,7 +488,7 @@ module internal PluginsHelper =
     client entitySet plugins (pluginStep: Entity) = 
       entitySet |> Set.toArray
       |> Array.Parallel.iter(fun y ->
-        proxyContext client (fun p -> 
+        proxyContext' client (fun p -> 
           plugins
           |> Seq.fold(fun acc pl -> 
             pl.images
@@ -522,7 +521,7 @@ module internal PluginsHelper =
       |> Seq.toArray
       |> Array.Parallel.map(fun (_,y) ->
         
-        proxyContext client (fun p -> 
+        proxyContext' client (fun p -> 
 
           let name = getName y
           let stage = 
@@ -566,7 +565,7 @@ module internal PluginsHelper =
     |> Seq.toArray
     |> Array.Parallel.map(fun y ->
 
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         let compareImage =
           let name = getName y
           let alias = getAttribute "entityalias" y :?> string
@@ -606,7 +605,7 @@ module internal PluginsHelper =
     entitySet ||> subset
     |> Seq.toArray
     |> Array.Parallel.map(fun x ->
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         x, CrmData.CRUD.delete p x.LogicalName x.Id) )
     |> Array.iter(
       fun (x,_) -> 
@@ -617,7 +616,7 @@ module internal PluginsHelper =
     entitySet ||> subset'
     |> Seq.toArray
     |> Array.Parallel.map(fun (_,y) -> 
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         y, CrmData.CRUD.delete p y.LogicalName y.Id) )
     |> Array.iter(
       fun (x,_) -> 
@@ -628,7 +627,7 @@ module internal PluginsHelper =
     entitySet ||> subset
     |> Seq.toArray
     |> Array.Parallel.map(fun y -> 
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         y, CrmData.CRUD.delete p y.LogicalName y.Id) )
     |> Array.iter(
       fun (x,_) -> 
@@ -675,7 +674,7 @@ module internal PluginsHelper =
   let deletePluginImages (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) _ = 
     log.WriteLine(LogLevel.Info, "Retrieving Steps")
 
-    proxyContext client (fun p -> 
+    proxyContext' client (fun p -> 
       let steps = CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p solution.entity.Id
       log.WriteLine(LogLevel.Debug, 
         sprintf "Found %d steps" (Seq.length steps))
@@ -687,7 +686,7 @@ module internal PluginsHelper =
       |> Seq.toArray
       |> Array.Parallel.iter(fun step ->
 
-        proxyContext client (fun p' -> 
+        proxyContext' client (fun p' -> 
           log.WriteLine(LogLevel.Debug, 
             sprintf "Retrieving images for step: %s" (getName step))
           let images =
@@ -745,7 +744,7 @@ module internal PluginsHelper =
   let deletePluginTypes (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) _ = 
     log.WriteLine(LogLevel.Info, "Deleting types")
 
-    proxyContext client (fun p -> 
+    proxyContext' client (fun p -> 
     
       log.WriteLine(LogLevel.Debug, "Retrieving types")
       let types = CrmDataInternal.Entities.retrievePluginTypes p solution.assemblyId
@@ -770,7 +769,7 @@ module internal PluginsHelper =
   let updateAssembly (solution, client, (log:ConsoleLogger.ConsoleLogger), _) newTypes =
     log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
 
-    proxyContext client (fun p -> 
+    proxyContext' client (fun p -> 
       let dlls = CrmDataInternal.Entities.retrievePluginAssemblies p solution.entity.Id
 
       dlls
@@ -800,7 +799,7 @@ module internal PluginsHelper =
     |> Array.Parallel.iter(
       fun (key,values) -> 
 
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         log.WriteLine(LogLevel.Debug, sprintf "Retrieving plugin type: %s" key)
         let pt = CrmDataInternal.Entities.retrievePluginType p key
 
@@ -838,7 +837,7 @@ module internal PluginsHelper =
     |> Array.Parallel.iter(
       fun (key,plugin)  ->
 
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
 
         log.WriteLine(LogLevel.Debug, sprintf "Retrieving plugin step: %s" key)
         let ps = CrmDataInternal.Entities.retrieveSdkProcessingStep p key

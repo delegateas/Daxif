@@ -9,6 +9,9 @@ open DG.Daxif
 open DG.Daxif.HelperModules.Common
 open DG.Daxif.HelperModules.Common.Utility
 
+(*
+  Module is used to synchronize a workflow assembly to a solution in CRM.   
+*)
 
 module internal WorkflowHelper =
 
@@ -30,7 +33,8 @@ module internal WorkflowHelper =
       let z = getName x
       ((fun y -> y = z),a) ||> Seq.exists)
 
-   // TODO:
+  // Fetches the name of the workflows by finding all classes in the assembly
+  // that extends CodeActivity
   let getActivities (asm:Assembly) =
     asm.GetTypes() |> fun xs -> 
       xs 
@@ -41,7 +45,7 @@ module internal WorkflowHelper =
       |> Array.map(fun x -> x.FullName)
       |> Array.toSeq
 
-   // TODO:
+  // Creates a new assembly in CRM
   let createAssembly name dll (asm:Assembly) =
     let pa = Entity("pluginassembly")
     pa.Attributes.Add("name", name)
@@ -54,7 +58,7 @@ module internal WorkflowHelper =
     pa.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
     pa
 
-  // TODO:
+  // Updates an exisiting workflow assebmly in CRM
   let updateAssembly' (paid:Guid) dll (asm:Assembly) =
     let pa = Entity("pluginassembly")
     pa.Attributes.Add("pluginassemblyid", paid)
@@ -63,7 +67,7 @@ module internal WorkflowHelper =
     pa.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
     pa
 
-  // TODO:
+  // Creates an activity in CRM
   let createActivity (asmId:Guid) (asm:Assembly) (name:string) =
     let pt = Entity("plugintype")
     pt.Attributes.Add("name", name)
@@ -75,52 +79,56 @@ module internal WorkflowHelper =
     pt.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
     pt
 
+  // Creates the found activities in the given assembly in CRM
   let createActivities asm assemblyId (log:ConsoleLogger.ConsoleLogger) m tc entitySet =
+    
     entitySet 
     |> Set.toArray
     |> Array.Parallel.iter(fun x ->
+      ServiceProxy.proxyContext m tc (fun p -> 
+        let pt = createActivity assemblyId asm x
 
-      use p = ServiceProxy.getOrganizationServiceProxy m tc
-      let pt = createActivity assemblyId asm x
-
-      log.WriteLine(LogLevel.Verbose, 
-        sprintf "Creating workflow activity: %s" (getName pt))
-      (pt, CrmData.CRUD.create p pt (ParameterCollection()))
-      |> fun (x,_) -> 
         log.WriteLine(LogLevel.Verbose, 
-          sprintf "%s: %s was created" x.LogicalName (getName x)))
-
+          sprintf "Creating workflow activity: %s" (getName pt))
+        (pt, CrmData.CRUD.create p pt (ParameterCollection()))
+        |> fun (x,_) -> 
+          log.WriteLine(LogLevel.Verbose, 
+            sprintf "%s: %s was created" x.LogicalName (getName x))))
+  
+  // Deletes the exisiting activies in CRM that were not found in the assembly
   let deleteActivity (log:ConsoleLogger.ConsoleLogger) m tc entitySet = 
     entitySet ||> subset
     |> Seq.toArray
     |> Array.Parallel.map(fun x ->
       
-      use p = ServiceProxy.getOrganizationServiceProxy m tc
-      
-      x, CrmData.CRUD.delete p x.LogicalName x.Id)
+      ServiceProxy.proxyContext m tc (fun p -> 
+        x, CrmData.CRUD.delete p x.LogicalName x.Id))
     |> Array.iter(
       fun (x,_) -> 
         log.WriteLine(LogLevel.Verbose,
           sprintf "%s: %s was deleted" x.LogicalName (getName x)))
 
+  // Fetches existing assembly in CRM an updates them
   let updateAssembly (log:ConsoleLogger.ConsoleLogger) (dllName:string) 
-    (dllPath:string) (asm:Assembly)  p (solution:Entity) = 
+    (dllPath:string) (asm:Assembly) m tc (solution:Entity) = 
+      ServiceProxy.proxyContext m tc (fun p -> 
+        let dlls = CrmDataInternal.Entities.retrievePluginAssemblies p solution.Id
 
-      let dlls = CrmDataInternal.Entities.retrievePluginAssemblies p solution.Id
-
-      dlls
-      |> Seq.filter(fun x -> dllName = getName x)
-      |> Seq.iter(fun x ->
+        dlls
+        |> Seq.filter(fun x -> dllName = getName x)
+        |> Seq.iter(fun x ->
          
-        CrmData.CRUD.update
-            p (updateAssembly' x.Id dllPath asm) |> ignore
+          CrmData.CRUD.update
+              p (updateAssembly' x.Id dllPath asm) |> ignore
 
-        log.WriteLine(LogLevel.Verbose,
-          sprintf "%s: %s was updated" x.LogicalName (getName x)))
+          log.WriteLine(LogLevel.Verbose,
+            sprintf "%s: %s was updated" x.LogicalName (getName x))))
 
+  // Checks if an existing assembly exist
+  // If there is one then return the id of the assembly
+  // If not then create a new and return the id of the newly created assembly
   let instantiateAssembly (solution:Entity) dllName dllPath asm p 
     (log:ConsoleLogger.ConsoleLogger) =
-
       log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
       let dlls = CrmDataInternal.Entities.retrievePluginAssembly p dllName
 
@@ -155,6 +163,11 @@ module internal WorkflowHelper =
         | Some x -> 
           x.Id
 
+  // Finds the different between the target assembly in CRM and the given source assembly
+  // Fetches the activitities in the source and target and finds the difference with
+  // source - target = new Activities that needs to be created
+  // target - source = old activities that needs to be deleted
+  // Returns a set of the old, new existing activities
   let solutionDiff asm asmId p (log:ConsoleLogger.ConsoleLogger) = 
 
     log.WriteLine(LogLevel.Debug, "Retrieving workflow activities")
@@ -175,8 +188,9 @@ module internal WorkflowHelper =
 
     let newActivities  = sourceActivities' - targetActivities'
     let oldActivities  = targetActivities' - sourceActivities'
-    newActivities,oldActivities, targetActivities
+    newActivities, oldActivities, targetActivities
 
+  // Syncs the given workflow assembly to a solution in given CRM
   let syncSolution' org ac solutionName dll (log:ConsoleLogger.ConsoleLogger) =
     log.WriteLine(LogLevel.Verbose, "Checking local assembly")
     let dll'  = Path.GetFullPath(dll)
@@ -203,7 +217,7 @@ module internal WorkflowHelper =
     deleteActivity log m tc (oldActivities,targetActivities) 
 
     log.WriteLine(LogLevel.Info, "Updating Assembly")
-    updateAssembly log dllName dllPath asm p solution
+    updateAssembly log dllName dllPath asm m tc solution
 
     log.WriteLine(LogLevel.Info, "Creating workflow activities")
     createActivities asm asmId log m tc newActivities
