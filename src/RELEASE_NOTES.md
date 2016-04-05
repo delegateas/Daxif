@@ -1,5 +1,14 @@
 # Release Notes
 
+#### 2.3.0.4 - Apr 05 2016
+* Added comments to WorkflowHelper.fs moved ProxyContext function to 
+  ServiceProxy.fs and made us of it in WorkflowHelper.fs
+
+#### 2.3.0.3 - Apr 05 2016
+* Fixed Version from the XrmTypeProvider
+* Updated '.' prefix to '(...)' as they are always showed first in VS
+* Added '(All Records)' (light) to the XrmTypeProvider for better scripting
+
 #### 2.3.0.2 - Mar 17 2016
 * Added DG.EnsureAssemblies.Standalone.fsx version
 

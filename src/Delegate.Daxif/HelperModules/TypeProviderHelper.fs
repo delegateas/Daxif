@@ -1,12 +1,14 @@
 ﻿namespace DG.Daxif.HelperModules
 
 open System
+open DG.Daxif
 open DG.Daxif.HelperModules.Common
 
 open Microsoft.Xrm.Sdk.Metadata
 open Microsoft.Xrm.Sdk.Client
 
 open ProviderImplementation.ProvidedTypes
+open Microsoft.FSharp.Quotations
 
 module internal TypeProviderHelper =
 
@@ -56,14 +58,14 @@ module internal TypeProviderHelper =
 
     // Add "static" LogicalName and SchemaName
     ([ ProvidedProperty(
-        ".LogicalName",
+        "(LogicalName)",
         typeof<string>,
         IsStatic = true,
         GetterCode = fun args ->
           let logicalName = metadata.LogicalName 
           <@@ logicalName @@>);
        ProvidedProperty(
-        ".SchemaName",
+        "(SchemaName)",
         typeof<string>,
         IsStatic = true,
         GetterCode = fun args ->
@@ -72,7 +74,7 @@ module internal TypeProviderHelper =
 
     // Add static array of all attributes
     ([ ProvidedProperty(
-        ".All Attributes",
+        "(All Attributes)",
         typeof<string array>,
         IsStatic=true,
         GetterCode = fun args -> 
@@ -104,6 +106,22 @@ module internal TypeProviderHelper =
 
   let getEntityRecords (data:XrmData) (em:EntityMetadata) () =
 
+    // Add static array of all entities (light)
+    let allRecords () =
+      ProvidedProperty(
+        "(All Records)",
+        typeof<Guid array>,
+        IsStatic=true,
+        GetterCode = fun args -> 
+        let all =
+          data.records.Value.[em.LogicalName].Value
+//          |> Seq.map(fun e -> 
+//            e.Attributes.[em.PrimaryNameAttribute].ToString(),e.Id.ToString())
+//          |> Seq.map(fun (name,id) -> <@@ Tuple(item1 = (name,Guid(id))) @@>)
+          |> Seq.map(fun e -> let id = e.Id.ToString() in <@@ Guid(id) @@>)
+          |> Seq.toList
+        Expr.NewArray(typedefof<Guid>,all))
+
     let records = 
       data.records.Value.[em.LogicalName].Value
       |> Seq.choose (fun e ->
@@ -120,7 +138,7 @@ module internal TypeProviderHelper =
       |> List.ofSeq
 
     match records.IsEmpty with
-    | false -> records
+    | false -> allRecords () :: records
     | true  -> 
       [ProvidedProperty("No records available", typeof<obj>, IsStatic=true,
         GetterCode = fun args -> <@@ null @@>)]
@@ -146,10 +164,10 @@ module internal TypeProviderHelper =
     let data = XrmData proxy
 
     let version =
-      ProvidedProperty("Version", typeof<string>, IsStatic=true,
+      ProvidedProperty("Version", typeof<Tuple<string,CrmReleases>>, IsStatic=true,
         GetterCode = fun args -> 
-          let version = data.version.Value
-          <@@ version @@>)
+          let version,release = data.version.Value
+          <@@ (version,release) @@>)
     version.AddXmlDocDelayed(
       fun () -> "Returns the version number of the CRM system.")
 
@@ -172,7 +190,7 @@ module internal TypeProviderHelper =
       fun () -> 
         // Add static array of all entities
         ProvidedProperty(
-            ".All Entities",
+            "(All Entities)",
             typeof<string array>,
             IsStatic=true,
             GetterCode = fun args -> 
