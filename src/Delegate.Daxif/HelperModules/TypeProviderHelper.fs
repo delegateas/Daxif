@@ -56,7 +56,7 @@ module internal TypeProviderHelper =
   let createEntityMetadataProps (data:XrmData) (entity:string) () =
     let metadata = data.entityAttributes.Value.[entity].Value
 
-    // Add "static" LogicalName and SchemaName
+    // Add "static" LogicalName and SchemaName as well as Primary Attributes
     ([ ProvidedProperty(
         "(LogicalName)",
         typeof<string>,
@@ -70,7 +70,21 @@ module internal TypeProviderHelper =
         IsStatic = true,
         GetterCode = fun args ->
           let schemaName = metadata.SchemaName
-          <@@ schemaName @@>); ]) @
+          <@@ schemaName @@>);
+       ProvidedProperty(
+        "(PrimaryIdAttribute)",
+        typeof<string>,
+        IsStatic = true,
+        GetterCode = fun args ->
+          let primaryIdAttribute = metadata.PrimaryIdAttribute
+          <@@ primaryIdAttribute @@>);
+        ProvidedProperty(
+        "(PrimaryNameAttribute)",
+        typeof<string>,
+        IsStatic = true,
+        GetterCode = fun args ->
+          let primaryNameAttribute = metadata.PrimaryNameAttribute
+          <@@ primaryNameAttribute @@>); ]) @
 
     // Add static array of all attributes
     ([ ProvidedProperty(
@@ -90,8 +104,8 @@ module internal TypeProviderHelper =
           <@@ name @@>))) @
 
     // Add relationship props
-    ([  metadata.OneToManyRelationships |> Array.map box
-        metadata.ManyToOneRelationships |> Array.map box
+    ([  metadata.OneToManyRelationships  |> Array.map box
+        metadata.ManyToOneRelationships  |> Array.map box
         metadata.ManyToManyRelationships |> Array.map box
      ] 
      |> Array.concat |> List.ofArray 

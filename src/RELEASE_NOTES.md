@@ -1,5 +1,9 @@
 # Release Notes
 
+#### 2.3.0.5 - Apr 05 2016
+* Added PrimaryIdAttribute and PrimaryNameAttribute for entities on the
+  XrmTypeProvider
+
 #### 2.3.0.4 - Apr 05 2016
 * Added comments to WorkflowHelper.fs moved ProxyContext function to 
   ServiceProxy.fs and made us of it in WorkflowHelper.fs
