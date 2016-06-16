@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.3.0.6 - Apr 05 2016
+* Updated to newest Microsoft.CrmSdk.CoreAssemblies and Microsoft.CrmSdk.CoreTools
+
 #### 2.3.0.5 - Apr 05 2016
 * Added PrimaryIdAttribute and PrimaryNameAttribute for entities on the
   XrmTypeProvider

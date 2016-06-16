@@ -78,7 +78,7 @@ module internal TypeProviderHelper =
         GetterCode = fun args ->
           let primaryIdAttribute = metadata.PrimaryIdAttribute
           <@@ primaryIdAttribute @@>);
-        ProvidedProperty(
+       ProvidedProperty(
         "(PrimaryNameAttribute)",
         typeof<string>,
         IsStatic = true,

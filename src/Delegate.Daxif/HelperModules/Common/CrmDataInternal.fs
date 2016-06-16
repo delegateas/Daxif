@@ -428,7 +428,7 @@ module CrmDataInternal =
         (ConditionExpression(an, ConditionOperator.Equal, solutionId))
       let f = FilterExpression()
       f.AddCondition
-        (ConditionExpression(@"ismanaged", ConditionOperator.Equal, false))
+        (ConditionExpression(nm, ConditionOperator.Equal, false))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f

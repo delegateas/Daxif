@@ -172,7 +172,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Crm.Sdk.Proxy">
-      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.0.2.1\lib\net45\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.1.0.2\lib\net452\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.IdentityModel">
@@ -184,11 +184,11 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Xrm.Sdk">
-      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.0.2.1\lib\net45\Microsoft.Xrm.Sdk.dll</HintPath>
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.1.0.2\lib\net452\Microsoft.Xrm.Sdk.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SolutionPackager">
-      <HintPath>..\packages\Microsoft.CrmSdk.CoreTools.8.0.2.1\content\bin\coretools\SolutionPackager.exe</HintPath>
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreTools.8.1.0.2\content\bin\coretools\SolutionPackager.exe</HintPath>
     </Reference>
     <Reference Include="Suave">
       <HintPath>..\packages\Suave.1.1.1\lib\net40\Suave.dll</HintPath>
