@@ -1,9 +1,13 @@
 # Release Notes
 
-#### 2.3.0.6 - Apr 05 2016
+#### 2.3.0.7 - Jun 21 2016
+* Fixed issue by importing big solution files where status is never become 100
+  (rounding numbers problem in MS CRM)
+
+#### 2.3.0.6 - Jun 16 2016
 * Updated to newest Microsoft.CrmSdk.CoreAssemblies and Microsoft.CrmSdk.CoreTools
 
-#### 2.3.0.5 - Apr 05 2016
+#### 2.3.0.5 - May 06 2016
 * Added PrimaryIdAttribute and PrimaryNameAttribute for entities on the
   XrmTypeProvider
 

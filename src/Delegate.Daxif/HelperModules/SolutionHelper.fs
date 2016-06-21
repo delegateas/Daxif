@@ -199,6 +199,8 @@ module internal SolutionHelper =
     req.ImportJobId <- jobId
     req.ConvertToManaged <- managed
     req.OverwriteUnmanagedCustomizations <- true
+    req.PublishWorkflows <- true
+
     log.WriteLine(LogLevel.Verbose, @"Proxy timeout set to 1 hour")
 
     let rec importHelper' exists completed progress = 
@@ -219,7 +221,7 @@ module internal SolutionHelper =
             let (pct, completed') = 
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
               try 
-                let j = CrmDataInternal.Entities.retrieveImportJob p' jobId
+                let j = CrmDataInternal.Entities.retrieveImportJob p' jobId false
                 let progress' = j.Attributes.["progress"] :?> double
                 (progress', j.Attributes.Contains("completedon"))
               with _ -> (progress, false)
@@ -233,21 +235,22 @@ module internal SolutionHelper =
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
                 
               let status = 
-                try 
-                  let j = CrmDataInternal.Entities.retrieveImportJob p' jobId
+                try
+                  let j = CrmDataInternal.Entities.retrieveImportJob p' jobId true
+                  let data = j.Attributes.["data"] :?> string
+                  let success = not (data.Contains("<result result=\"failure\""))
                   let progress' = j.Attributes.["progress"] :?> double
-                  progress' = 100.
+
+                  (progress' = 100.) || success
                 with _ -> false
               match status with
               | true -> 
                 let msg = 
-                  @"Solution was imported successfully (ImportJob ID: " 
-                  + jobId.ToString() + @")"
+                  sprintf  @"Solution import succeeded (ImportJob ID: %A)" jobId 
                 log.WriteLine(LogLevel.Verbose, msg)
               | false -> 
                 failwith 
-                  (@"Solution import failed (ImportJob ID: " + jobId.ToString() 
-                    + @")")
+                  (sprintf @"Solution import failed (ImportJob ID: %A)" jobId)
               match managed with
               | true -> ()
               | false -> 
