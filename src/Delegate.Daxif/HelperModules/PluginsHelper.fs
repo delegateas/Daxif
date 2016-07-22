@@ -930,3 +930,84 @@ module internal PluginsHelper =
         log.WriteLine(LogLevel.Verbose, "Validation completed")
         log.WriteLine(LogLevel.Verbose, "Syncing plugins")
         syncPlugins (solution, client, log, sourcePlugins) ()
+
+  let cleanTarget' org acSrc acTar solutionName (log:ConsoleLogger.ConsoleLogger) =
+    let mSrc = ServiceManager.createOrgService org
+    let tcSrc = mSrc.Authenticate(acSrc)
+    let clientSrc = { IServiceM = mSrc; authCred = tcSrc}
+
+    let mTar = ServiceManager.createOrgService org
+    let tcTar = mTar.Authenticate(acTar)
+    let clientTar = { IServiceM = mTar; authCred = tcTar}
+
+
+    use pSrc = ServiceProxy.getOrganizationServiceProxy mSrc tcSrc
+    let solutionEntitySrc = CrmDataInternal.Entities.retrieveSolution 
+                              pSrc solutionName
+
+    use pTar = ServiceProxy.getOrganizationServiceProxy mTar tcTar
+    let solutionEntityTar = CrmDataInternal.Entities.retrieveSolution 
+                              pTar solutionName
+
+    // Delete obsolete images in target
+    let stepsSrc = CrmDataInternal.Entities.retrieveAllPluginProcessingSteps 
+                    pSrc solutionEntitySrc.Id
+    let stepsTar = CrmDataInternal.Entities.retrieveAllPluginProcessingSteps 
+                    pTar solutionEntityTar.Id
+
+    log.WriteLine(LogLevel.Debug, 
+      sprintf "Found %d steps in source" (Seq.length stepsSrc))
+
+    log.WriteLine(LogLevel.Debug, 
+      sprintf "Found %d steps in target" (Seq.length stepsTar))
+
+    log.WriteLine(LogLevel.Info, "Deleting images")
+
+    let imagesSrc =
+      stepsSrc
+      |> Seq.toArray
+      |> Array.Parallel.map(fun step ->
+
+        proxyContext' clientSrc (fun p' -> 
+          log.WriteLine(LogLevel.Debug, 
+            sprintf "Retrieving images for step: %s" (getName step))
+          CrmDataInternal.Entities.retrievePluginProcessingStepImages 
+              p' step.Id
+          ))
+      |> Array.toSeq
+      |> Seq.concat
+      |> Seq.map(fun y -> getName y)
+      |> Set.ofSeq
+
+    let imagesTar =
+      stepsTar
+      |> Seq.toArray
+      |> Array.Parallel.map(fun step ->
+
+        proxyContext' clientSrc (fun p' -> 
+          log.WriteLine(LogLevel.Debug, 
+            sprintf "Retrieving images for step: %s" (getName step))
+          CrmDataInternal.Entities.retrievePluginProcessingStepImages 
+              p' step.Id
+          ))
+      |> Array.toSeq
+      |> Seq.concat
+
+    let imagesTar' =
+      imagesTar
+      |> Seq.map(fun y -> getName y)
+      |> Set.ofSeq
+
+    let obsoleteImagesTar = imagesTar' - imagesSrc
+
+    deleteImages log clientTar (obsoleteImagesTar,stepsTar)
+
+
+
+    // Delete obsolete steps in target
+
+
+
+    // Delete obsolete types in target
+
+    ()
