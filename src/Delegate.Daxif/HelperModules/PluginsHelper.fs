@@ -869,21 +869,29 @@ module internal PluginsHelper =
         log.WriteLine(LogLevel.Debug, sprintf "Updating Images for: %s" key)
         updatePluginImages log client (updateImages,images) plugin) )
 
-  // Function that chains the previous functions into one larger function 
-  // and provide each function with a commone parameters and a value that can
-  // be carried over from the previous function in the chain.
-  let syncPlugins x = 
+  // Function chaning of deleting images, steps and types
+  let deletePlugins x = 
 
     deletePluginImages x
     >> deletePluginSteps x
     >> deletePluginTypes x
-    >> updateAssembly x
-    >> syncTypes x
+
+  // Function chaning for creating and updateing images, steps and types
+  let synchPlugins x =
+    syncTypes x
     >> syncSteps x
     >> syncImages x
 
-  // Main function to syncronize a solution
-  let syncSolution' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
+  // Function chaining for the overall sync process
+  let syncPlugins x = 
+    deletePlugins x
+    >> updateAssembly x
+    >> synchPlugins x
+
+  // Fetches data from the dll file and the plugins from the provided CRM solution.
+  // Returns a tuple contaning a ClientManagement and Solution record along with a 
+  // sequence of the plugins
+  let setupData org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
     log.WriteLine(LogLevel.Verbose, "Checking local assembly")
     let dll'  = Path.GetFullPath(dll)
     let tmp   = Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString() + @".dll")
@@ -922,6 +930,12 @@ module internal PluginsHelper =
 
     let sourcePlugins = typesAndMessages asm
 
+    client, solution, sourcePlugins
+
+  // Syncronizes a solution
+  let syncSolution' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
+    let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll log
+
     log.WriteLine(LogLevel.Verbose, "Validating plugins to be registered")
     match Validation.validatePlugins sourcePlugins client with
       | Validation.Invalid x ->
@@ -930,84 +944,13 @@ module internal PluginsHelper =
         log.WriteLine(LogLevel.Verbose, "Validation completed")
         log.WriteLine(LogLevel.Verbose, "Syncing plugins")
         syncPlugins (solution, client, log, sourcePlugins) ()
+  
 
-  let cleanTarget' org acSrc acTar solutionName (log:ConsoleLogger.ConsoleLogger) =
-    let mSrc = ServiceManager.createOrgService org
-    let tcSrc = mSrc.Authenticate(acSrc)
-    let clientSrc = { IServiceM = mSrc; authCred = tcSrc}
+  // Deletes plugins that exist in target but not in source
+  let deleteTargetObsoletePlugins org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
+    let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll log
 
-    let mTar = ServiceManager.createOrgService org
-    let tcTar = mTar.Authenticate(acTar)
-    let clientTar = { IServiceM = mTar; authCred = tcTar}
+    log.WriteLine(LogLevel.Verbose, "Deleting plugins")
+    deletePlugins (solution, client, log, sourcePlugins) ()
 
-
-    use pSrc = ServiceProxy.getOrganizationServiceProxy mSrc tcSrc
-    let solutionEntitySrc = CrmDataInternal.Entities.retrieveSolution 
-                              pSrc solutionName
-
-    use pTar = ServiceProxy.getOrganizationServiceProxy mTar tcTar
-    let solutionEntityTar = CrmDataInternal.Entities.retrieveSolution 
-                              pTar solutionName
-
-    // Delete obsolete images in target
-    let stepsSrc = CrmDataInternal.Entities.retrieveAllPluginProcessingSteps 
-                    pSrc solutionEntitySrc.Id
-    let stepsTar = CrmDataInternal.Entities.retrieveAllPluginProcessingSteps 
-                    pTar solutionEntityTar.Id
-
-    log.WriteLine(LogLevel.Debug, 
-      sprintf "Found %d steps in source" (Seq.length stepsSrc))
-
-    log.WriteLine(LogLevel.Debug, 
-      sprintf "Found %d steps in target" (Seq.length stepsTar))
-
-    log.WriteLine(LogLevel.Info, "Deleting images")
-
-    let imagesSrc =
-      stepsSrc
-      |> Seq.toArray
-      |> Array.Parallel.map(fun step ->
-
-        proxyContext' clientSrc (fun p' -> 
-          log.WriteLine(LogLevel.Debug, 
-            sprintf "Retrieving images for step: %s" (getName step))
-          CrmDataInternal.Entities.retrievePluginProcessingStepImages 
-              p' step.Id
-          ))
-      |> Array.toSeq
-      |> Seq.concat
-      |> Seq.map(fun y -> getName y)
-      |> Set.ofSeq
-
-    let imagesTar =
-      stepsTar
-      |> Seq.toArray
-      |> Array.Parallel.map(fun step ->
-
-        proxyContext' clientSrc (fun p' -> 
-          log.WriteLine(LogLevel.Debug, 
-            sprintf "Retrieving images for step: %s" (getName step))
-          CrmDataInternal.Entities.retrievePluginProcessingStepImages 
-              p' step.Id
-          ))
-      |> Array.toSeq
-      |> Seq.concat
-
-    let imagesTar' =
-      imagesTar
-      |> Seq.map(fun y -> getName y)
-      |> Set.ofSeq
-
-    let obsoleteImagesTar = imagesTar' - imagesSrc
-
-    deleteImages log clientTar (obsoleteImagesTar,stepsTar)
-
-
-
-    // Delete obsolete steps in target
-
-
-
-    // Delete obsolete types in target
-
-    ()
+  
