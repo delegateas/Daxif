@@ -143,7 +143,7 @@ module internal PluginsHelper =
             pl.step.executionStage = int ExecutionStage.PreValidation) &&
               not (Seq.isEmpty i'))
 
-      findInvalid plugins invalids "%s: Pre execution stages does not support pre-images"
+      findInvalid plugins invalids "Plugin %s: Pre execution stages does not support pre-images"
 
     let postOperationNoAsync plugins =
       let invalidPlugins =
@@ -152,7 +152,7 @@ module internal PluginsHelper =
           pl.step.executionMode = int ExecutionMode.Asynchronous && 
             pl.step.executionStage <> int ExecutionStage.PostOperation)
 
-      findInvalid plugins invalidPlugins "%s: Post execution stages does not support asynchronous execution mode"
+      findInvalid plugins invalidPlugins "Plugin %s: Post execution stages does not support asynchronous execution mode"
 
     let associateDisasociateSteps plugins =
       plugins
@@ -167,7 +167,7 @@ module internal PluginsHelper =
         |> Seq.filter(fun (_,pl) ->
           pl.step.filteredAttributes <> null)
             
-      findInvalid plugins invalidPlugins "%s can't have filtered attributes"
+      findInvalid plugins invalidPlugins "Plugin %s can't have filtered attributes"
 
     let associateDisassociateNoImages plugins =
       let invalidPlugins =
@@ -176,7 +176,7 @@ module internal PluginsHelper =
         |> Seq.filter(fun (_,pl) ->
           not (Seq.isEmpty pl.images))
             
-      findInvalid plugins invalidPlugins "%s can't have images"
+      findInvalid plugins invalidPlugins "Plugin %s can't have images"
 
     let associateDisassociateAllEntity plugins =
       let invalidPlugins =
@@ -185,7 +185,7 @@ module internal PluginsHelper =
         |> Seq.filter(fun (_,pl) ->
           pl.step.logicalName <> "")
             
-      findInvalid plugins invalidPlugins "%s must target all entities"
+      findInvalid plugins invalidPlugins "Plugin %s must target all entities"
 
     let preEventsNoPreImages plugins =
       let invalidPlugins =
@@ -197,7 +197,7 @@ module internal PluginsHelper =
           pl.step.eventOperation = "Create" &&
           not (Seq.isEmpty i'))
             
-      findInvalid plugins invalidPlugins "%s: Pre-events does not support pre-images"
+      findInvalid plugins invalidPlugins "Plugin %s: Create events does not support pre-images"
 
     let postEventsNoPostImages plugins =
       let invalidPlugins =
@@ -209,7 +209,7 @@ module internal PluginsHelper =
           pl.step.eventOperation = "Delete" &&
           not (Seq.isEmpty i'))
             
-      findInvalid plugins invalidPlugins "%s: Post-events does not support post-images"
+      findInvalid plugins invalidPlugins "Plugin %s: Post-events does not support post-images"
 
     let validUserContext client plugins =
       let invalidPlugins =
@@ -224,7 +224,7 @@ module internal PluginsHelper =
           )
         )
 
-      findInvalid plugins invalidPlugins "%s: Defined user context is not in the system"
+      findInvalid plugins invalidPlugins "Plugin %s: Defined user context is not in the system"
     
     // Collection of all validation steps
 
@@ -869,20 +869,24 @@ module internal PluginsHelper =
         log.WriteLine(LogLevel.Debug, sprintf "Updating Images for: %s" key)
         updatePluginImages log client (updateImages,images) plugin) )
 
-  // Function chaning of deleting images, steps and types
-  let deletePlugins x = 
+  // Function Chaining
+  // The order of the functions is relevant due to the order of deleting stuff
+  // and parsing specific data to the next function to reduce unnecessary
+  // computation
 
+  // deleting images, steps and types, the order 
+  let deletePlugins x = 
     deletePluginImages x
     >> deletePluginSteps x
     >> deletePluginTypes x
 
-  // Function chaning for creating and updateing images, steps and types
+  // Creating and updateing images, steps and types
   let synchPlugins x =
     syncTypes x
     >> syncSteps x
     >> syncImages x
 
-  // Function chaining for the overall sync process
+  // Overall sync process
   let syncPlugins x = 
     deletePlugins x
     >> updateAssembly x
@@ -918,39 +922,40 @@ module internal PluginsHelper =
   
     use p = ServiceProxy.getOrganizationServiceProxy m tc
     let solutionEntity = CrmDataInternal.Entities.retrieveSolution p solutionName
-    let asmId = instantiateAssembly solutionEntity dllName dllPath asm hash p log
 
-    let solution =
-      { assembly = asm;
-        assemblyId = asmId;
-        dllName = dllName;
-        dllPath = dllPath
-        hash = hash;
-        entity = solutionEntity }
 
     let sourcePlugins = typesAndMessages asm
-
-    client, solution, sourcePlugins
-
-  // Syncronizes a solution
-  let syncSolution' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
-    let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll log
 
     log.WriteLine(LogLevel.Verbose, "Validating plugins to be registered")
     match Validation.validatePlugins sourcePlugins client with
       | Validation.Invalid x ->
         failwith x
       | Validation.Valid _ -> 
-        log.WriteLine(LogLevel.Verbose, "Validation completed")
-        log.WriteLine(LogLevel.Verbose, "Syncing plugins")
-        syncPlugins (solution, client, log, sourcePlugins) ()
+        log.WriteLine(LogLevel.Verbose, "Validation completed")       
+
+        let asmId = instantiateAssembly solutionEntity dllName dllPath asm hash p log
+
+        let solution =
+          { assembly = asm;
+            assemblyId = asmId;
+            dllName = dllName;
+            dllPath = dllPath
+            hash = hash;
+            entity = solutionEntity }
+
+    
+
+        client, solution, sourcePlugins
+
+  // Syncronizes a solution
+  let syncSolution' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
+    let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll log
+    log.WriteLine(LogLevel.Verbose, "Syncing plugins")
+    syncPlugins (solution, client, log, sourcePlugins) ()
   
 
   // Deletes plugins that exist in target but not in source
-  let deleteTargetObsoletePlugins org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
+  let deletePlugins' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
     let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll log
-
     log.WriteLine(LogLevel.Verbose, "Deleting plugins")
-    deletePlugins (solution, client, log, sourcePlugins) ()
-
-  
+    deletePlugins (solution, client, log, sourcePlugins) () |> ignore
