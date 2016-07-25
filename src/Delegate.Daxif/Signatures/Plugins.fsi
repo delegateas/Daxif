@@ -19,3 +19,11 @@ Plugins
      -> dll:string
      -> ap:AuthenticationProviderType
      -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
+
+  /// Delete plugins in target solution that does not exist in source dll
+  val public deletePlugins : wsdl:Uri
+     -> solution:string
+     -> proj:string
+     -> dll:string
+     -> ap:AuthenticationProviderType
+     -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
