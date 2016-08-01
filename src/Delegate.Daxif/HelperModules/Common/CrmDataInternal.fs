@@ -240,6 +240,18 @@ module CrmDataInternal =
         let resp = 
           proxy.Execute(req) :?> Messages.FetchXmlToQueryExpressionResponse
         resp.Query |> fun q -> CrmData.CRUD.retrieveMultiple proxy ln q
+
+    let retrieveSavedQuery proxy id = 
+      let (id : Guid) = id
+      let ln = @"savedquery"
+      let an = @"savedqueryid"
+      let f = FilterExpression()
+      f.AddCondition(ConditionExpression(an, ConditionOperator.Equal, id))
+      let q = QueryExpression(ln)
+      q.ColumnSet <- ColumnSet(true)
+      q.Criteria <- f
+      CrmData.CRUD.retrieveMultiple proxy ln q
+      |> seqTryHead'
     
     let createPublisher proxy name display prefix = 
       let (name : String) = name
@@ -500,7 +512,7 @@ module CrmDataInternal =
       let (solutionId : Guid) = solutionId
       let ln = @"sdkmessageprocessingstep"
       let an = @"solutionid"
-      let em = CrmData.Metadata.entity proxy ln
+      //let em = CrmData.Metadata.entity proxy ln
       let le = LinkEntity()
       le.JoinOperator <- JoinOperator.Inner
       le.LinkFromAttributeName <- @"sdkmessageprocessingstepid"
@@ -530,8 +542,6 @@ module CrmDataInternal =
       let ln = @"workflow"
       let an = @"solutionid"
       let t = @"type"
-      let sc = @"statuscode"
-      let em = CrmData.Metadata.entity proxy ln
       let le = LinkEntity()
       le.JoinOperator <- JoinOperator.Inner
       le.LinkFromAttributeName <- @"workflowid"
@@ -574,4 +584,10 @@ module CrmDataInternal =
       q.ColumnSet <- ColumnSet(true)
       q.LinkEntities.Add(le)
       q.Criteria <- f
+      CrmData.CRUD.retrieveMultiple proxy ln q
+
+    let retrieveCustomSavedQueries proxy =
+      let ln = @"savedquery"
+      let q = QueryExpression(ln)
+      q.ColumnSet <- ColumnSet(true)
       CrmData.CRUD.retrieveMultiple proxy ln q

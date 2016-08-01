@@ -178,7 +178,6 @@ module internal SolutionHelper =
 
     log.WriteLine(LogLevel.Verbose, @"Solution saved to local disk")
 
-
   let import' org ac solution location managed (log : ConsoleLogger.ConsoleLogger) = 
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
