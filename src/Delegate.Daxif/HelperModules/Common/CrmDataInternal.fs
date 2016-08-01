@@ -299,10 +299,15 @@ module CrmDataInternal =
       q.Criteria <- f
       CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln uniqueName
     
-    let retrieveImportJob proxy importJobId = 
+    let retrieveImportJob proxy importJobId withData = 
       let (importJobId : Guid) = importJobId
       let ln = @"importjob"
-      let ans = [ @"progress"; @"completedon" ] |> List.toArray
+      let ans =
+        let ans' =
+          match withData with
+          | true -> [ @"data" ]
+          | false -> [ ]
+        ans' @ [ @"progress"; @"completedon" ] |> List.toArray
       let f = FilterExpression()
       f.AddCondition
         (ConditionExpression
@@ -311,7 +316,8 @@ module CrmDataInternal =
       q.ColumnSet <- ColumnSet(ans)
       q.Criteria <- f
       q.NoLock <- true
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln (importJobId.ToString())
+      CrmData.CRUD.retrieveMultiple proxy ln q 
+      |> seqTryHead ln (importJobId.ToString())
     
     let retrievePluginType proxy uniqueName = 
       let (uniqueName : string) = uniqueName
@@ -428,7 +434,7 @@ module CrmDataInternal =
         (ConditionExpression(an, ConditionOperator.Equal, solutionId))
       let f = FilterExpression()
       f.AddCondition
-        (ConditionExpression(@"ismanaged", ConditionOperator.Equal, false))
+        (ConditionExpression(nm, ConditionOperator.Equal, false))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
