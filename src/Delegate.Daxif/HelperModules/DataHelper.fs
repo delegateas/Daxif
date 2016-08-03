@@ -8,11 +8,75 @@ open Microsoft.FSharp.Core
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Messages
 open Microsoft.Xrm.Sdk.Metadata
+open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
 open DG.Daxif.HelperModules.Common
 open DG.Daxif.HelperModules.Common.Utility
 
 module internal DataHelper =
+  
+
+  let getResponse<'T when 'T :> OrganizationResponse> (proxy:OrganizationServiceProxy) request =
+    proxy.Timeout <- TimeSpan(1,0,0)
+    (proxy.Execute(request)) :?> 'T
+
+
+  let performAsBulk proxy reqs = 
+    reqs
+    |> Array.chunkBySize 1000
+    |> Array.map (fun splitReqs ->
+      let req = ExecuteMultipleRequest()
+      req.Requests <- OrganizationRequestCollection()
+      req.Requests.AddRange(splitReqs)
+      req.Settings <- ExecuteMultipleSettings()
+      req.Settings.ContinueOnError <- true
+      req.Settings.ReturnResponses <- true
+      (getResponse<ExecuteMultipleResponse> proxy req).Responses
+    ) |> Seq.concat
+    |> Array.ofSeq
+
+  let performAsBulkWithOutput proxy reqs =
+    let resp = performAsBulk proxy reqs
+    resp |> Array.iter (fun r -> if r.Fault <> null then eprintfn "Error when performing %s: %s" reqs.[r.RequestIndex].RequestName r.Fault.Message)
+    resp |> Array.filter (fun x -> x.Fault = null)
+    |> Array.length
+    |> fun count -> printfn "Succesfully performed %d/%d actions in %A" count reqs.Length proxy.ServiceConfiguration.CurrentServiceEndpoint.Address
+
+  let performAsParallelBulkHandle proxyGetter reqs handleResponses = 
+    reqs
+    |> Array.chunkBySize 1000
+    |> Array.map (fun splitReqs -> 
+      async {
+        let (proxy : OrganizationServiceProxy) = proxyGetter()
+        proxy.Timeout <- TimeSpan(1, 0, 0)
+        let req = ExecuteMultipleRequest()
+        req.Requests <- OrganizationRequestCollection()
+        req.Requests.AddRange(splitReqs)
+        req.Settings <- ExecuteMultipleSettings()
+        req.Settings.ContinueOnError <- true
+        req.Settings.ReturnResponses <- true
+        let resp = (getResponse<ExecuteMultipleResponse> proxy req).Responses
+        handleResponses resp
+        proxy.Dispose()
+        return resp
+      }) 
+    |> Async.Parallel
+    |> Async.RunSynchronously
+    |> Seq.concat
+    |> Array.ofSeq
+
+  let performAsParallelBulk proxyGetter reqs = 
+    performAsParallelBulkHandle proxyGetter reqs ignore
+
+  let performAsParallelBulkWithOutput proxyGetter reqs =
+    let resp = performAsParallelBulkHandle proxyGetter reqs (fun resps -> printfn "Finished %d requests." resps.Count)
+    let proxy = proxyGetter()
+    proxy.Timeout <- TimeSpan(1, 0, 0)
+    resp |> Array.iter (fun r -> if r.Fault <> null then eprintfn "Error when performing %s: %s" reqs.[r.RequestIndex].RequestName r.Fault.Message)
+    resp |> Array.filter (fun x -> x.Fault = null)
+    |> Array.length
+    |> fun count -> printfn "Succesfully performed %d/%d actions in %A" count reqs.Length proxy.ServiceConfiguration.CurrentServiceEndpoint.Address
+
   let throttle (ap : Client.AuthenticationProviderType) = 
     match ap with
     | Client.AuthenticationProviderType.OnlineFederation -> 1

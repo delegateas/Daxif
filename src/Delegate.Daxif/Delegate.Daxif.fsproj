@@ -197,6 +197,8 @@
       <HintPath>..\packages\Suave.1.1.1\lib\net40\Suave.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="XmlDiffPatch">
       <HintPath>..\packages\XMLDiffPatch.1.0.8.28\lib\net\XmlDiffPatch.dll</HintPath>
       <Private>True</Private>
@@ -230,4 +232,8 @@
     <Reference Include="mscorlib" />
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
+  <PropertyGroup>
+    <PreBuildEvent>IF EXIST $(TargetPath).LOCKED  (del $(TargetPath).LOCKED) ELSE (IF EXIST $(TargetPath) (move $(TargetPath) $(TargetPath).LOCKED))
+(if exist "$(TargetDir)*pdb.LOCKED" del "$(TargetDir)*pdb.LOCKED") &amp; (if exist "$(TargetDir)*.pdb" ren "$(TargetDir)*.pdb" *.pdb.LOCKED)</PreBuildEvent>
+  </PropertyGroup>
 </Project>

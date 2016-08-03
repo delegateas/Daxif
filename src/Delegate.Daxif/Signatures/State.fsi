@@ -15,8 +15,16 @@ Export and import the state of views, plugins and workflows and store them in an
 exported solution. To import the states require that the states were also exported 
 with the State export function.
 *)
-  /// Creates a new publisher with the given parameters.
+  /// Exports states to a file and arhcive it in the soluition package
   val public exportStates : wsdl:Uri
+     -> solution:string
+     -> ap:AuthenticationProviderType
+     -> usr:string -> pwd:string -> domain:string -> path:string 
+     -> logLevel:LogLevel -> unit
+
+  /// Fethes the state fromthe dgSolution.xml file in solution package and sync
+  /// the state with the entities in the system
+  val public syncStates : wsdl:Uri
      -> solution:string
      -> ap:AuthenticationProviderType
      -> usr:string -> pwd:string -> domain:string -> path:string 

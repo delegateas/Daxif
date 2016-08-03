@@ -241,12 +241,18 @@ module CrmDataInternal =
           proxy.Execute(req) :?> Messages.FetchXmlToQueryExpressionResponse
         resp.Query |> fun q -> CrmData.CRUD.retrieveMultiple proxy ln q
 
-    let retrieveSavedQuery proxy id = 
+    let retrieveSavedQueryReq proxy id status state = 
+      
       let (id : Guid) = id
       let ln = @"savedquery"
       let an = @"savedqueryid"
+      let statusC = @"statuscode"
+      let stateC = @"statecode"
       let f = FilterExpression()
       f.AddCondition(ConditionExpression(an, ConditionOperator.Equal, id))
+      f.AddCondition(ConditionExpression(statusC, ConditionOperator.Equal, status))
+      f.AddCondition(ConditionExpression(stateC, ConditionOperator.Equal, state))
+
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
@@ -584,10 +590,4 @@ module CrmDataInternal =
       q.ColumnSet <- ColumnSet(true)
       q.LinkEntities.Add(le)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q
-
-    let retrieveCustomSavedQueries proxy =
-      let ln = @"savedquery"
-      let q = QueryExpression(ln)
-      q.ColumnSet <- ColumnSet(true)
       CrmData.CRUD.retrieveMultiple proxy ln q
