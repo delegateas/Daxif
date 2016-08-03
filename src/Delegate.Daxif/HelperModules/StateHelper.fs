@@ -55,7 +55,6 @@ module internal StateHelper =
 
   // Retrievs the workflows defined in the solution
   let getWorkflows p solution log =
-
     CrmDataInternal.Entities.retrieveWorkflows p solution
 
   // Stores entities statecode and statuscode in a seperate file to be
@@ -142,12 +141,14 @@ module internal StateHelper =
       let dgSol = SerializationHelper.deserializeXML<DelegateSolution> xmlContent
 
       // Read the status and statecode of the entities and update them in crm
+
       // Find the source entities that have different code values than target
       let diffdgSol =
         dgSol.states
         |> Map.toArray
         |> Array.map(fun (_,guidState) -> 
-           CrmData.CRUD.retrieveReq guidState.logicalName guidState.id :> OrganizationRequest )
+           CrmData.CRUD.retrieveReq guidState.logicalName guidState.id 
+           :> OrganizationRequest )
         |> DataHelper.performAsBulk p
         |> Array.map(fun resp -> 
           let resp' = resp.Response :?> Messages.RetrieveResponse 
@@ -156,14 +157,13 @@ module internal StateHelper =
           let source = dgSol.states.[target.Id.ToString()]
           getCodeValue "statecode" target log <> source.stateCode ||
           getCodeValue "statuscode" target log <> source.statusCode)
-        |> Array.map(fun target ->  
-          dgSol.states.[target.Id.ToString()])
         
       // update the entities states
       diffdgSol
       |> Array.map(fun x -> 
-        CrmDataInternal.Entities.updateStateReq x.logicalName x.id x.stateCode x.statusCode :> OrganizationRequest )
+        let x' = dgSol.states.[x.Id.ToString()]
+        CrmDataInternal.Entities.updateStateReq x'.logicalName x'.id
+          x'.stateCode x'.statusCode 
+        :> OrganizationRequest )
       |> DataHelper.performAsBulk p
       |> ignore
-        
-    ()
