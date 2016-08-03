@@ -234,6 +234,6 @@
   </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>IF EXIST $(TargetPath).LOCKED  (del $(TargetPath).LOCKED) ELSE (IF EXIST $(TargetPath) (move $(TargetPath) $(TargetPath).LOCKED))
-(if exist "$(TargetDir)*pdb.LOCKED" del "$(TargetDir)*pdb.LOCKED") &amp; (if exist "$(TargetDir)*.pdb" ren "$(TargetDir)*.pdb" *.pdb.LOCKED)</PreBuildEvent>
+IF EXIST "$(TargetDir)*pdb.LOCKED" (del "$(TargetDir)*pdb.LOCKED") ELSE (IF EXIST "$(TargetDir)*.pdb" (move "$(TargetDir)*.pdb" *.pdb.LOCKED))</PreBuildEvent>
   </PropertyGroup>
 </Project>

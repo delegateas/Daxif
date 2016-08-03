@@ -19,7 +19,7 @@ module State =
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
     try 
-      StateHelper.exportStates' org ac path log'
+      StateHelper.exportStates' org ac solution path log'
       log'.WriteLine
         (LogLevel.Info, @"The solution codes were exported succesfully")
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)

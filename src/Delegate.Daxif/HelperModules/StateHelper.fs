@@ -5,15 +5,10 @@ open System.IO
 open System.IO.Compression
 open System.Xml
 open Microsoft.Xrm.Sdk
-open Microsoft.Xrm.Sdk.Messages
-open Microsoft.Xrm.Sdk.Metadata
-open Microsoft.Xrm.Sdk
 open DG.Daxif
 open DG.Daxif.HelperModules.Common
 open DG.Daxif.HelperModules.Common.Utility
 open DG.Daxif.HelperModules.Common.ConsoleLogger
-
-
 
 module internal StateHelper =
 
@@ -42,44 +37,36 @@ module internal StateHelper =
 
   // Fetches the entity of views in a packaged solution file from an exported 
   // solution
-  let getViews p (xmlFile:string) log = 
-
-    // Find the xml files for the 
-//    let xmlFiles = 
-//      Directory.GetDirectories entitiesFolder
-//      |> Array.map(fun path ->
-//        Path.Combine(path, "SavedQueries/")
-//        |> Directory.GetFiles
-//        |> Array.toSeq)
-//      |> Array.toSeq
-//      |> Seq.concat
+  let getViews p (xmlFile:string) log =
    
     // parse the customization.xml and find all the nodes containing "savedquery"
     // under the node "SavedQueries"
     let savedQueryGuids =
-//      xmlFiles
-//      |> Seq.map(fun (xmlFile:string) ->
         let doc = new XmlDocument()
         doc.Load xmlFile
-        doc.SelectNodes "//savedqueryid/text()"
+        doc.SelectNodes "//savedquery[isprivate=0]/savedqueryid/text()"
         |> Seq.cast<XmlNode> 
         |> Seq.map(fun node -> Guid.Parse node.Value)
 
     // fetch the entities of the views
-    let savedQueries =
-      savedQueryGuids
-      |> Seq.map(fun guid -> CrmData.CRUD.retrieve p "savedquery" guid)
 
-    // return a sequence of the found guids
-    savedQueries
+    savedQueryGuids
+    |> Seq.map(fun guid -> CrmData.CRUD.retrieve p "savedquery" guid)
+
+  // Retrievs the workflows defined in the solution
+  let getWorkflows p solution log =
+
+    CrmDataInternal.Entities.retrieveWorkflows p solution
 
   // Stores entities statecode and statuscode in a seperate file to be
   // implemented on import
-  let exportStates' org ac zipPath (log:ConsoleLogger) =
+  let exportStates' org ac solutionName zipPath (log:ConsoleLogger) =
 
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
+
+    let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
 
     // Retriev Customization.xml file from the solution package and store it in 
     // a temp folder
@@ -96,7 +83,8 @@ module internal StateHelper =
     log.WriteLine(LogLevel.Verbose, @"Finding entities 'statusCode' and 'stateCode'")
     // find the entities to be persisted
     let entities =
-      [getViews p xmlFile log]
+      [getViews p xmlFile log
+       getWorkflows p solution.Id log]
       |> List.toSeq
       |> Seq.concat
 
