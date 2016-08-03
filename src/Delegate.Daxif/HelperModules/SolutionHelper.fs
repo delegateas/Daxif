@@ -202,16 +202,28 @@ module internal SolutionHelper =
 
     log.WriteLine(LogLevel.Verbose, @"Proxy timeout set to 1 hour")
 
-    let rec importHelper' exists completed progress = 
+    let rec importHelper' exists completed progress aJobId = 
       async { 
+        use p' = ServiceProxy.getOrganizationServiceProxy m tc
         match exists with
         | false -> 
-          // TODO: Return error if the job is never created
-          // Indicated by exist always being false 
+          match aJobId with
+            | None -> ()
+            | Some id ->
+              let systemJob = CrmData.CRUD.retrieve p' "asyncoperation" id
+              let s = systemJob.Attributes.["statuscode"] :?> OptionSetValue 
+                    |> fun o -> o.Value
+              match s with
+                | 31 | 32 -> //Failed || Cancelled
+                  log.WriteLine(LogLevel.Verbose, "Asynchronous import job failed")
+                  string systemJob.Attributes.["message"]
+                  |> sprintf "Failed with message: %s"
+                  |> failwith 
+                | _ -> ()
+
           let exists' = 
-            use p' = ServiceProxy.getOrganizationServiceProxy m tc
             CrmDataInternal.Entities.existCrm p' @"importjob" jobId None
-          do! importHelper' exists' completed progress
+          do! importHelper' exists' completed progress aJobId
         | true -> 
           match completed with
           | true -> ()
@@ -258,7 +270,7 @@ module internal SolutionHelper =
                 log.WriteLine
                   (LogLevel.Verbose, @"The solution was successfully published")
               return ()
-            do! importHelper' exists completed' pct
+            do! importHelper' exists completed' pct aJobId
       }
       
     let importHelperAsync() = 
@@ -266,15 +278,18 @@ module internal SolutionHelper =
       // Messages.ExecuteAsyncRequest Type for MS CRM 2011 (legacy)
       let areq = new Messages.ExecuteAsyncRequest()
       areq.Request <- req
-      p.Execute(areq) :?> Messages.ExecuteAsyncResponse |> ignore
+      p.Execute(areq) :?> Messages.ExecuteAsyncResponse 
+      |> fun r -> r.AsyncJobId
       
     let importHelper() = 
       async { 
-        let! progress = Async.StartChild(importHelper' false false 0.)
-        match CrmDataInternal.Info.version p with
-        | (_, CrmReleases.CRM2011) -> 
-          p.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
-        | (_, _) -> importHelperAsync()
+        let aJobId = 
+          match CrmDataInternal.Info.version p with
+          | (_, CrmReleases.CRM2011) -> 
+            p.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
+            None
+          | (_, _) -> Some (importHelperAsync())
+        let! progress = Async.StartChild(importHelper' false false 0. aJobId)
         let! waitForProgress = progress
         waitForProgress
       }
