@@ -101,7 +101,6 @@
     <Compile Include="Signatures\Workflow.fsi" />
     <Compile Include="Signatures\TypeProvider.fsi" />
     <Compile Include="Signatures\Diff.fsi" />
-    <Compile Include="Signatures\State.fsi" />
     <Compile Include="HelperModules\Common\ConsoleLogger.fs" />
     <Compile Include="HelperModules\Common\Utility.fs" />
     <Compile Include="HelperModules\Common\Resource.fs" />
@@ -114,7 +113,7 @@
     <Compile Include="HelperModules\SerializationHelper.fs" />
     <Compile Include="HelperModules\DataHelper.fs" />
     <Compile Include="HelperModules\InfoHelper.fs" />
-    <Compile Include="HelperModules\StateHelper.fs" />
+    <Compile Include="HelperModules\DGSolutionHelper.fs" />
     <Compile Include="HelperModules\SolutionHelper.fs" />
     <Compile Include="HelperModules\TranslationsHelper.fs" />
     <Compile Include="HelperModules\TypeProviderHelper.fs" />
@@ -132,7 +131,6 @@
     <Compile Include="Modules\Workflow.fs" />
     <Compile Include="Modules\TypeProvider.fs" />
     <Compile Include="Modules\Diff.fs" />
-    <Compile Include="Modules\State.fs" />
     <None Include="Tests\SetupTests.fsx" />
     <None Include="Tests\Delegate.DaxifTests.fsx" />
     <None Include="Tests\SerializationUnitTests.fsx" />

@@ -35,12 +35,21 @@ module internal DataHelper =
     ) |> Seq.concat
     |> Array.ofSeq
 
-  let performAsBulkWithOutput proxy reqs =
+  let performAsBulkWithOutput proxy reqs (log: ConsoleLogger.ConsoleLogger) =
     let resp = performAsBulk proxy reqs
-    resp |> Array.iter (fun r -> if r.Fault <> null then eprintfn "Error when performing %s: %s" reqs.[r.RequestIndex].RequestName r.Fault.Message)
-    resp |> Array.filter (fun x -> x.Fault = null)
+    resp
+    |> Array.iter (fun r -> 
+      if r.Fault <> null then 
+        log.WriteLine(LogLevel.Error,
+          (sprintf "Error when performing %s: %s" reqs.[r.RequestIndex].RequestName 
+            r.Fault.Message)))
+    resp
+    |> Array.filter (fun x -> x.Fault = null)
     |> Array.length
-    |> fun count -> printfn "Succesfully performed %d/%d actions in %A" count reqs.Length proxy.ServiceConfiguration.CurrentServiceEndpoint.Address
+    |> fun count -> 
+      log.WriteLine(LogLevel.Verbose,
+        (sprintf "Succesfully performed %d/%d actions in %A" count reqs.Length 
+          proxy.ServiceConfiguration.CurrentServiceEndpoint.Address))
 
   let performAsParallelBulkHandle proxyGetter reqs handleResponses = 
     reqs
@@ -68,14 +77,14 @@ module internal DataHelper =
   let performAsParallelBulk proxyGetter reqs = 
     performAsParallelBulkHandle proxyGetter reqs ignore
 
-  let performAsParallelBulkWithOutput proxyGetter reqs =
-    let resp = performAsParallelBulkHandle proxyGetter reqs (fun resps -> printfn "Finished %d requests." resps.Count)
-    let proxy = proxyGetter()
-    proxy.Timeout <- TimeSpan(1, 0, 0)
-    resp |> Array.iter (fun r -> if r.Fault <> null then eprintfn "Error when performing %s: %s" reqs.[r.RequestIndex].RequestName r.Fault.Message)
-    resp |> Array.filter (fun x -> x.Fault = null)
-    |> Array.length
-    |> fun count -> printfn "Succesfully performed %d/%d actions in %A" count reqs.Length proxy.ServiceConfiguration.CurrentServiceEndpoint.Address
+//  let performAsParallelBulkWithOutput proxyGetter reqs =
+//    let resp = performAsParallelBulkHandle proxyGetter reqs (fun resps -> printfn "Finished %d requests." resps.Count)
+//    let proxy = proxyGetter()
+//    proxy.Timeout <- TimeSpan(1, 0, 0)
+//    resp |> Array.iter (fun r -> if r.Fault <> null then eprintfn "Error when performing %s: %s" reqs.[r.RequestIndex].RequestName r.Fault.Message)
+//    resp |> Array.filter (fun x -> x.Fault = null)
+//    |> Array.length
+//    |> fun count -> printfn "Succesfully performed %d/%d actions in %A" count reqs.Length proxy.ServiceConfiguration.CurrentServiceEndpoint.Address
 
   let throttle (ap : Client.AuthenticationProviderType) = 
     match ap with

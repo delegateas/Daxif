@@ -315,6 +315,23 @@ module internal SolutionHelper =
     log.WriteLine(LogLevel.Verbose, @"Import solution results saved to: " + excel)
     excel
 
+
+  let exportWithDGSolution' org ac ac' solution location managed (log : ConsoleLogger.ConsoleLogger) = 
+    export' org ac solution location managed log
+    let filename =
+      let managed' =
+        match managed with
+        | true -> "_managed"
+        | false -> ""
+      sprintf "%s%s.zip" solution managed'
+    log.WriteLine(LogLevel.Info, @"Exporting DGSolution")
+    DGSolutionHelper.exportDGSolution org ac' solution (location + filename) log
+
+  let importWithDGSolution' org ac ac' solution location managed (log : ConsoleLogger.ConsoleLogger) = 
+    import' org ac solution location managed log |> ignore
+    log.WriteLine(LogLevel.Info, @"Importing DGSolution")
+    DGSolutionHelper.importDGSolution org ac' solution location log
+
   //TODO:
   let extract' location (customizations : string) (map : string) project 
       (log : ConsoleLogger.ConsoleLogger) logl = 

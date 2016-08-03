@@ -84,6 +84,35 @@ Performs publish if it is not a `managed` solution.
      -> managed:bool
      -> ap:AuthenticationProviderType
      -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
+
+(**
+Exports the given `solution` as a .zip file to the wanted 
+`location` on your local disk. Extended to also export a file containing
+the state of workflow and public views along with the the active plugins in 
+the solution.
+*)
+  /// Exports the solution as a zip file to the given location on disk.
+  val public exportWithDGSolution : wsdl:Uri
+     -> solution:string
+     -> location:string
+     -> managed:bool
+     -> ap:AuthenticationProviderType
+     -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
+(**
+Imports the solution from the .zip file found at `location`.
+Also imports the settings defined in the file created by the function
+exportWithDGSolution.
+
+Performs publish if it is not a `managed` solution.
+*)
+  /// Imports the solution from the .zip file found at location.
+  val public importWithDGSolution : wsdl:Uri
+     -> solution:string
+     -> location:string
+     -> managed:bool
+     -> ap:AuthenticationProviderType
+     -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
+
 (**
 Extracts the solution to the given `location`.
 
