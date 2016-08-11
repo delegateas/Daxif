@@ -193,7 +193,9 @@ module internal DGSolutionHelper =
 
     // Serialize the record to an xml file called dgSolution.xml and add it to the
     // packaged solution 
-    let arr = SerializationHelper.serializeXML<DelegateSolution> delegateSolution
+    let arr = 
+      SerializationHelper.serializeXML<DelegateSolution> delegateSolution
+      |> SerializationHelper.xmlPrettyPrinterHelper'
 
     let solEntry = archive.CreateEntry("dgSolution.xml")
     use writer = new StreamWriter(solEntry.Open())
