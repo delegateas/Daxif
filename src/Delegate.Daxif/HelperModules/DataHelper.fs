@@ -19,9 +19,19 @@ module internal DataHelper =
     proxy.Timeout <- TimeSpan(1,0,0)
     (proxy.Execute(request)) :?> 'T
 
+  let chunk n (xs:'a[]) = 
+    match xs.Length < n with
+    |true -> [|xs|]
+    |false ->
+      xs 
+      |> Seq.mapi(fun i x -> i/n, x)
+      |> Seq.groupBy fst
+      |> Seq.map (fun (_, g) -> Seq.map snd g |> Seq.toArray)
+      |> Seq.toArray
+
   let performAsBulk proxy reqs = 
     reqs
-    |> Array.chunkBySize 1000
+    |> chunk 1000
     |> Array.map (fun splitReqs ->
       let req = ExecuteMultipleRequest()
       req.Requests <- OrganizationRequestCollection()
