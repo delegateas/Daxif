@@ -15,50 +15,6 @@ open DG.Daxif.HelperModules.Common.Utility
 
 module internal DataHelper =
   
-  let getResponse<'T when 'T :> OrganizationResponse> (proxy:OrganizationServiceProxy) request =
-    proxy.Timeout <- TimeSpan(1,0,0)
-    (proxy.Execute(request)) :?> 'T
-
-  let chunk n (xs:'a[]) = 
-    match xs.Length < n with
-    |true -> [|xs|]
-    |false ->
-      xs 
-      |> Seq.mapi(fun i x -> i/n, x)
-      |> Seq.groupBy fst
-      |> Seq.map (fun (_, g) -> Seq.map snd g |> Seq.toArray)
-      |> Seq.toArray
-
-  let performAsBulk proxy reqs = 
-    reqs
-    |> chunk 1000
-    |> Array.map (fun splitReqs ->
-      let req = ExecuteMultipleRequest()
-      req.Requests <- OrganizationRequestCollection()
-      req.Requests.AddRange(splitReqs)
-      req.Settings <- ExecuteMultipleSettings()
-      req.Settings.ContinueOnError <- true
-      req.Settings.ReturnResponses <- true
-      (getResponse<ExecuteMultipleResponse> proxy req).Responses
-    ) |> Seq.concat
-    |> Array.ofSeq
-
-  let performAsBulkWithOutput proxy reqs (log: ConsoleLogger.ConsoleLogger) =
-    let resp = performAsBulk proxy reqs
-    resp
-    |> Array.iter (fun r -> 
-      if r.Fault <> null then 
-        log.WriteLine(LogLevel.Error,
-          (sprintf "Error when performing %s: %s" reqs.[r.RequestIndex].RequestName 
-            r.Fault.Message)))
-    resp
-    |> Array.filter (fun x -> x.Fault = null)
-    |> Array.length
-    |> fun count -> 
-      log.WriteLine(LogLevel.Verbose,
-        (sprintf "Succesfully performed %d/%d actions in %A" count reqs.Length 
-          proxy.ServiceConfiguration.CurrentServiceEndpoint.Address))
-
   let throttle (ap : Client.AuthenticationProviderType) = 
     match ap with
     | Client.AuthenticationProviderType.OnlineFederation -> 1
