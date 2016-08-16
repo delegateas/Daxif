@@ -75,12 +75,6 @@ module internal ConsoleLogger =
       | false -> ()
       | true -> reducer.Post(logLevel, str)
 
-    // TODO: Currently obsolete, as it works exactly as WriteLine
-    member t.Write(logLevel, str) = 
-      match (level.HasFlag logLevel) with
-      | false -> ()
-      | true -> reducer.Post(logLevel, str)
-
     member t.overwriteLastLine() = 
       Console.SetCursorPosition(0,Console.CursorTop-1)
 

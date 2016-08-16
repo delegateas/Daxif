@@ -221,7 +221,7 @@ module internal SolutionHelper =
                   |> failwith 
                 | _ -> ()
 
-          let exists' = 
+          let exists' =
             CrmDataInternal.Entities.existCrm p' @"importjob" jobId None
           do! importHelper' exists' completed progress aJobId
         | true -> 
@@ -232,22 +232,21 @@ module internal SolutionHelper =
             let (pct, completed') = 
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
               try 
-                let j = CrmDataInternal.Entities.retrieveImportJob p' jobId false
+                let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' jobId
                 let progress' = j.Attributes.["progress"] :?> double
                 (progress', j.Attributes.Contains("completedon"))
               with _ -> (progress, false)
             match completed' with
             | false -> 
               let msg = 
-                @"Import solution: " + solution + @" (" + string (pct |> int) 
-                + @"%)"
+                sprintf @"Import solution: %s (%i%%)" solution (pct |> int)
               log.WriteLine(LogLevel.Verbose, msg)
             | true -> 
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
                 
               let status = 
-                try
-                  let j = CrmDataInternal.Entities.retrieveImportJob p' jobId true
+                try 
+                  let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' jobId
                   let data = j.Attributes.["data"] :?> string
                   let success = not (data.Contains("<result result=\"failure\""))
                   let progress' = j.Attributes.["progress"] :?> double
@@ -259,9 +258,10 @@ module internal SolutionHelper =
                 let msg = 
                   sprintf  @"Solution import succeeded (ImportJob ID: %A)" jobId 
                 log.WriteLine(LogLevel.Verbose, msg)
-              | false -> 
-                failwith 
+              | false ->
+                let msg =
                   (sprintf @"Solution import failed (ImportJob ID: %A)" jobId)
+                failwith msg
               match managed with
               | true -> ()
               | false -> 
@@ -289,18 +289,19 @@ module internal SolutionHelper =
             p.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
             None
           | (_, _) -> Some (importHelperAsync())
-        let! progress = Async.StartChild(importHelper' false false 0. aJobId)
-        let! waitForProgress = progress
-        waitForProgress
+        
+        let! progress = importHelper' false false 0. aJobId
+        progress
       }
       
     log.WriteLine(LogLevel.Verbose, @"Import solution: " + solution + @" (0%)")
-    importHelper()
-    |> Async.Catch
-    |> Async.RunSynchronously
-    |> function 
-    | Choice2Of2 exn -> printfn "Error: %A" exn
-    | _ -> ()
+    let status = 
+      importHelper()
+      |> Async.Catch
+      |> Async.RunSynchronously
+    
+      
+    // Save the XML file
     let location' = location.Replace(@".zip", "")
     let excel = location' + @"_" + Utility.timeStamp'() + @".xml"
     let req' = new Messages.RetrieveFormattedImportJobResultsRequest()
@@ -313,8 +314,12 @@ module internal SolutionHelper =
     let xml' = "<?xml version=\"1.0\"?>\n" + (Encoding.UTF8.GetString(bytes'))
     File.WriteAllText(excel, xml')
     log.WriteLine(LogLevel.Verbose, @"Import solution results saved to: " + excel)
-    excel
-
+    
+    // Rethrow exception in case of failure
+    match status with
+    | Choice2Of2 exn -> raise exn
+    | _ -> excel
+    
 
   let exportWithDGSolution' org ac ac' solution location managed (log : ConsoleLogger.ConsoleLogger) = 
     export' org ac solution location managed log
@@ -331,6 +336,7 @@ module internal SolutionHelper =
     import' org ac solution location managed log |> ignore
     log.WriteLine(LogLevel.Info, @"Importing DGSolution")
     DGSolutionHelper.importDGSolution org ac' solution location log
+   
 
   //TODO:
   let extract' location (customizations : string) (map : string) project 
