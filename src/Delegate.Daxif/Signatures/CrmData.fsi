@@ -121,3 +121,12 @@ TODO:
     /// TODO:
     val public publish : proxy:OrganizationServiceProxy
        -> unit
+
+    val public performAsBulk : proxy:OrganizationServiceProxy
+      -> reqs:OrganizationRequest []
+      -> ExecuteMultipleResponseItem []
+
+    val public performAsBulkWithOutput : proxy:OrganizationServiceProxy
+      -> logLevel:LogLevel
+      -> reqs:OrganizationRequest []      
+      -> unit

@@ -1,5 +1,13 @@
 # Release Notes
 
+#### 2.3.1.0 - Aug 15 2016
+* Added three new scripts for importing and export of data
+* Exposed helper function from CRMData for handling large amount of request
+* Added function to delete plugins found in Target but not in Source
+* Added check for status of async import job to avoid infinite loop in case job
+* Added new import and export of solution which includes synching of view and 
+  workflow stage and deleting of plugins found in source but not in target
+
 #### 2.3.0.7 - Jun 21 2016
 * Fixed issue by importing big solution files where status is never become 100
   (rounding numbers problem in MS CRM)

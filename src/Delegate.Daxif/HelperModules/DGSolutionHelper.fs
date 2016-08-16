@@ -245,7 +245,7 @@ module internal DGSolutionHelper =
         |> Array.map(fun (_,guidState) -> 
            CrmData.CRUD.retrieveReq guidState.logicalName guidState.id 
            :> OrganizationRequest )
-        |> DataHelper.performAsBulk p
+        |> CrmData.CRUD.performAsBulk p
         |> Array.map(fun resp -> 
           let resp' = resp.Response :?> Messages.RetrieveResponse 
           resp'.Entity)
@@ -268,7 +268,7 @@ module internal DGSolutionHelper =
           let x' = dgSol.states.[x.Id.ToString()]
           CrmDataInternal.Entities.updateStateReq x'.logicalName x'.id
             x'.stateCode x'.statusCode :> OrganizationRequest )
-        |> fun reqs -> DataHelper.performAsBulkWithOutput p reqs log
+        |> CrmData.CRUD.performAsBulkWithOutput p log.LogLevel
 
       log.WriteLine(LogLevel.Verbose, "Synching plugins")
 
@@ -294,7 +294,7 @@ module internal DGSolutionHelper =
           |> Seq.map( fun (x,_) ->
             CrmData.CRUD.deleteReq ln x :> OrganizationRequest)
           |> Seq.toArray
-          |> fun reqs -> DataHelper.performAsBulkWithOutput p reqs log
+          |> CrmData.CRUD.performAsBulkWithOutput p log.LogLevel
         )
 
       log.WriteLine(LogLevel.Info, @"DGSolution imported succesfully")
