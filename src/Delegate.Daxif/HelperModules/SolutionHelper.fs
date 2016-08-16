@@ -178,7 +178,6 @@ module internal SolutionHelper =
 
     log.WriteLine(LogLevel.Verbose, @"Solution saved to local disk")
 
-
   let import' org ac solution location managed (log : ConsoleLogger.ConsoleLogger) = 
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
@@ -199,18 +198,32 @@ module internal SolutionHelper =
     req.ImportJobId <- jobId
     req.ConvertToManaged <- managed
     req.OverwriteUnmanagedCustomizations <- true
+    req.PublishWorkflows <- true
+
     log.WriteLine(LogLevel.Verbose, @"Proxy timeout set to 1 hour")
 
-    let rec importHelper' exists completed progress = 
+    let rec importHelper' exists completed progress aJobId = 
       async { 
+        use p' = ServiceProxy.getOrganizationServiceProxy m tc
         match exists with
         | false -> 
-          // TODO: Return error if the job is never created
-          // Indicated by exist always being false 
-          let exists' = 
-            use p' = ServiceProxy.getOrganizationServiceProxy m tc
+          match aJobId with
+            | None -> ()
+            | Some id ->
+              let systemJob = CrmData.CRUD.retrieve p' "asyncoperation" id
+              let s = systemJob.Attributes.["statuscode"] :?> OptionSetValue 
+                    |> fun o -> o.Value
+              match s with
+                | 31 | 32 -> //Failed || Cancelled
+                  log.WriteLine(LogLevel.Verbose, "Asynchronous import job failed")
+                  string systemJob.Attributes.["message"]
+                  |> sprintf "Failed with message: %s"
+                  |> failwith 
+                | _ -> ()
+
+          let exists' =
             CrmDataInternal.Entities.existCrm p' @"importjob" jobId None
-          do! importHelper' exists' completed progress
+          do! importHelper' exists' completed progress aJobId
         | true -> 
           match completed with
           | true -> ()
@@ -219,15 +232,14 @@ module internal SolutionHelper =
             let (pct, completed') = 
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
               try 
-                let j = CrmDataInternal.Entities.retrieveImportJob p' jobId
+                let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' jobId
                 let progress' = j.Attributes.["progress"] :?> double
                 (progress', j.Attributes.Contains("completedon"))
               with _ -> (progress, false)
             match completed' with
             | false -> 
               let msg = 
-                @"Import solution: " + solution + @" (" + string (pct |> int) 
-                + @"%)"
+                sprintf @"Import solution: %s (%i%%)" solution (pct |> int)
               log.WriteLine(LogLevel.Verbose, msg)
             | true -> 
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
@@ -236,18 +248,20 @@ module internal SolutionHelper =
                 try 
                   let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' jobId
                   let data = j.Attributes.["data"] :?> string
-                  not (data.Contains """<result result="failure""")
+                  let success = not (data.Contains("<result result=\"failure\""))
+                  let progress' = j.Attributes.["progress"] :?> double
+
+                  (progress' = 100.) || success
                 with _ -> false
               match status with
               | true -> 
                 let msg = 
-                  @"Solution was imported successfully (ImportJob ID: " 
-                  + jobId.ToString() + @")"
+                  sprintf  @"Solution import succeeded (ImportJob ID: %A)" jobId 
                 log.WriteLine(LogLevel.Verbose, msg)
-              | false -> 
-                failwith 
-                  (@"Solution import failed (ImportJob ID: " + jobId.ToString() 
-                    + @")")
+              | false ->
+                let msg =
+                  (sprintf @"Solution import failed (ImportJob ID: %A)" jobId)
+                failwith msg
               match managed with
               | true -> ()
               | false -> 
@@ -256,7 +270,7 @@ module internal SolutionHelper =
                 log.WriteLine
                   (LogLevel.Verbose, @"The solution was successfully published")
               return ()
-            do! importHelper' exists completed' pct
+            do! importHelper' exists completed' pct aJobId
       }
       
     let importHelperAsync() = 
@@ -264,17 +278,20 @@ module internal SolutionHelper =
       // Messages.ExecuteAsyncRequest Type for MS CRM 2011 (legacy)
       let areq = new Messages.ExecuteAsyncRequest()
       areq.Request <- req
-      p.Execute(areq) :?> Messages.ExecuteAsyncResponse |> ignore
+      p.Execute(areq) :?> Messages.ExecuteAsyncResponse 
+      |> fun r -> r.AsyncJobId
       
     let importHelper() = 
       async { 
-        let! progress = Async.StartChild(importHelper' false false 0.)
-        match CrmDataInternal.Info.version p with
-        | (_, CrmReleases.CRM2011) -> 
-          p.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
-        | (_, _) -> importHelperAsync()
-        let! waitForProgress = progress
-        waitForProgress
+        let aJobId = 
+          match CrmDataInternal.Info.version p with
+          | (_, CrmReleases.CRM2011) -> 
+            p.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
+            None
+          | (_, _) -> Some (importHelperAsync())
+        
+        let! progress = importHelper' false false 0. aJobId
+        progress
       }
       
     log.WriteLine(LogLevel.Verbose, @"Import solution: " + solution + @" (0%)")
@@ -282,7 +299,8 @@ module internal SolutionHelper =
       importHelper()
       |> Async.Catch
       |> Async.RunSynchronously
-
+    
+      
     // Save the XML file
     let location' = location.Replace(@".zip", "")
     let excel = location' + @"_" + Utility.timeStamp'() + @".xml"
@@ -296,11 +314,29 @@ module internal SolutionHelper =
     let xml' = "<?xml version=\"1.0\"?>\n" + (Encoding.UTF8.GetString(bytes'))
     File.WriteAllText(excel, xml')
     log.WriteLine(LogLevel.Verbose, @"Import solution results saved to: " + excel)
-
+    
     // Rethrow exception in case of failure
     match status with
     | Choice2Of2 exn -> raise exn
     | _ -> excel
+    
+
+  let exportWithDGSolution' org ac ac' solution location managed (log : ConsoleLogger.ConsoleLogger) = 
+    export' org ac solution location managed log
+    let filename =
+      let managed' =
+        match managed with
+        | true -> "_managed"
+        | false -> ""
+      sprintf "%s%s.zip" solution managed'
+    log.WriteLine(LogLevel.Info, @"Exporting DGSolution")
+    DGSolutionHelper.exportDGSolution org ac' solution (location + filename) log
+
+  let importWithDGSolution' org ac ac' solution location managed (log : ConsoleLogger.ConsoleLogger) = 
+    import' org ac solution location managed log |> ignore
+    log.WriteLine(LogLevel.Info, @"Importing DGSolution")
+    DGSolutionHelper.importDGSolution org ac' solution location log
+   
 
   //TODO:
   let extract' location (customizations : string) (map : string) project 

@@ -1,5 +1,33 @@
 # Release Notes
 
+#### 2.3.1.0 - Aug 15 2016
+* Added three new scripts for importing and export of data
+* Exposed helper function from CRMData for handling large amount of request
+* Added function to delete plugins found in Target but not in Source
+* Added check for status of async import job to avoid infinite loop in case job
+* Added new import and export of solution which includes synching of view and 
+  workflow stage and deleting of plugins found in source but not in target
+
+#### 2.3.0.7 - Jun 21 2016
+* Fixed issue by importing big solution files where status is never become 100
+  (rounding numbers problem in MS CRM)
+
+#### 2.3.0.6 - Jun 16 2016
+* Updated to newest Microsoft.CrmSdk.CoreAssemblies and Microsoft.CrmSdk.CoreTools
+
+#### 2.3.0.5 - May 06 2016
+* Added PrimaryIdAttribute and PrimaryNameAttribute for entities on the
+  XrmTypeProvider
+
+#### 2.3.0.4 - Apr 05 2016
+* Added comments to WorkflowHelper.fs moved ProxyContext function to 
+  ServiceProxy.fs and made us of it in WorkflowHelper.fs
+
+#### 2.3.0.3 - Apr 05 2016
+* Fixed Version from the XrmTypeProvider
+* Updated '.' prefix to '(...)' as they are always showed first in VS
+* Added '(All Records)' (light) to the XrmTypeProvider for better scripting
+
 #### 2.3.0.2 - Mar 17 2016
 * Added DG.EnsureAssemblies.Standalone.fsx version
 

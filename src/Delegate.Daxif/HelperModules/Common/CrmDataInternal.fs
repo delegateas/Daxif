@@ -240,6 +240,24 @@ module CrmDataInternal =
         let resp = 
           proxy.Execute(req) :?> Messages.FetchXmlToQueryExpressionResponse
         resp.Query |> fun q -> CrmData.CRUD.retrieveMultiple proxy ln q
+
+    let retrieveSavedQueryReq proxy id status state = 
+      
+      let (id : Guid) = id
+      let ln = @"savedquery"
+      let an = @"savedqueryid"
+      let statusC = @"statuscode"
+      let stateC = @"statecode"
+      let f = FilterExpression()
+      f.AddCondition(ConditionExpression(an, ConditionOperator.Equal, id))
+      f.AddCondition(ConditionExpression(statusC, ConditionOperator.Equal, status))
+      f.AddCondition(ConditionExpression(stateC, ConditionOperator.Equal, state))
+
+      let q = QueryExpression(ln)
+      q.ColumnSet <- ColumnSet(true)
+      q.Criteria <- f
+      CrmData.CRUD.retrieveMultiple proxy ln q
+      |> seqTryHead'
     
     let createPublisher proxy name display prefix = 
       let (name : String) = name
@@ -317,7 +335,8 @@ module CrmDataInternal =
       q.ColumnSet <- ColumnSet(ans')
       q.Criteria <- f
       q.NoLock <- true
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln (importJobId.ToString())
+      CrmData.CRUD.retrieveMultiple proxy ln q 
+      |> seqTryHead ln (importJobId.ToString())
 
     let retrieveImportJob proxy importJobId = 
       retrieveImportJobHelper proxy importJobId false
@@ -440,7 +459,7 @@ module CrmDataInternal =
         (ConditionExpression(an, ConditionOperator.Equal, solutionId))
       let f = FilterExpression()
       f.AddCondition
-        (ConditionExpression(@"ismanaged", ConditionOperator.Equal, false))
+        (ConditionExpression(nm, ConditionOperator.Equal, false))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
@@ -506,7 +525,7 @@ module CrmDataInternal =
       let (solutionId : Guid) = solutionId
       let ln = @"sdkmessageprocessingstep"
       let an = @"solutionid"
-      let em = CrmData.Metadata.entity proxy ln
+      //let em = CrmData.Metadata.entity proxy ln
       let le = LinkEntity()
       le.JoinOperator <- JoinOperator.Inner
       le.LinkFromAttributeName <- @"sdkmessageprocessingstepid"
@@ -536,8 +555,6 @@ module CrmDataInternal =
       let ln = @"workflow"
       let an = @"solutionid"
       let t = @"type"
-      let sc = @"statuscode"
-      let em = CrmData.Metadata.entity proxy ln
       let le = LinkEntity()
       le.JoinOperator <- JoinOperator.Inner
       le.LinkFromAttributeName <- @"workflowid"

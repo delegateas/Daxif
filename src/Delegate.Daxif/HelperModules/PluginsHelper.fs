@@ -10,8 +10,8 @@ open DG.Daxif.HelperModules.Common
 open DG.Daxif.HelperModules.Common.Utility
 
 (*
-  This module is used to synchronize a plugin solution assembly to a CRM. 
-  The assembloes are build with an extended Plugin.cs see http://delegateas.github.io/Delegate.Daxif/plugin-reg-setup.html
+  This module is used to synchronize a plugin assembly to a solution in CRM. 
+  The assemblies are build with an extended Plugin.cs see http://delegateas.github.io/Delegate.Daxif/plugin-reg-setup.html
   This script enables Daxif to fetch data of each plugin through incovation.
   Each plugin is validated in order to ensure that the plugins are correclty configured.
   If the plugin is valid then Daxif will syncronize the plugins in CRM.
@@ -85,9 +85,8 @@ module internal PluginsHelper =
     guid = Guid.Empty
 
   // Used to create a temprorary organization proxy to connect to CRM
-  let proxyContext client f =
-    use p = ServiceProxy.getOrganizationServiceProxy client.IServiceM client.authCred
-    f p
+  let proxyContext' client f =
+    ServiceProxy.proxyContext client.IServiceM client.authCred f
 
   // Returns the message name of a step consisting of class name, event operation and 
   // logical name. If the step does not contain a logical name then it targets any entity
@@ -144,7 +143,7 @@ module internal PluginsHelper =
             pl.step.executionStage = int ExecutionStage.PreValidation) &&
               not (Seq.isEmpty i'))
 
-      findInvalid plugins invalids "%s: Pre execution stages does not support pre-images"
+      findInvalid plugins invalids "Plugin %s: Pre execution stages does not support pre-images"
 
     let postOperationNoAsync plugins =
       let invalidPlugins =
@@ -153,7 +152,7 @@ module internal PluginsHelper =
           pl.step.executionMode = int ExecutionMode.Asynchronous && 
             pl.step.executionStage <> int ExecutionStage.PostOperation)
 
-      findInvalid plugins invalidPlugins "%s: Post execution stages does not support asynchronous execution mode"
+      findInvalid plugins invalidPlugins "Plugin %s: Post execution stages does not support asynchronous execution mode"
 
     let associateDisasociateSteps plugins =
       plugins
@@ -168,7 +167,7 @@ module internal PluginsHelper =
         |> Seq.filter(fun (_,pl) ->
           pl.step.filteredAttributes <> null)
             
-      findInvalid plugins invalidPlugins "%s can't have filtered attributes"
+      findInvalid plugins invalidPlugins "Plugin %s can't have filtered attributes"
 
     let associateDisassociateNoImages plugins =
       let invalidPlugins =
@@ -177,7 +176,7 @@ module internal PluginsHelper =
         |> Seq.filter(fun (_,pl) ->
           not (Seq.isEmpty pl.images))
             
-      findInvalid plugins invalidPlugins "%s can't have images"
+      findInvalid plugins invalidPlugins "Plugin %s can't have images"
 
     let associateDisassociateAllEntity plugins =
       let invalidPlugins =
@@ -186,7 +185,7 @@ module internal PluginsHelper =
         |> Seq.filter(fun (_,pl) ->
           pl.step.logicalName <> "")
             
-      findInvalid plugins invalidPlugins "%s must target all entities"
+      findInvalid plugins invalidPlugins "Plugin %s must target all entities"
 
     let preEventsNoPreImages plugins =
       let invalidPlugins =
@@ -198,7 +197,7 @@ module internal PluginsHelper =
           pl.step.eventOperation = "Create" &&
           not (Seq.isEmpty i'))
             
-      findInvalid plugins invalidPlugins "%s: Pre-events does not support pre-images"
+      findInvalid plugins invalidPlugins "Plugin %s: Create events does not support pre-images"
 
     let postEventsNoPostImages plugins =
       let invalidPlugins =
@@ -210,14 +209,14 @@ module internal PluginsHelper =
           pl.step.eventOperation = "Delete" &&
           not (Seq.isEmpty i'))
             
-      findInvalid plugins invalidPlugins "%s: Post-events does not support post-images"
+      findInvalid plugins invalidPlugins "Plugin %s: Post-events does not support post-images"
 
     let validUserContext client plugins =
       let invalidPlugins =
         plugins
         |> Seq.filter(fun (_,pl) -> isDefaultGuid pl.step.userContext |> not)
         |> Seq.filter(fun (_,pl) ->
-          proxyContext client (fun p ->
+          proxyContext' client (fun p ->
             try 
               match CrmData.CRUD.retrieve p "systemuser" pl.step.userContext with
               | _ -> false
@@ -225,7 +224,7 @@ module internal PluginsHelper =
           )
         )
 
-      findInvalid plugins invalidPlugins "%s: Defined user context is not in the system"
+      findInvalid plugins invalidPlugins "Plugin %s: Defined user context is not in the system"
     
     // Collection of all validation steps
 
@@ -446,7 +445,7 @@ module internal PluginsHelper =
     entitySet 
     |> Set.toArray
     |> Array.Parallel.iter(fun x ->
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         let pt = createType assemblyId x
 
         log.WriteLine(LogLevel.Verbose, 
@@ -461,7 +460,7 @@ module internal PluginsHelper =
     client entitySet plugins (pluginType: Entity) = 
       entitySet |> Set.toArray
       |> Array.Parallel.map(fun (_,y) ->
-        proxyContext client (fun p -> 
+        proxyContext' client (fun p -> 
           let step = 
             plugins
             |> Seq.filter(fun pl -> y = messageName pl.step)
@@ -489,7 +488,7 @@ module internal PluginsHelper =
     client entitySet plugins (pluginStep: Entity) = 
       entitySet |> Set.toArray
       |> Array.Parallel.iter(fun y ->
-        proxyContext client (fun p -> 
+        proxyContext' client (fun p -> 
           plugins
           |> Seq.fold(fun acc pl -> 
             pl.images
@@ -522,7 +521,7 @@ module internal PluginsHelper =
       |> Seq.toArray
       |> Array.Parallel.map(fun (_,y) ->
         
-        proxyContext client (fun p -> 
+        proxyContext' client (fun p -> 
 
           let name = getName y
           let stage = 
@@ -566,7 +565,7 @@ module internal PluginsHelper =
     |> Seq.toArray
     |> Array.Parallel.map(fun y ->
 
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         let compareImage =
           let name = getName y
           let alias = getAttribute "entityalias" y :?> string
@@ -606,7 +605,7 @@ module internal PluginsHelper =
     entitySet ||> subset
     |> Seq.toArray
     |> Array.Parallel.map(fun x ->
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         x, CrmData.CRUD.delete p x.LogicalName x.Id) )
     |> Array.iter(
       fun (x,_) -> 
@@ -617,7 +616,7 @@ module internal PluginsHelper =
     entitySet ||> subset'
     |> Seq.toArray
     |> Array.Parallel.map(fun (_,y) -> 
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         y, CrmData.CRUD.delete p y.LogicalName y.Id) )
     |> Array.iter(
       fun (x,_) -> 
@@ -628,7 +627,7 @@ module internal PluginsHelper =
     entitySet ||> subset
     |> Seq.toArray
     |> Array.Parallel.map(fun y -> 
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         y, CrmData.CRUD.delete p y.LogicalName y.Id) )
     |> Array.iter(
       fun (x,_) -> 
@@ -675,7 +674,7 @@ module internal PluginsHelper =
   let deletePluginImages (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) _ = 
     log.WriteLine(LogLevel.Info, "Retrieving Steps")
 
-    proxyContext client (fun p -> 
+    proxyContext' client (fun p -> 
       let steps = CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p solution.entity.Id
       log.WriteLine(LogLevel.Debug, 
         sprintf "Found %d steps" (Seq.length steps))
@@ -687,7 +686,7 @@ module internal PluginsHelper =
       |> Seq.toArray
       |> Array.Parallel.iter(fun step ->
 
-        proxyContext client (fun p' -> 
+        proxyContext' client (fun p' -> 
           log.WriteLine(LogLevel.Debug, 
             sprintf "Retrieving images for step: %s" (getName step))
           let images =
@@ -745,7 +744,7 @@ module internal PluginsHelper =
   let deletePluginTypes (solution, client, (log:ConsoleLogger.ConsoleLogger), sourcePlugins) _ = 
     log.WriteLine(LogLevel.Info, "Deleting types")
 
-    proxyContext client (fun p -> 
+    proxyContext' client (fun p -> 
     
       log.WriteLine(LogLevel.Debug, "Retrieving types")
       let types = CrmDataInternal.Entities.retrievePluginTypes p solution.assemblyId
@@ -770,7 +769,7 @@ module internal PluginsHelper =
   let updateAssembly (solution, client, (log:ConsoleLogger.ConsoleLogger), _) newTypes =
     log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
 
-    proxyContext client (fun p -> 
+    proxyContext' client (fun p -> 
       let dlls = CrmDataInternal.Entities.retrievePluginAssemblies p solution.entity.Id
 
       dlls
@@ -800,7 +799,7 @@ module internal PluginsHelper =
     |> Array.Parallel.iter(
       fun (key,values) -> 
 
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
         log.WriteLine(LogLevel.Debug, sprintf "Retrieving plugin type: %s" key)
         let pt = CrmDataInternal.Entities.retrievePluginType p key
 
@@ -838,7 +837,7 @@ module internal PluginsHelper =
     |> Array.Parallel.iter(
       fun (key,plugin)  ->
 
-      proxyContext client (fun p -> 
+      proxyContext' client (fun p -> 
 
         log.WriteLine(LogLevel.Debug, sprintf "Retrieving plugin step: %s" key)
         let ps = CrmDataInternal.Entities.retrieveSdkProcessingStep p key
@@ -870,21 +869,33 @@ module internal PluginsHelper =
         log.WriteLine(LogLevel.Debug, sprintf "Updating Images for: %s" key)
         updatePluginImages log client (updateImages,images) plugin) )
 
-  // Function that chains the previous functions into one larger function 
-  // and provide each function with a commone parameters and a value that can
-  // be carried over from the previous function in the chain.
-  let syncPlugins x = 
+  // Function Chaining
+  // The order of the functions is relevant due to the order of deleting stuff
+  // and parsing specific data to the next function to reduce unnecessary
+  // computation
 
+  // deleting images, steps and types, the order 
+  let deletePlugins x = 
     deletePluginImages x
     >> deletePluginSteps x
     >> deletePluginTypes x
-    >> updateAssembly x
-    >> syncTypes x
+
+  // Creating and updateing images, steps and types
+  let synchPlugins x =
+    syncTypes x
     >> syncSteps x
     >> syncImages x
 
-  // Main function to syncronize a solution
-  let syncSolution' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
+  // Overall sync process
+  let syncPlugins x = 
+    deletePlugins x
+    >> updateAssembly x
+    >> synchPlugins x
+
+  // Fetches data from the dll file and the plugins from the provided CRM solution.
+  // Returns a tuple contaning a ClientManagement and Solution record along with a 
+  // sequence of the plugins
+  let setupData org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
     log.WriteLine(LogLevel.Verbose, "Checking local assembly")
     let dll'  = Path.GetFullPath(dll)
     let tmp   = Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString() + @".dll")
@@ -911,15 +922,7 @@ module internal PluginsHelper =
   
     use p = ServiceProxy.getOrganizationServiceProxy m tc
     let solutionEntity = CrmDataInternal.Entities.retrieveSolution p solutionName
-    let asmId = instantiateAssembly solutionEntity dllName dllPath asm hash p log
 
-    let solution =
-      { assembly = asm;
-        assemblyId = asmId;
-        dllName = dllName;
-        dllPath = dllPath
-        hash = hash;
-        entity = solutionEntity }
 
     let sourcePlugins = typesAndMessages asm
 
@@ -928,6 +931,31 @@ module internal PluginsHelper =
       | Validation.Invalid x ->
         failwith x
       | Validation.Valid _ -> 
-        log.WriteLine(LogLevel.Verbose, "Validation completed")
-        log.WriteLine(LogLevel.Verbose, "Syncing plugins")
-        syncPlugins (solution, client, log, sourcePlugins) ()
+        log.WriteLine(LogLevel.Verbose, "Validation completed")       
+
+        let asmId = instantiateAssembly solutionEntity dllName dllPath asm hash p log
+
+        let solution =
+          { assembly = asm;
+            assemblyId = asmId;
+            dllName = dllName;
+            dllPath = dllPath
+            hash = hash;
+            entity = solutionEntity }
+
+    
+
+        client, solution, sourcePlugins
+
+  // Syncronizes a solution
+  let syncSolution' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
+    let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll log
+    log.WriteLine(LogLevel.Verbose, "Syncing plugins")
+    syncPlugins (solution, client, log, sourcePlugins) ()
+  
+
+  // Deletes plugins that exist in target but not in source
+  let deletePlugins' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
+    let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll log
+    log.WriteLine(LogLevel.Verbose, "Deleting plugins")
+    deletePlugins (solution, client, log, sourcePlugins) () |> ignore

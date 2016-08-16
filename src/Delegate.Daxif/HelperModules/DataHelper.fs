@@ -8,11 +8,13 @@ open Microsoft.FSharp.Core
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Messages
 open Microsoft.Xrm.Sdk.Metadata
+open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
 open DG.Daxif.HelperModules.Common
 open DG.Daxif.HelperModules.Common.Utility
 
 module internal DataHelper =
+  
   let throttle (ap : Client.AuthenticationProviderType) = 
     match ap with
     | Client.AuthenticationProviderType.OnlineFederation -> 1

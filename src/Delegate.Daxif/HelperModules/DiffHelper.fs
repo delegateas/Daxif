@@ -89,7 +89,10 @@ module internal DiffHelper =
     
   // unpack the solution to a defined folder
   let unpackSolution zip temp (log:ConsoleLogger.ConsoleLogger) = 
-    let tmpFolder = Path.Combine(Path.GetTempPath(), temp)
+
+    let folderName = Guid.NewGuid().ToString()
+
+    let tmpFolder = Path.Combine(Path.GetTempPath(), folderName)
 
     tmpFolder |> Utility.ensureDirectory
 

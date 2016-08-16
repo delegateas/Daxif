@@ -97,6 +97,15 @@ module internal Utility =
     match Directory.Exists(path) with
     | true -> ()
     | false -> Directory.CreateDirectory(path) |> ignore
+
+  let createTempFolder =
+    let folderName = Guid.NewGuid().ToString()
+
+    let tmpFolder = Path.Combine(Path.GetTempPath(), folderName)
+
+    tmpFolder |> ensureDirectory
+    
+    tmpFolder
   
   let dMapLookup (dMap : Map<_, Map<_, _>>) key1 key2 = 
     match dMap.TryFind(key1) with

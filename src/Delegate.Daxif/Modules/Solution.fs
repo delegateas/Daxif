@@ -144,6 +144,47 @@ module Solution =
       SolutionHelper.import' org ac solution location managed log' |> ignore
       log'.WriteLine(LogLevel.Info, @"The solution was imported successfully")
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+
+
+  let exportWithDGSolution org solution location managed ap usr pwd domain log = 
+    let ac = Authentication.getCredentials ap usr pwd domain
+    let ac' = Authentication.getCredentials ap usr pwd domain
+    let log' = ConsoleLogger.ConsoleLogger log
+    let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, @"Export solution: " + solution)
+    log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
+    log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
+    log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
+    log'.WriteLine(LogLevel.Verbose, @"Managed solution: " + managed.ToString())
+    log'.WriteLine
+      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
+    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
+    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
+    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    try 
+      SolutionHelper.exportWithDGSolution' org ac ac' solution location managed log'
+      log'.WriteLine(LogLevel.Info, @"The extended solution was exported successfully")
+    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+  
+  let importWithDGSolution org solution location managed ap usr pwd domain log = 
+    let ac = Authentication.getCredentials ap usr pwd domain
+    let ac' = Authentication.getCredentials ap usr pwd domain
+    let log' = ConsoleLogger.ConsoleLogger log
+    let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, @"Import solution: " + solution)
+    log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
+    log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
+    log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
+    log'.WriteLine(LogLevel.Verbose, @"Managed solution: " + managed.ToString())
+    log'.WriteLine
+      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
+    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
+    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
+    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    try 
+      SolutionHelper.importWithDGSolution' org ac ac' solution location managed log' |> ignore
+      log'.WriteLine(LogLevel.Info, @"The extended solution was imported successfully")
+    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
   
   // TODO: 
   let extract solution location customizations map project log = 
