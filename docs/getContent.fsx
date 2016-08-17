@@ -16,6 +16,7 @@ let toFetch =
         [   @"Delegate.Daxif.dll"; @"Delegate.Daxif.xml"; 
             @"Microsoft.Xrm.Sdk.dll"; @"Microsoft.Xrm.Sdk.xml"]
       source ++ @"..\src", [ @"RELEASE_NOTES.md" ]
+      source ++ @"..\src", [ @"LICENSE.md" ]
      ];;
 
 // Clear previous content and output folders
