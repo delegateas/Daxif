@@ -88,7 +88,7 @@ module internal DiffHelper =
       ex -> log.WriteLine(LogLevel.Error,sprintf "%s" ex.Message )
     
   // unpack the solution to a defined folder
-  let unpackSolution zip temp (log:ConsoleLogger.ConsoleLogger) = 
+  let unpackSolution zip (log:ConsoleLogger.ConsoleLogger) = 
 
     let folderName = Guid.NewGuid().ToString()
 
@@ -213,23 +213,20 @@ module internal DiffHelper =
   // The output files 
   let diffs pathSource pathTarget (log:ConsoleLogger.ConsoleLogger) =
 
-    let guidSource = Guid.NewGuid().ToString()
-    let guidTarget = Guid.NewGuid().ToString()
-
-    let tmpSource = unpackSolution pathSource guidSource log
-    let tmpTarget = unpackSolution pathTarget guidTarget log
+    let tmpSource = unpackSolution pathSource log
+    let tmpTarget = unpackSolution pathTarget log
 
     let source = 
       Directory.EnumerateFiles(tmpSource, @"*.*",  SearchOption.AllDirectories)
       |> Seq.filter(fun f -> not (f.EndsWith(".data.xml")))
       |> Seq.sort
-      |> Seq.map(fun f -> f.[f.IndexOf(guidSource) + 1 + guidSource.Length ..])
+      |> Seq.map(fun f -> f.[f.IndexOf(tmpSource) + 1 + tmpSource.Length ..])
       |> Set.ofSeq
     let target = 
       Directory.EnumerateFiles(tmpTarget, @"*.*", SearchOption.AllDirectories)
       |> Seq.filter(fun f -> not (f.EndsWith(".data.xml")))
       |> Seq.sort
-      |> Seq.map(fun f -> f.[f.IndexOf(guidTarget) + 1 + guidTarget.Length ..])
+      |> Seq.map(fun f -> f.[f.IndexOf(tmpTarget) + 1 + tmpTarget.Length ..])
       |> Set.ofSeq
 
     let notTarget = source - target
@@ -568,6 +565,13 @@ module internal DiffHelper =
   // opens the web page in the default webbrowser 
   let solution' pathSource pathTarget log =
 
+    // Check that the files exist
+    [pathSource ; pathTarget]
+    |> List.iter(fun path -> 
+      match File.Exists path with
+      | true -> ()
+      | false -> failwith (sprintf "Could not find file %s" path))
+
     let app' = solutionApp pathSource pathTarget log
 
     let port = 
@@ -614,6 +618,13 @@ module internal DiffHelper =
             |> List.iter(fun x -> nameTreeWalker sw x)
 
     let build pathSource pathTarget (log:ConsoleLogger.ConsoleLogger) = 
+      // Check that the files exist
+      [pathSource ; pathTarget]
+      |> List.iter(fun path -> 
+        match File.Exists path with
+        | true -> ()
+        | false -> failwith (sprintf "Could not find file %s" path))
+
       let root = executingPath
       let csvPath = Path.Combine(root,"diffSummary.csv")
 
