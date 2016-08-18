@@ -151,9 +151,9 @@
     <None Include="DG.EnsureAssemblies.Standalone.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.AuthInfo.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.Config.fsx" />
-    <None Include="DG.XrmOrg.XrmSoluition.DataExportSource.fsx" />
-    <None Include="DG.XrmOrg.XrmSoluition.DataImportTarget.fsx" />
-    <None Include="DG.XrmOrg.XrmSoluition.DataInMemoryMigrate.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.DataExportSource.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.DataImportTarget.fsx" />
+    <None Include="DG.XrmOrg.XrmSolution.DataInMemoryMigrate.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.SolutionCreateDev.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.SolutionExportDev.fsx" />
     <None Include="DG.XrmOrg.XrmSolution.SolutionExtract.fsx" />
