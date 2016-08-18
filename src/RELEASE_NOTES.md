@@ -1,5 +1,12 @@
 # Release Notes
 
+#### 2.3.1.1 - Aug 18 2016
+* Fixed missing license in Github page
+* Fixed an error in Diff module and added check if file exist when performing Diff
+* Added additional information when importing and solution along with saving XML
+  import file even when import fails
+* Fixed spelling error in the new data scripts
+
 #### 2.3.1.0 - Aug 15 2016
 * Added three new scripts for importing and export of data
 * Exposed helper function from CRMData for handling large amount of request
