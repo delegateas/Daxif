@@ -243,7 +243,11 @@ module internal SolutionHelper =
               log.WriteLine(LogLevel.Verbose, msg)
             | true -> 
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
-                
+               
+              match aJobId with
+              | None -> log.WriteLine(LogLevel.Verbose,@"Import job completed")
+              | Some _ -> log.WriteLine(LogLevel.Verbose,@"Asynchronous import job completed")
+
               let status = 
                 try 
                   let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' jobId
@@ -287,9 +291,12 @@ module internal SolutionHelper =
           match CrmDataInternal.Info.version p with
           | (_, CrmReleases.CRM2011) -> 
             p.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
+            log.WriteLine(LogLevel.Verbose,@"Import job Started")
             None
-          | (_, _) -> Some (importHelperAsync())
-        
+          | (_, _) -> 
+            log.WriteLine(LogLevel.Verbose,@"Asynchronous import job started")
+            Some (importHelperAsync())
+
         let! progress = importHelper' false false 0. aJobId
         progress
       }
