@@ -145,3 +145,15 @@ and adds the extra attributes given in `extraAttributes`.
      -> domain:string
      -> logLevel:LogLevel
      -> seríalize:Serialize -> data:Map<String, Map<Guid, Guid>> -> unit
+
+  (**
+        
+  *)
+  /// TODO:
+  val public publishDuplicateDetectionRules : wsdl:Uri
+     -> dupRules:(string)[]
+     -> ap:AuthenticationProviderType
+     -> usr:string
+     -> pwd:string
+     -> domain:string
+     -> logLevel:LogLevel -> unit

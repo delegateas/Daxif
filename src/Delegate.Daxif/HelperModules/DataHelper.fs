@@ -5,10 +5,12 @@ open System.IO
 open System.ServiceProcess
 open System.Runtime.InteropServices
 open Microsoft.FSharp.Core
+open Microsoft.Crm.Sdk.Messages
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Messages
 open Microsoft.Xrm.Sdk.Metadata
 open Microsoft.Xrm.Sdk.Client
+open Microsoft.Xrm.Sdk.Query
 open DG.Daxif
 open DG.Daxif.HelperModules.Common
 open DG.Daxif.HelperModules.Common.Utility
@@ -556,13 +558,37 @@ module internal DataHelper =
                 | false -> ()
               | false -> ()
 
-              // migrate legacy createdon (overriddencreatedon) except templates
+              // Migrate legacy createdon (overriddencreatedon) 
+              // Except templates ..?
+              // Except duplicaterule and duplicaterulecondition as it will fail on import
               match e.Attributes.Contains(@"createdon") && 
-                    e.LogicalName.Contains(@"template") |> not with
+                    e.LogicalName.Contains(@"template") |> not && 
+                    e.LogicalName.Contains(@"duplicaterule") |> not with
               | true ->
                 let createdon = e.Attributes.["createdon"] :?> DateTime
                 e.Attributes.Add(@"overriddencreatedon",createdon) |> ignore
               | false -> ()
+
+              // Cleanup of Duplicate Rule entities 
+              match e.LogicalName.Equals(@"duplicaterule") || 
+                e.LogicalName.Equals(@"duplicaterulecondition")with
+              | false -> ()
+              | true -> 
+                // Remove statuscode and statecode for specific entities as they 
+                // will fail on import
+                e.Attributes.Remove("statecode") |> ignore
+                e.Attributes.Remove("statuscode") |> ignore
+
+                // duplicaterulecondition only: https://msdn.microsoft.com/en-us/library/gg334583.aspx
+                match e.Attributes.ContainsKey "operatorcode" with
+                | false ->
+                  ()
+                | true ->
+                  match (e.Attributes.["operatorcode"] :?>OptionSetValue).Value with
+                    | 0 ->
+                      e.Attributes.Remove "operatorparam" |> ignore 
+                    | _ ->
+                      ()
 
               // add extra attributes
               attribs |> Map.iter(fun k v -> e.Attributes.Add(k,v))
@@ -1106,3 +1132,43 @@ module internal DataHelper =
       | Some v -> 
         v.Start()
         v.WaitForStatus(ServiceControllerStatus.Running)
+
+
+  module DuplicateDetectionRules = 
+
+    let makePublishDupRuleRequest guid =
+          let req = PublishDuplicateRuleRequest()
+          req.DuplicateRuleId <- guid
+          req :> OrganizationRequest
+
+    let retrieveDR proxy = 
+      let f = FilterExpression()
+      f.AddCondition
+        (@"statecode", ConditionOperator.Equal, 0)
+      f.AddCondition
+        (@"statuscode", ConditionOperator.Equal, 0)
+      let q = QueryExpression("duplicaterule")
+      q.ColumnSet <- ColumnSet([|"duplicateruleid";"name"|])
+      q.Criteria <- f
+      CrmData.CRUD.retrieveMultiple proxy "duplicaterule" q
+
+    let publish org ac (dupRules:(string)[]) (log:ConsoleLogger.ConsoleLogger) =
+
+      match dupRules.Length with
+      | 0 -> log.WriteLine(LogLevel.Info, "No Published Duplicate Detection Rules found in exported data")
+      | _ -> 
+        let m = ServiceManager.createOrgService org
+        let tc = m.Authenticate(ac)
+        use p = ServiceProxy.getOrganizationServiceProxy m tc
+      
+        retrieveDR p
+        |> Seq.filter (fun x -> dupRules |> Array.contains (x.Attributes.["name"].ToString()))
+        |> Array.ofSeq
+        |> Array.map (fun x ->
+          log.WriteLine(LogLevel.Verbose, sprintf "Publishing rule '%s' " (x.Attributes.["name"].ToString()))
+          makePublishDupRuleRequest (Guid(x.Attributes.["duplicateruleid"].ToString())))
+        |> CrmData.CRUD.performAsBulk p
+        |> Array.filter (fun x -> x.Fault = null)
+        |> Array.length
+        |> fun count -> log.WriteLine(LogLevel.Verbose, sprintf "Done publishing %d duplicate detection rules" count)
+      
