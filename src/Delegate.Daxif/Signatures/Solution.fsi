@@ -41,6 +41,20 @@ Deletes a solution with the unique `solution` name.
      -> solution:string
      -> ap:AuthenticationProviderType
      -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
+
+(**
+Merge an unmanaged target solution into an unmanaged source solution. 
+The two solutions are defined by 'targetSolution' and 'sourceSolution' 
+given their unique solution names.
+Not supported in Crm 2016 Service Pack 1.
+*)
+  /// merge target solution into source solution.
+  val public merge : wsdl:Uri
+     -> sourceSolution:string
+     -> targetSolution:string
+     -> ap:AuthenticationProviderType
+     -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
+
 (**
 Enables (`enable` true) or disables (`disable` false) the plug-in steps related
 to the solution with the unique name `solution`.

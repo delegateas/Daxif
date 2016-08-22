@@ -61,6 +61,23 @@ module Solution =
       SolutionHelper.delete' org ac solution log'
       log'.WriteLine(LogLevel.Info, @"The deleted was created successfully.")
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+
+  let merge org sourceSolution targetSolution ap usr pwd domain log =
+    let ac = Authentication.getCredentials ap usr pwd domain
+    let log' = ConsoleLogger.ConsoleLogger log
+    let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, 
+      (sprintf @"Merging %s solution into %s: " targetSolution sourceSolution))
+    log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
+    log'.WriteLine
+      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
+    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
+    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
+    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    try 
+      SolutionHelper.merge' org ac sourceSolution targetSolution log'
+      log'.WriteLine(LogLevel.Info, @"The solutions was merged successfully.")
+    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
   
   let pluginSteps org solution enable ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -81,7 +98,7 @@ module Solution =
         | true -> "enabled"
         | false -> "disabled"
       log'.WriteLine
-        (LogLevel.Info, @"The solution plugins were successfully " + msg')
+        (LogLevel.Info, @"The solution plugins was successfully " + msg')
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
   
   let workflow org solution enable ap usr pwd domain log = 
@@ -104,7 +121,7 @@ module Solution =
         | false -> "disabled"
       log'.WriteLine
         (LogLevel.Info, 
-         @"The solution workflow activities were successfully " + msg')
+         @"The solution workflow activities was successfully " + msg')
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
   
   let export org solution location managed ap usr pwd domain log = 
@@ -144,7 +161,6 @@ module Solution =
       SolutionHelper.import' org ac solution location managed log' |> ignore
       log'.WriteLine(LogLevel.Info, @"The solution was imported successfully")
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
-
 
   let exportWithDGSolution org solution location managed ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain

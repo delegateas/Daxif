@@ -12,6 +12,7 @@ open DG.Daxif.HelperModules.Common.Utility
 
 // http://msdn.microsoft.com/en-us/library/microsoft.xrm.sdk.organizationrequest.requestname.aspx
 module CrmDataInternal = 
+  
   module internal Info = 
     let private versionHelper v = 
       match v |> Seq.head with
@@ -25,7 +26,25 @@ module CrmDataInternal =
       let req = Messages.RetrieveVersionRequest()
       let resp = proxy.Execute(req) :?> Messages.RetrieveVersionResponse
       resp.Version, resp.Version |> versionHelper
+
+  module internal CRUD =
+    let performAsBulkWithOutput proxy (log:ConsoleLogger.ConsoleLogger) reqs =
+      let resp = CrmData.CRUD.performAsBulk proxy reqs
+      resp
+      |> Array.iter (fun r -> 
+        if r.Fault <> null then 
+          log.WriteLine(LogLevel.Error,
+            (sprintf "Error when performing %s: %s" reqs.[r.RequestIndex].RequestName 
+              r.Fault.Message)))
+      resp
+      |> Array.filter (fun x -> x.Fault = null)
+      |> Array.length
+      |> fun count -> 
+        log.WriteLine(LogLevel.Verbose,
+          (sprintf "Succesfully performed %d/%d actions in %A" count reqs.Length 
+            proxy.ServiceConfiguration.CurrentServiceEndpoint.Address))
   
+
   module internal Entities = 
     let seqTryHead' s = Seq.tryPick Some s
     
@@ -242,7 +261,6 @@ module CrmDataInternal =
         resp.Query |> fun q -> CrmData.CRUD.retrieveMultiple proxy ln q
 
     let retrieveSavedQueryReq proxy id status state = 
-      
       let (id : Guid) = id
       let ln = @"savedquery"
       let an = @"savedqueryid"
@@ -314,6 +332,18 @@ module CrmDataInternal =
         (ConditionExpression(an, ConditionOperator.Equal, uniqueName))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(an)
+      q.Criteria <- f
+      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln uniqueName
+
+    let retrieveSolutionAllAttributes proxy uniqueName = 
+      let (uniqueName : string) = uniqueName
+      let ln = @"solution"
+      let an = @"uniquename"
+      let f = FilterExpression()
+      f.AddCondition
+        (ConditionExpression(an, ConditionOperator.Equal, uniqueName))
+      let q = QueryExpression(ln)
+      q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
       CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln uniqueName
     
@@ -593,6 +623,25 @@ module CrmDataInternal =
       f.AddCondition(ConditionExpression(t, ConditionOperator.Equal, 1))
       // draft (1) or published (2) workflow
       f.AddCondition(ConditionExpression(sc, ConditionOperator.Equal, status))
+      let q = QueryExpression(ln)
+      q.ColumnSet <- ColumnSet(true)
+      q.LinkEntities.Add(le)
+      q.Criteria <- f
+      CrmData.CRUD.retrieveMultiple proxy ln q
+    
+    let retrieveAllSolutionComponenets proxy solutionId =
+      let (solutionId : Guid) = solutionId
+      let ln = @"solutioncomponent"
+      let an = @"solutionid"
+      let le = LinkEntity()
+      le.JoinOperator <- JoinOperator.Inner
+      le.LinkFromAttributeName <- @"solutionid"
+      le.LinkFromEntityName <- @"solutioncomponent"
+      le.LinkToAttributeName <- @"solutionid"
+      le.LinkToEntityName <- @"solution"
+      le.LinkCriteria.Conditions.Add
+        (ConditionExpression(an, ConditionOperator.Equal, solutionId))
+      let f = FilterExpression()
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.LinkEntities.Add(le)

@@ -143,19 +143,9 @@ module CrmData =
       proxy.Timeout <- TimeSpan(1,0,0)
       (proxy.Execute(request)) :?> 'T
 
-    let chunk n (xs:'a[]) = 
-      match xs.Length < n with
-      |true -> [|xs|]
-      |false ->
-        xs 
-        |> Seq.mapi(fun i x -> i/n, x)
-        |> Seq.groupBy fst
-        |> Seq.map (fun (_, g) -> Seq.map snd g |> Seq.toArray)
-        |> Seq.toArray
-
     let performAsBulk proxy reqs = 
       reqs
-      |> chunk 1000
+      |> FSharpCoreExt.Array.chunk 1000
       |> Array.map (fun splitReqs ->
         let req = ExecuteMultipleRequest()
         req.Requests <- OrganizationRequestCollection()
@@ -166,20 +156,3 @@ module CrmData =
         (getResponse<ExecuteMultipleResponse> proxy req).Responses
       ) |> Seq.concat
       |> Array.ofSeq
-
-    let performAsBulkWithOutput proxy log reqs =
-      let log' = ConsoleLogger.ConsoleLogger log
-      let resp = performAsBulk proxy reqs
-      resp
-      |> Array.iter (fun r -> 
-        if r.Fault <> null then 
-          log'.WriteLine(LogLevel.Error,
-            (sprintf "Error when performing %s: %s" reqs.[r.RequestIndex].RequestName 
-              r.Fault.Message)))
-      resp
-      |> Array.filter (fun x -> x.Fault = null)
-      |> Array.length
-      |> fun count -> 
-        log'.WriteLine(LogLevel.Verbose,
-          (sprintf "Succesfully performed %d/%d actions in %A" count reqs.Length 
-            proxy.ServiceConfiguration.CurrentServiceEndpoint.Address))
