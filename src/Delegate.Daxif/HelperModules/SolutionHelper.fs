@@ -397,18 +397,27 @@ module internal SolutionHelper =
     
       
     // Save the XML file
+    log.WriteLine(LogLevel.Verbose, @"Fetching import job result")
     let location' = location.Replace(@".zip", "")
     let excel = location' + @"_" + Utility.timeStamp'() + @".xml"
-    let req' = new Messages.RetrieveFormattedImportJobResultsRequest()
-    req'.ImportJobId <- jobId
-    let resp' = 
-      p.Execute(req') :?> Messages.RetrieveFormattedImportJobResultsResponse
-    let xml = resp'.FormattedResults
-    let bytes = Encoding.UTF8.GetBytes(xml)
-    let bytes' = SerializationHelper.xmlPrettyPrinterHelper' bytes
-    let xml' = "<?xml version=\"1.0\"?>\n" + (Encoding.UTF8.GetString(bytes'))
-    File.WriteAllText(excel, xml')
-    log.WriteLine(LogLevel.Verbose, @"Import solution results saved to: " + excel)
+    try  
+      let req' = new Messages.RetrieveFormattedImportJobResultsRequest()
+      req'.ImportJobId <- jobId
+      let resp' = 
+        p.Execute(req') :?> Messages.RetrieveFormattedImportJobResultsResponse
+      let xml = resp'.FormattedResults
+      let bytes = Encoding.UTF8.GetBytes(xml)
+      let bytes' = SerializationHelper.xmlPrettyPrinterHelper' bytes
+      let xml' = "<?xml version=\"1.0\"?>\n" + (Encoding.UTF8.GetString(bytes'))
+      File.WriteAllText(excel, xml')
+      log.WriteLine(LogLevel.Verbose, @"Import solution results saved to: " + excel)
+    with 
+    | ex -> 
+      match status with
+      | Choice2Of2 exn -> 
+        log.WriteLine(LogLevel.Error, exn.Message)
+        raise ex
+      | _ -> raise ex
     
     // Rethrow exception in case of failure
     match status with
