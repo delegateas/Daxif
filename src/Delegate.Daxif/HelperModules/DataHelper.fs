@@ -309,7 +309,7 @@ module internal DataHelper =
           Path.DirectorySeparatorChar
           (Utility.timeStamp' ())
           ei'
-          (serialize.ToString().ToLower())
+          ((Utility.unionToString serialize).ToString())
 
       let body = 
         SerializationHelper.serializeObjectToBytes<Entity>
