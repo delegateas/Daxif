@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 2.3.2.0 - XXX
+* Changed description of synchronized plugins/workflow activities to include who did it and when it was performed
+
 #### 2.3.1.1 - Aug 18 2016
 * Fixed missing license in Github page
 * Fixed an error in Diff module and added check if file exist when performing Diff

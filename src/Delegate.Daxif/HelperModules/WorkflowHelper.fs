@@ -55,7 +55,7 @@ module internal WorkflowHelper =
     pa.Attributes.Add("content", dll |> fileToBase64)
     pa.Attributes.Add("isolationmode", OptionSetValue(2)) // sandbox
     pa.Attributes.Add("version", asm.GetName().Version.ToString())
-    pa.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
+    pa.Attributes.Add("description", syncDescription())
     pa
 
   // Updates an exisiting workflow assebmly in CRM
@@ -64,7 +64,7 @@ module internal WorkflowHelper =
     pa.Attributes.Add("pluginassemblyid", paid)
     pa.Attributes.Add("content", dll |> fileToBase64)
     pa.Attributes.Add("version", asm.GetName().Version.ToString())
-    pa.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
+    pa.Attributes.Add("description", syncDescription())
     pa
 
   // Creates an activity in CRM
@@ -76,7 +76,7 @@ module internal WorkflowHelper =
       sprintf "%s %s" (asm.GetName().Name) (asm.GetName().Version.ToString()))
     pt.Attributes.Add("friendlyname", Guid.NewGuid().ToString())
     pt.Attributes.Add("pluginassemblyid", EntityReference("pluginassembly",asmId))
-    pt.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
+    pt.Attributes.Add("description", syncDescription())
     pt
 
   // Creates the found activities in the given assembly in CRM

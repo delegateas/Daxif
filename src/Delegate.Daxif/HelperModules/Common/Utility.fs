@@ -44,7 +44,7 @@ module internal Utility =
   
   let cw (s : string) = Console.WriteLine(s)
   let cew (s : string) = Console.Error.WriteLine(s)
-  let assemblyVersion() = 
+  let assemblyVersion = 
     Assembly.GetExecutingAssembly().GetName().Version.ToString()
   let assemblyFileVersion() = 
     FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion
@@ -194,3 +194,10 @@ module internal Utility =
     | true -> 
       Some(List.tail [ for x in m.Groups -> x.Value ])
     | false -> None 
+
+  // Setup the description for anything synced with DAXIF
+  let syncDescription () = 
+    sprintf "Synced with DAXIF# v.%s by '%s' at %s" 
+      assemblyVersion
+      Environment.UserName
+      (DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss \"GMT\"zzz"))

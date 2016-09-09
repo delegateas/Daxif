@@ -528,7 +528,7 @@ module internal DiffHelper =
         .Replace(@"{{diffBlock}}",diffBlock ds "\t\t\t")
         .Replace(@"{{solutionSource}}",getSolutionName pathSource)
         .Replace(@"{{solutionTarget}}",getSolutionName pathTarget)
-        .Replace(@"{{assemblyVersion}}",Utility.assemblyVersion())
+        .Replace(@"{{assemblyVersion}}",Utility.assemblyVersion)
         .Replace(@"{{timeStamp}}",Utility.timeStamp())
 
     // Produces the link for ajax call to fetch the diff content of a file

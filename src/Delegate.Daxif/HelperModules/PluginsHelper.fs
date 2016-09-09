@@ -354,7 +354,7 @@ module internal PluginsHelper =
     pa.Attributes.Add("sourcehash", hash)
     pa.Attributes.Add("isolationmode", OptionSetValue(2)) // sandbox
     pa.Attributes.Add("version", asm.GetName().Version.ToString())
-    pa.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
+    pa.Attributes.Add("description", syncDescription())
     pa
 
   // Updates an existing assembly in CRM with the provided assembly information
@@ -364,7 +364,7 @@ module internal PluginsHelper =
     pa.Attributes.Add("content", dll |> fileToBase64)
     pa.Attributes.Add("sourcehash", hash)
     pa.Attributes.Add("version", asm.GetName().Version.ToString())
-    pa.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
+    pa.Attributes.Add("description", syncDescription())
     pa
 
   // Create a new type in CRM under the defined assembly id
@@ -374,7 +374,7 @@ module internal PluginsHelper =
     pt.Attributes.Add("typename", name)
     pt.Attributes.Add("friendlyname", Guid.NewGuid().ToString())
     pt.Attributes.Add("pluginassemblyid", EntityReference("pluginassembly",asmId))
-    pt.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
+    pt.Attributes.Add("description", syncDescription())
     pt
 
   // Create a new step with the provided step information in CRM under the defined type
@@ -389,7 +389,7 @@ module internal PluginsHelper =
     ps.Attributes.Add("stage", OptionSetValue(step.executionStage))
     ps.Attributes.Add("filteringattributes", step.filteredAttributes)
     ps.Attributes.Add("supporteddeployment", OptionSetValue(step.deployment))
-    ps.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
+    ps.Attributes.Add("description", syncDescription())
     match isDefaultGuid step.userContext with
      | true -> ()
      | false -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser",step.userContext))
@@ -423,7 +423,7 @@ module internal PluginsHelper =
     ps.Attributes.Add("supporteddeployment", OptionSetValue(step.deployment))
     ps.Attributes.Add("mode", OptionSetValue(step.executionMode))
     ps.Attributes.Add("rank", step.executionOrder)
-    ps.Attributes.Add("description", "Synced with DAXIF# v." + assemblyVersion())
+    ps.Attributes.Add("description", syncDescription())
     match isDefaultGuid step.userContext with
      | true -> ps.Attributes.Add("impersonatinguserid", null)
      | false -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser",step.userContext))
