@@ -10,6 +10,7 @@ open Microsoft.Xrm.Sdk.Metadata
 open DG.Daxif
 open DG.Daxif.HelperModules.Common
 open DG.Daxif.HelperModules.Common.Utility
+open DG.Daxif.HelperModules.Common.CrmDataInternal
 
 module internal SolutionHelper =
 
@@ -266,6 +267,8 @@ module internal SolutionHelper =
 
     log.WriteLine(LogLevel.Verbose, @"Solution saved to local disk")
 
+
+
   let import' org ac solution location managed (log : ConsoleLogger.ConsoleLogger) = 
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
@@ -295,19 +298,19 @@ module internal SolutionHelper =
         use p' = ServiceProxy.getOrganizationServiceProxy m tc
         match exists with
         | false -> 
+
+          // Check to ensure that the async job is started at all
           match aJobId with
-            | None -> ()
-            | Some id ->
+          | None -> ()
+          | Some id ->
+            match Info.retrieveAsyncJobState p' id with
+            | AsyncJobState.Failed | AsyncJobState.Canceled ->
+              log.WriteLine(LogLevel.Verbose, "Asynchronous import job failed")
               let systemJob = CrmData.CRUD.retrieve p' "asyncoperation" id
-              let s = systemJob.Attributes.["statuscode"] :?> OptionSetValue 
-                    |> fun o -> o.Value
-              match s with
-                | 31 | 32 -> //Failed || Cancelled
-                  log.WriteLine(LogLevel.Verbose, "Asynchronous import job failed")
-                  string systemJob.Attributes.["message"]
-                  |> sprintf "Failed with message: %s"
-                  |> failwith 
-                | _ -> ()
+              string systemJob.Attributes.["message"]
+              |> sprintf "Failed with message: %s"
+              |> failwith 
+            | _ -> ()
 
           let exists' =
             CrmDataInternal.Entities.existCrm p' @"importjob" jobId None
@@ -320,9 +323,22 @@ module internal SolutionHelper =
             let (pct, completed') = 
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
               try 
+                
                 let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' jobId
                 let progress' = j.Attributes.["progress"] :?> double
-                (progress', j.Attributes.Contains("completedon"))
+
+                // Check if the job is completed
+                match aJobId with
+                | None ->
+                  (progress', j.Attributes.Contains("completedon"))
+                | Some id ->
+                  match Info.retrieveAsyncJobState p' id with
+                  | AsyncJobState.Succeeded 
+                  | AsyncJobState.Failed 
+                  | AsyncJobState.Canceled ->
+                    (progress', true)
+                  | _ -> // Still in progress
+                    (progress', false)
               with _ -> (progress, false)
             match completed' with
             | false -> 
@@ -331,19 +347,28 @@ module internal SolutionHelper =
               log.WriteLine(LogLevel.Verbose, msg)
             | true -> 
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
-               
-              match aJobId with
-              | None -> log.WriteLine(LogLevel.Verbose,@"Import job completed")
-              | Some _ -> log.WriteLine(LogLevel.Verbose,@"Asynchronous import job completed")
 
               let status = 
                 try 
                   let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' jobId
-                  let data = j.Attributes.["data"] :?> string
-                  let success = not (data.Contains("<result result=\"failure\""))
                   let progress' = j.Attributes.["progress"] :?> double
 
-                  (progress' = 100.) || success
+                  // Get the result of the import job
+                  match aJobId with
+                  | None -> 
+                    log.WriteLine(LogLevel.Verbose,@"Import job completed")
+                    let data = j.Attributes.["data"] :?> string
+                    let success = not (data.Contains("<result result=\"failure\""))
+
+                    (progress' = 100.) || success
+                  | Some id -> 
+                    log.WriteLine(LogLevel.Verbose,@"Asynchronous import job completed")
+                    let success = 
+                      match Info.retrieveAsyncJobState p' id with
+                      | AsyncJobState.Succeeded -> true
+                      | _ -> false
+
+                    (progress' = 100.) || success                  
                 with _ -> false
               match status with
               | true -> 
@@ -352,7 +377,13 @@ module internal SolutionHelper =
                 log.WriteLine(LogLevel.Verbose, msg)
               | false ->
                 let msg =
-                  (sprintf @"Solution import failed (ImportJob ID: %A)" jobId)
+                  match aJobId with
+                  | None -> 
+                    (sprintf @"Solution import failed (ImportJob ID: %A)" jobId)
+                  | Some(id) ->
+                    let systemJob = CrmData.CRUD.retrieve p' "asyncoperation" id
+                    (jobId, string systemJob.Attributes.["message"])
+                    ||> sprintf "Solution import failed (ImportJob ID: %A) with message %s"
                 failwith msg
               match managed with
               | true -> ()
@@ -389,7 +420,7 @@ module internal SolutionHelper =
         progress
       }
       
-    log.WriteLine(LogLevel.Verbose, @"Import solution: " + solution + @" (0%)")
+    //log.WriteLine(LogLevel.Verbose, @"Import solution: " + solution + @" (0%)")
     let status = 
       importHelper()
       |> Async.Catch

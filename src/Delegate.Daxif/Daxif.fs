@@ -51,3 +51,16 @@ type CrmReleases =
   | CRM2013 = 2013
   | CRM2015 = 2015
   | CRM2016 = 2016
+
+/// State of asynchronous job
+type AsyncJobState =
+  | WaitingForResources = 0
+  | Waiting             = 10
+  | InProgress          = 20
+  | Pausing             = 21
+  | Canceling           = 22
+  | Succeeded           = 30
+  | Failed              = 31
+  | Canceled             = 32
+
+

@@ -27,6 +27,11 @@ module CrmDataInternal =
       let resp = proxy.Execute(req) :?> Messages.RetrieveVersionResponse
       resp.Version, resp.Version |> versionHelper
 
+    let retrieveAsyncJobState proxy asyncJobId =
+      let systemJob = CrmData.CRUD.retrieve proxy "asyncoperation" asyncJobId
+      systemJob.Attributes.["statuscode"] :?> OptionSetValue 
+      |> fun o -> stringToEnum<AsyncJobState> (o.Value.ToString())
+
   module internal CRUD =
     let performAsBulkWithOutput proxy (log:ConsoleLogger.ConsoleLogger) reqs =
       let resp = CrmData.CRUD.performAsBulk proxy reqs
