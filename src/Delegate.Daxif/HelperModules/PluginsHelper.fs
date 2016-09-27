@@ -330,21 +330,28 @@ module internal PluginsHelper =
   // Calls "PluginProcessingStepConfigs" in the plugin assembly that returns a
   // tuple contaning the plugin informations
   let typesAndMessages (asm:Assembly) =
-    asm.GetTypes() |> fun xs -> 
-      let y = xs |> Array.filter (fun x -> x.Name = @"Plugin") |> Array.toList
-                  |> List.head
-      xs
-      |> Array.filter (fun (x:Type) -> x.IsSubclassOf(y))
-      |> Array.Parallel.map (fun (x:Type) -> 
-        Activator.CreateInstance(x), x.GetMethod(@"PluginProcessingStepConfigs"))
-      |> Array.Parallel.map (fun (x, (y:MethodInfo)) -> 
-          y.Invoke(x, [||]) :?> 
-            ((string * int * string * string) * 
-              (int * int * string * int * string * string) * 
-                seq<(string * string * int * string)>) seq)
-      |> Array.toSeq
-      |> Seq.concat
-      |> Seq.map( fun x -> tupleToRecord x )
+    try
+      asm.GetTypes() |> fun xs -> 
+        let y = xs |> Array.filter (fun x -> x.Name = @"Plugin") |> Array.toList
+                    |> List.head
+        xs
+        |> Array.filter (fun (x:Type) -> x.IsSubclassOf(y))
+        |> Array.Parallel.map (fun (x:Type) -> 
+          Activator.CreateInstance(x), x.GetMethod(@"PluginProcessingStepConfigs"))
+        |> Array.Parallel.map (fun (x, (y:MethodInfo)) -> 
+            y.Invoke(x, [||]) :?> 
+              ((string * int * string * string) * 
+                (int * int * string * int * string * string) * 
+                  seq<(string * string * int * string)>) seq)
+        |> Array.toSeq
+        |> Seq.concat
+        |> Seq.map( fun x -> tupleToRecord x )
+    with
+    | ex -> 
+      sprintf @"Failed to fetch plugin configuration from plugin assembly. This error can be caused if an old version of Plugin.cs is used. Full Exception: %s"
+        (getFullException(ex))
+      |> failwith 
+      
 
   // Creates a new assembly in CRM with the provided information
   let createAssembly name dll (asm:Assembly) hash =
