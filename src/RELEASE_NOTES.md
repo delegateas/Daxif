@@ -1,7 +1,14 @@
 # Release Notes
 
-#### 2.3.2.0 - XXX
+#### 2.3.2.0 - Sep 29 2016
 * Changed description of synchronized plugins/workflow activities to include who did it and when it was performed
+* Fixed low timespan for timeout when using with on-premise environment
+* Updated import to use status of a async job state for determining if the job is completed or failed
+* Added function to merge two solutions
+* Fixed exportview to use new serilization union
+* Added better error message when plugin synch fails to get plugin configuration from dll through invocation.
+* Added new function to publish duplicate detection rules given by a list of 
+  names of the duplicate detection rules to publish in a target environment
 
 #### 2.3.1.1 - Aug 18 2016
 * Fixed missing license in Github page
