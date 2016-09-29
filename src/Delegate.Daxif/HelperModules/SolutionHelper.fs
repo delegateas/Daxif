@@ -267,8 +267,6 @@ module internal SolutionHelper =
 
     log.WriteLine(LogLevel.Verbose, @"Solution saved to local disk")
 
-
-
   let import' org ac solution location managed (log : ConsoleLogger.ConsoleLogger) = 
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
@@ -307,7 +305,11 @@ module internal SolutionHelper =
             | AsyncJobState.Failed | AsyncJobState.Canceled ->
               log.WriteLine(LogLevel.Verbose, "Asynchronous import job failed")
               let systemJob = CrmData.CRUD.retrieve p' "asyncoperation" id
-              string systemJob.Attributes.["message"]
+              let msg = 
+                match systemJob.Attributes.ContainsKey "message" with
+                | true -> systemJob.Attributes.["message"] :?> string
+                | false -> "No failure message"
+              msg
               |> sprintf "Failed with message: %s"
               |> failwith 
             | _ -> ()
@@ -382,7 +384,11 @@ module internal SolutionHelper =
                     (sprintf @"Solution import failed (ImportJob ID: %A)" jobId)
                   | Some(id) ->
                     let systemJob = CrmData.CRUD.retrieve p' "asyncoperation" id
-                    (jobId, string systemJob.Attributes.["message"])
+                    let msg = 
+                      match systemJob.Attributes.ContainsKey "message" with
+                      | true -> systemJob.Attributes.["message"] :?> string
+                      | false -> "No failure message"
+                    (jobId, msg)
                     ||> sprintf "Solution import failed (ImportJob ID: %A) with message %s"
                 failwith msg
               match managed with
@@ -415,12 +421,12 @@ module internal SolutionHelper =
           | (_, _) -> 
             log.WriteLine(LogLevel.Verbose,@"Asynchronous import job started")
             Some (importHelperAsync())
+        log.WriteLine(LogLevel.Verbose, @"Import solution: " + solution + @" (0%)")
 
         let! progress = importHelper' false false 0. aJobId
         progress
       }
       
-    //log.WriteLine(LogLevel.Verbose, @"Import solution: " + solution + @" (0%)")
     let status = 
       importHelper()
       |> Async.Catch
