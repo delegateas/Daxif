@@ -9,6 +9,7 @@ open Suave.Successful
 module Diff = 
   let solution source target log = 
     let log' = ConsoleLogger.ConsoleLogger log
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Delta between source and target solutions.")
     log'.WriteLine(LogLevel.Verbose, @"Source: " + source)
     log'.WriteLine(LogLevel.Verbose, @"Target: " + target)
@@ -21,6 +22,7 @@ module Diff =
   
   let solutionApp source target log = 
     let log' = ConsoleLogger.ConsoleLogger log
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Delta between source and target solutions.")
     log'.WriteLine(LogLevel.Verbose, @"Source: " + source)
     log'.WriteLine(LogLevel.Verbose, @"Target: " + target)
@@ -36,6 +38,7 @@ module Diff =
   
   let summary source target log = 
     let log' = ConsoleLogger.ConsoleLogger log
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Delta between source and target solutions.")
     log'.WriteLine(LogLevel.Verbose, @"Source: " + source)
     log'.WriteLine(LogLevel.Verbose, @"Target: " + target)

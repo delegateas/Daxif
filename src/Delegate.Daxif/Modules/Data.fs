@@ -11,6 +11,7 @@ module Data =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Data exists:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine
@@ -33,6 +34,7 @@ module Data =
     let log' = ConsoleLogger.ConsoleLogger log
     let entityNames' = entityNames |> Array.reduce (fun x y -> x + "," + y)
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Data count: " + entityNames')
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine
@@ -50,6 +52,7 @@ module Data =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Data state update:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine
@@ -66,6 +69,7 @@ module Data =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Data assignment:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine
@@ -83,6 +87,7 @@ module Data =
     let log' = ConsoleLogger.ConsoleLogger log
     let entityNames' = entityNames |> Array.reduce (fun x y -> x + "," + y)
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Export data: " + entityNames')
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
@@ -101,6 +106,7 @@ module Data =
     let log' = ConsoleLogger.ConsoleLogger log
     let entityNames' = entityNames |> Array.reduce (fun x y -> x + "," + y)
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Export data: " + entityNames')
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
@@ -118,6 +124,7 @@ module Data =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Export data based on view: " + view)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
@@ -135,6 +142,7 @@ module Data =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Migrate data")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
@@ -152,6 +160,7 @@ module Data =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Import data")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
@@ -169,6 +178,7 @@ module Data =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Reassign data to owner")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
@@ -186,6 +196,7 @@ module Data =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Import relations")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
@@ -203,6 +214,7 @@ module Data =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Publish Duplicate Detection Rules")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine

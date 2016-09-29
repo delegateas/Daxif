@@ -195,6 +195,9 @@ module internal Utility =
       Some(List.tail [ for x in m.Groups -> x.Value ])
     | false -> None 
 
+  let daxifVersion =
+    sprintf "DAXIF# v.%s" assemblyVersion
+
   // Setup the description for anything synced with DAXIF
   let syncDescription () = 
     sprintf "Synced with DAXIF# v.%s by '%s' at %s" 

@@ -10,6 +10,7 @@ module WebResources =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Sync solution webresources: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)

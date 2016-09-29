@@ -11,6 +11,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Create publisher: " + display)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Name: " + name)
@@ -30,6 +31,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Create solution: " + display)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Name: " + name)
@@ -49,6 +51,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Delete solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
@@ -66,6 +69,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, 
       (sprintf @"Merging %s solution into %s: " targetSolution sourceSolution))
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
@@ -83,6 +87,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"PluginSteps solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
@@ -105,6 +110,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"WorkflowActivities solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
@@ -128,6 +134,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Export solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
@@ -147,6 +154,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Import solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
@@ -167,6 +175,7 @@ module Solution =
     let ac' = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Export solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
@@ -187,6 +196,7 @@ module Solution =
     let ac' = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Import solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
@@ -205,6 +215,7 @@ module Solution =
   // TODO: 
   let extract solution location customizations map project log = 
     let log' = ConsoleLogger.ConsoleLogger log
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Extract solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
@@ -216,6 +227,7 @@ module Solution =
   // TODO: 
   let pack solution location customizations map managed log = 
     let log' = ConsoleLogger.ConsoleLogger log
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Pack solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
@@ -230,6 +242,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Update service context:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
@@ -252,6 +265,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Update custom service context:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
@@ -275,6 +289,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Update service context:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
@@ -299,6 +314,7 @@ module Solution =
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Count components in: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
