@@ -17,10 +17,18 @@ open DG.Daxif.HelperModules.Common.Utility
 
 module internal DataHelper =
   
-  let throttle (ap : Client.AuthenticationProviderType) = 
-    match ap with
+  let throttle = function
     | Client.AuthenticationProviderType.OnlineFederation -> 1
     | _ -> 100
+
+  // https://msdn.microsoft.com/en-us/library/jj863631.aspx
+  // No specified limit on-premise but experience says there is
+  let maxConcurrentMultipleRequest = function
+    | Client.AuthenticationProviderType.OnlineFederation -> 2
+    | _ -> 10 //Soft limit
+
+  // https://msdn.microsoft.com/en-us/library/jj863631.aspx
+  let maxRequestInRequestCollection = 1000
     
   /// TODO:
   let exists' org ac entityName filter (log : ConsoleLogger.ConsoleLogger) = 
@@ -73,11 +81,11 @@ module internal DataHelper =
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
     CrmDataInternal.Entities.retrieveEntitiesLight p entityName filter
-    |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
+    |> FSharpCoreExt.Seq.split (maxRequestInRequestCollection * (maxConcurrentMultipleRequest m.AuthenticationType))
     |> Seq.iter (fun xs -> 
           xs
           |> Array.toSeq
-          |> FSharpCoreExt.Seq.split (10 * (throttle m.AuthenticationType))
+          |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
           |> Seq.toArray
           |> Array.Parallel.map (fun es -> 
               let em = new ExecuteMultipleRequest()
@@ -87,8 +95,8 @@ module internal DataHelper =
               em.Requests <- new OrganizationRequestCollection()
               es
               |> Array.Parallel.map (fun e -> 
-                    CrmDataInternal.Entities.updateStateReq entityName e.Id state status)
-              |> Array.iter (fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
+                    CrmDataInternal.Entities.updateStateReq entityName e.Id state status :> OrganizationRequest ) 
+              |> em.Requests.AddRange //Array.iter (fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
               em, es)
           |> Array.Parallel.map (fun (em, es) -> 
               try 
@@ -171,11 +179,11 @@ module internal DataHelper =
           use p' = ServiceProxy.getOrganizationServiceProxy m tc
           let filter = (Map.empty |> Map.add (@"ownerid") (userFrom :> obj))
           CrmDataInternal.Entities.retrieveEntitiesLight p' entityName filter
-          |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
+          |> FSharpCoreExt.Seq.split (maxRequestInRequestCollection * (maxConcurrentMultipleRequest m.AuthenticationType))
           |> Seq.iter (fun xs -> 
               xs
               |> Array.toSeq
-              |> FSharpCoreExt.Seq.split (10 * (throttle m.AuthenticationType))
+              |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
               |> Seq.toArray
               |> Array.Parallel.map (fun es -> 
                     let em = new ExecuteMultipleRequest()
@@ -185,8 +193,8 @@ module internal DataHelper =
                     em.Requests <- new OrganizationRequestCollection()
                     es
                     |> Array.Parallel.map (fun e -> 
-                        CrmDataInternal.Entities.assignReq userTo entityName e.Id)
-                    |> Array.iter (fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
+                        CrmDataInternal.Entities.assignReq userTo entityName e.Id :> OrganizationRequest ) 
+                    |> em.Requests.AddRange // Array.iter (fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
                     em, es)
               |> Array.Parallel.map (fun (em, es) -> 
                     try 
@@ -456,16 +464,16 @@ module internal DataHelper =
                     | _ as ex -> log.WriteLine(LogLevel.Warning, 
                                     sprintf "%s:%s %s" en ei' ex.Message)))
 
-
   /// TODO: 
-  let import'' org ac location (log:ConsoleLogger.ConsoleLogger) serialize attribs data =
+  let import'' org ac location (log:ConsoleLogger.ConsoleLogger) serialize 
+    attributes references referenceFilter attribs data =
     let imported = location + @"..\imported\"
 
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
 
-    let i = Activator.CreateInstance<Entity>()
-    let t = Type.GetType (i.GetType().AssemblyQualifiedName)
+//    let i = Activator.CreateInstance<Entity>()
+//    let t = Type.GetType (i.GetType().AssemblyQualifiedName)
 
     match Directory.Exists(location) with
     | false -> ()
@@ -494,11 +502,11 @@ module internal DataHelper =
       Directory.GetDirectories(location)
       |> Array.iter(fun location' ->
         Directory.EnumerateFiles(location', "*" + ext, SearchOption.AllDirectories)
-        |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
+        |> FSharpCoreExt.Seq.split (maxRequestInRequestCollection * (maxConcurrentMultipleRequest m.AuthenticationType))
         |> Seq.iter(fun xs ->
           xs
           |> Array.toSeq 
-          |> FSharpCoreExt.Seq.split (10 * (throttle m.AuthenticationType))
+          |> FSharpCoreExt.Seq.split maxRequestInRequestCollection // (10 * (throttle m.AuthenticationType)) // Max of 1000 request in a request collection 
           |> Seq.toArray
           |> Array.Parallel.map(fun files ->
             let em = new ExecuteMultipleRequest()
@@ -518,29 +526,41 @@ module internal DataHelper =
               let ei = e.Id
               let ei' = ei.ToString()
 
-              // check for related entities if they are in target else remove
-              let a'' = 
-                e.Attributes 
+              let a'' =
+                e.Attributes
                 |> Seq.fold(fun (a:AttributeCollection) x -> 
                   match x.Value with
-                  | :? EntityReference as er ->
-                    let ern = er.LogicalName
-                    let erm = dCache(p, ern)
-                    let eri = dMapLookup data ern er.Id |= er.Id
+                  | :? EntityReference as er -> 
+                    match references with
+                    | false -> ()
+                    | true -> 
+                      match Array.isEmpty referenceFilter, Array.contains er.LogicalName referenceFilter with
+                      | false, false -> ()
+                      | true, _ | false, true ->
+                        let ern = er.LogicalName
+                        let erm = dCache(p, ern)
+                        let eri = dMapLookup data ern er.Id |= er.Id
                                
-                    let eri' = eri.ToString()
+                        let eri' = eri.ToString()
 
-                    let et = dMem (p, (ern,eri,erm.PrimaryIdAttribute |> Some))
+                        let et = dMem (p, (ern,eri,erm.PrimaryIdAttribute |> Some))
 
-                    match et with
-                    | false -> 
-                        log.WriteLine(LogLevel.Warning, 
-                            sprintf "%s:%s doesn't exist in target" ern eri')
-                    | true -> a.Add(x.Key, new EntityReference(ern,eri))
-                  | :? EntityCollection | _ -> a.Add(x)
-
+                        match et with
+                        | false -> 
+                            log.WriteLine(LogLevel.Warning, 
+                                sprintf "%s:%s doesn't exist in target" ern eri')
+                        | true -> a.Add(x.Key, new EntityReference(ern,eri))
+                  | _ -> 
+                    match attributes with
+                    | true -> a.Add(x.Key,x.Value)
+                    | false ->                     
+                      let enId = (e.LogicalName.ToLower() + "id") 
+                      match x.Key with
+                      | "id" | "logicalname"  -> a.Add(x.Key,x.Value)
+                      | enId -> a.Add(x.Key,x.Value)
+                      | _ -> ()
                   a) (new AttributeCollection())
-                    
+
               // Clear attributes and populate with new list
               e.Attributes.Clear()
               e.Attributes.AddRange(a'')
@@ -607,7 +627,8 @@ module internal DataHelper =
                   log.WriteLine(LogLevel.Warning, 
                     sprintf "%s:%s %s" en ei' ex.Message); None)
             |> Array.Parallel.choose(id)
-            |> Array.iter(fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
+            |> em.Requests.AddRange // OrganizationRequestCollection is not thread-safe
+            //|> Array.iter(fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
             em,files)
         |> Array.Parallel.map(fun (em,files) ->
           try
@@ -685,11 +706,11 @@ module internal DataHelper =
       |> ignore
 
       Directory.EnumerateFiles(location, "*" + ext, SearchOption.AllDirectories)
-      |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
+      |> FSharpCoreExt.Seq.split (maxRequestInRequestCollection * (maxConcurrentMultipleRequest m.AuthenticationType))
       |> Seq.iter(fun xs ->
         xs
         |> Array.toSeq 
-        |> FSharpCoreExt.Seq.split (10 * (throttle m.AuthenticationType))
+        |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
         |> Seq.toArray
         |> Array.Parallel.map(fun files ->
           let em = new ExecuteMultipleRequest()
@@ -733,8 +754,8 @@ module internal DataHelper =
                 | Some v -> keyValuePair<string,Guid>(x.Key, v)
               (matchToData x, matchToData y) 
 
-            CrmDataInternal.Entities.createMany2ManyReq sn x' y')
-          |> Array.iter(fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
+            CrmDataInternal.Entities.createMany2ManyReq sn x' y' :> OrganizationRequest)
+          |> em.Requests.AddRange //Array.iter(fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
           em,files)
         |> Array.Parallel.map(fun (em,files) ->
           try
@@ -844,8 +865,8 @@ module internal DataHelper =
     let reassigned = location + @"..\reassigned\"
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
-    let i = Activator.CreateInstance<Entity>()
-    let t = Type.GetType(i.GetType().AssemblyQualifiedName)
+//    let i = Activator.CreateInstance<Entity>()
+//    let t = Type.GetType(i.GetType().AssemblyQualifiedName)
     // let t = typeof<Entity> // TODO: replace with this?
     match Directory.Exists(location) with
     | false -> ()
@@ -859,11 +880,11 @@ module internal DataHelper =
           let logicalName' = reassigned + logicalName + @"\"
           ensureDirectory logicalName')
       Directory.EnumerateFiles(location, "*" + ext, SearchOption.AllDirectories)
-      |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
+      |> FSharpCoreExt.Seq.split (maxRequestInRequestCollection * (maxConcurrentMultipleRequest m.AuthenticationType))
       |> Seq.iter (fun xs -> 
             xs
             |> Array.toSeq
-            |> FSharpCoreExt.Seq.split (10 * (throttle m.AuthenticationType))
+            |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
             |> Seq.toArray
             |> Array.Parallel.map (fun files -> 
                 let em = new ExecuteMultipleRequest()
@@ -873,7 +894,7 @@ module internal DataHelper =
                 em.Requests <- new OrganizationRequestCollection()
                 files
                 |> Array.Parallel.map (fun file -> 
-                      use p = ServiceProxy.getOrganizationServiceProxy m tc
+                      //use p = ServiceProxy.getOrganizationServiceProxy m tc
                       let e = 
                         SerializationHelper.deserializeFileToObject<Entity> 
                           serialize file
@@ -891,8 +912,8 @@ module internal DataHelper =
                 |> Array.Parallel.choose (id)
                 |> Array.Parallel.map 
                       (fun (e, owner) -> 
-                      CrmDataInternal.Entities.assignReq owner e.LogicalName e.Id)
-                |> Array.iter (fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
+                      CrmDataInternal.Entities.assignReq owner e.LogicalName e.Id :> OrganizationRequest)
+                |> em.Requests.AddRange //Array.iter (fun x -> em.Requests.Add(x)) // OrganizationRequestCollection is not thread-safe
                 em, files)
             |> Array.Parallel.map (fun (em, files) -> 
                 try 

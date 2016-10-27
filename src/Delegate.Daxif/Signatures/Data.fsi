@@ -121,6 +121,46 @@ and adds the extra attributes given in `extraAttributes`.
      -> serialize:Serialize
      -> extraAttributes:Map<String, _>
      -> data:Map<String, Map<Guid, Guid>> -> unit
+
+(**
+Imports entities from files at the given `location` with a matching
+extension to that of `serialize`.
+
+Ignores EntityReferences if ''
+Adds the extra attributes given in `extraAttributes`.
+*)
+  /// Imports entities from files at the given location.
+  val public importWithoutReferences : wsdl:Uri
+     -> location:string
+     -> ap:AuthenticationProviderType
+     -> usr:string
+     -> pwd:string
+     -> domain:string
+     -> logLevel:LogLevel
+     -> serialize:Serialize
+     -> extraAttributes:Map<String, _>
+     -> data:Map<String, Map<Guid, Guid>> -> unit
+
+(**
+Imports entities from files at the given `location` with a matching
+extension to that of `serialize`.
+
+Ignores EntityReferences if ''
+Adds the extra attributes given in `extraAttributes`.
+*)
+  /// Imports entities from files at the given location.
+  val public importReferences : wsdl:Uri
+     -> location:string
+     -> ap:AuthenticationProviderType
+     -> usr:string
+     -> pwd:string
+     -> domain:string
+     -> logLevel:LogLevel
+     -> serialize:Serialize
+     -> referenceFiler: string []
+     -> extraAttributes:Map<String, _>
+     -> data:Map<String, Map<Guid, Guid>> -> unit
+
 (**
         
 *)
