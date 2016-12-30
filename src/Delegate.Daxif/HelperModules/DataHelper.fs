@@ -557,7 +557,7 @@ module internal DataHelper =
                       let enId = (e.LogicalName.ToLower() + "id") 
                       match x.Key with
                       | "id" | "logicalname"  -> a.Add(x.Key,x.Value)
-                      | enId -> a.Add(x.Key,x.Value)
+                      | k when k = enId -> a.Add(x.Key,x.Value)
                       | _ -> ()
                   a) (new AttributeCollection())
 

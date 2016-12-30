@@ -99,7 +99,6 @@ module internal WebResourcesHelper =
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
     let (prefix, solutionName) = getPrefixAndUniqueName location
-    let publisher = CrmDataInternal.Entities.retrievePublisher p prefix
     let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
     let wr = CrmDataInternal.Entities.retrieveWebResources p solution.Id
     let source = localFiles location prefix solutionName
