@@ -21,13 +21,12 @@ module internal PluginsHelper =
 
   type ExecutionMode = 
     | Synchronous = 0
-    | Asynchonous = 1
+    | Asynchronous = 1
 
   type ExecutionStage = 
     | PreValidation = 10
     | Pre = 20
     | Post = 40
-
 
   // Records for encapsulating step and images in a plugin
   type Step =
@@ -126,15 +125,6 @@ module internal PluginsHelper =
   module Validation =
      
      // Types for steps and image parameters
-    type ExecutionMode =
-      | Synchronous = 0
-      | Asynchronous = 1
-
-    type ExecutionStage =
-      | PreValidation = 10
-      | PreOperation = 20
-      | PostOperation = 40
-
     type ImageType =
       | PreImage = 0
       | PostImage = 1
@@ -162,7 +152,7 @@ module internal PluginsHelper =
           let i' = 
             pl.images
             |> Seq.filter(fun image -> image.imageType = int ImageType.PostImage)
-          (pl.step.executionStage = int ExecutionStage.PreOperation || 
+          (pl.step.executionStage = int ExecutionStage.Pre || 
             pl.step.executionStage = int ExecutionStage.PreValidation) &&
               not (Seq.isEmpty i'))
 
@@ -173,7 +163,7 @@ module internal PluginsHelper =
         plugins
         |> Seq.filter(fun (_,pl) -> 
           pl.step.executionMode = int ExecutionMode.Asynchronous && 
-            pl.step.executionStage <> int ExecutionStage.PostOperation)
+            pl.step.executionStage <> int ExecutionStage.Post)
 
       findInvalid plugins invalidPlugins "Plugin %s: Post execution stages does not support asynchronous execution mode"
 
