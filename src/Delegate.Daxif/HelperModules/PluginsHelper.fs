@@ -19,6 +19,7 @@ open DG.Daxif.HelperModules.Common.Utility
 
 module internal PluginsHelper =
 
+  // enum for plugin configurations
   type ExecutionMode = 
     | Synchronous = 0
     | Asynchronous = 1
@@ -124,7 +125,6 @@ module internal PluginsHelper =
   *)
   module Validation =
      
-     // Types for steps and image parameters
     type ImageType =
       | PreImage = 0
       | PostImage = 1
@@ -939,7 +939,6 @@ module internal PluginsHelper =
     insertTypes solution client log sourceData targetData
     upsertSteps solution client log sourceData targetData
     upsertImages solution client log sourceData targetData
-
 
   // Syncronizes a solution
   let syncSolution org ac solutionName proj dll isolationMode (log:ConsoleLogger.ConsoleLogger) =
