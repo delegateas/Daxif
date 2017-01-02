@@ -19,6 +19,16 @@ open DG.Daxif.HelperModules.Common.Utility
 
 module internal PluginsHelper =
 
+  type ExecutionMode = 
+    | Synchronous = 0
+    | Asynchonous = 1
+
+  type ExecutionStage = 
+    | PreValidation = 10
+    | Pre = 20
+    | Post = 40
+
+
   // Records for encapsulating step and images in a plugin
   type Step =
     { className: String
@@ -34,7 +44,9 @@ module internal PluginsHelper =
     member this.messageName = 
       let entity' = String.IsNullOrEmpty(this.logicalName) |> function
           | true -> "any Entity" | false -> this.logicalName
-      sprintf "%s: %s of %s" this.className this.eventOperation entity'
+      let execMode = (enum<ExecutionMode> this.executionMode).ToString()
+      let execStage = (enum<ExecutionStage> this.executionStage).ToString()
+      sprintf "%s: %s %s %s of %s" this.className execMode execStage this.eventOperation entity'
 
   type Image = 
     { name: string
@@ -48,12 +60,12 @@ module internal PluginsHelper =
     member this.TypeKey = 
       this.step.className
     member this.StepKey = 
-      sprintf "%s, %s" (this.step.executionStage.ToString()) this.step.messageName
+      this.step.messageName
     member this.ImagesWithKeys =
       this.images
       |> Seq.map(fun image -> sprintf "%s, %s" this.StepKey image.name, image)
 
-  // Records holding variouse information regarding the Solution and connecting
+  // Record holding variouse information regarding the Solution and connecting
   // to a CRM instance.
   type Solution =
     { assembly: Assembly
@@ -61,7 +73,8 @@ module internal PluginsHelper =
       dllName: String
       dllPath: String
       hash: String
-      entity: Entity }
+      entity: Entity 
+      isolationMode: PluginIsolationMode}
 
   type ClientManagement = 
     { IServiceM: Client.IServiceManagement<IOrganizationService>
@@ -364,22 +377,23 @@ module internal PluginsHelper =
       
 
   // Creates a new assembly in CRM with the provided information
-  let createAssembly name dll (asm:Assembly) hash isolationMode =
+  let createAssembly name dll (asm:Assembly) hash (isolationMode:PluginIsolationMode) =
     let pa = Entity("pluginassembly")
     pa.Attributes.Add("name", name)
     pa.Attributes.Add("content", dll |> fileToBase64)
     pa.Attributes.Add("sourcehash", hash)
-    pa.Attributes.Add("isolationmode", OptionSetValue(isolationMode)) // sandbox OptionSetValue(2)
+    pa.Attributes.Add("isolationmode", OptionSetValue(int isolationMode)) // sandbox OptionSetValue(2)
     pa.Attributes.Add("version", asm.GetName().Version.ToString())
     pa.Attributes.Add("description", syncDescription())
     pa
 
   // Updates an existing assembly in CRM with the provided assembly information
-  let updateAssembly (paid:Guid) dll (asm:Assembly) hash =
+  let updateAssembly (paid:Guid) dll (asm:Assembly) hash (isolationMode:PluginIsolationMode) =
     let pa = Entity("pluginassembly")
     pa.Attributes.Add("pluginassemblyid", paid)
     pa.Attributes.Add("content", dll |> fileToBase64)
     pa.Attributes.Add("sourcehash", hash)
+    pa.Attributes.Add("isolationmode", OptionSetValue(int isolationMode))
     pa.Attributes.Add("version", asm.GetName().Version.ToString())
     pa.Attributes.Add("description", syncDescription())
     pa
@@ -481,7 +495,16 @@ module internal PluginsHelper =
   // Fetches data from the dll file and the plugins from the provided CRM solution.
   // Returns a tuple contaning a ClientManagement and Solution record along with a 
   // sequence of the plugins
-  let setupData org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
+  let setupData org ac solutionName proj dll isolationMode (log:ConsoleLogger.ConsoleLogger) =
+    log.WriteLine(LogLevel.Verbose, "Authenticating credentials")
+    
+    let m = ServiceManager.createOrgService org
+    let tc = m.Authenticate(ac)
+    use p = ServiceProxy.getOrganizationServiceProxy m tc
+    let client = { IServiceM = m; authCred = tc}
+
+    log.WriteLine(LogLevel.Verbose, "Authentication completed")
+
     log.WriteLine(LogLevel.Verbose, "Checking local assembly")
     let dll'  = Path.GetFullPath(dll)
     let tmp   = Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString() + @".dll")
@@ -494,15 +517,6 @@ module internal PluginsHelper =
         projDependencies proj' |> Set.ofSeq
         |> Set.map(fun x -> File.ReadAllBytes(x) |> sha1CheckSum')
         |> Set.fold(fun a x -> a + x |> sha1CheckSum) String.Empty
-
-    log.WriteLine(LogLevel.Verbose, "Authenticating credentials")
-    
-    let m = ServiceManager.createOrgService org
-    let tc = m.Authenticate(ac)
-    use p = ServiceProxy.getOrganizationServiceProxy m tc
-    let client = { IServiceM = m; authCred = tc}
-
-    log.WriteLine(LogLevel.Verbose, "Authentication completed")
 
     let asm = Assembly.LoadFile(dllPath); 
     let dllName = Path.GetFileNameWithoutExtension(dll'); 
@@ -525,14 +539,15 @@ module internal PluginsHelper =
               dllName = dllName;
               dllPath = dllPath
               hash = hash;
-              entity = solutionEntity }
+              entity = solutionEntity;
+              isolationMode = isolationMode}
         client, solution, sourcePlugins
 
   // Fill plugin map with steps with the execution stage and step name as primary key
-  let getPluginTypes solution client (log:ConsoleLogger.ConsoleLogger) pluginContent =
+  let getPluginTypes asmId client (log:ConsoleLogger.ConsoleLogger) pluginContent =
 
     proxyContext' client (fun p -> 
-      let types = CrmDataInternal.Entities.retrievePluginTypes p solution.assemblyId.Value
+      let types = CrmDataInternal.Entities.retrievePluginTypes p asmId
       log.WriteLine(LogLevel.Debug, sprintf "Retrieved %d types" (Seq.length types))
 
       types
@@ -542,17 +557,14 @@ module internal PluginsHelper =
     )
 
   // Fill plugin map with steps with the execution stage and step name as primary key
-  let getPluginSteps solution client (log:ConsoleLogger.ConsoleLogger) pluginContent =
+  let getPluginSteps solutionId client (log:ConsoleLogger.ConsoleLogger) pluginContent =
 
     proxyContext' client (fun p -> 
-      let steps = CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p solution.entity.Id
+      let steps = CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p solutionId
       log.WriteLine(LogLevel.Debug, sprintf "Found %d steps" (Seq.length steps))
 
       steps
-      |> Seq.map(fun step -> 
-        let stage = getAttribute "stage" step :?> OptionSetValue
-        let key = sprintf "%s, %s" (stage.Value.ToString()) (getName step) // TODO: ensure that key is requal to plugin key
-        key, step)
+      |> Seq.map(fun step -> getName step, step)
       |> Map.ofSeq
       |> fun x -> Map.add "Steps" x pluginContent
     )
@@ -570,9 +582,7 @@ module internal PluginsHelper =
         then log.WriteLine(LogLevel.Debug, sprintf "Found %d images in step %s" (Seq.length images) stepName)
 
         images
-        |> Seq.map(fun image -> 
-          let key = sprintf "%s, %s" (stepKey) (getName image)
-          key, image)
+        |> Seq.map(fun image -> sprintf "%s, %s" stepKey (getName image), image)
         |> Seq.toArray
       )
     )
@@ -600,7 +610,7 @@ module internal PluginsHelper =
     |> deleteEntities log client
 
   let deleteImages client (log:ConsoleLogger.ConsoleLogger) (sourcePlugins:seq<Plugin>) (pluginContent: Map<string,Map<string,Entity>>) =
-    log.WriteLine(LogLevel.Verbose, "Deleting images")
+    log.WriteLine(LogLevel.Info, "Deleting images")
     let sourceImages =
       sourcePlugins
       |> Seq.map(fun pl -> pl.ImagesWithKeys)
@@ -611,7 +621,7 @@ module internal PluginsHelper =
     deleteObsoleteEntities client log targetImages sourceImages
 
   let deleteSteps client (log:ConsoleLogger.ConsoleLogger) (sourcePlugins:seq<Plugin>) (pluginContent: Map<string,Map<string,Entity>>) =
-    log.WriteLine(LogLevel.Verbose, "Deleting steps")
+    log.WriteLine(LogLevel.Info, "Deleting steps")
     let sourceSteps =
       sourcePlugins
       |> Seq.map(fun pl -> pl.StepKey, pl)
@@ -621,7 +631,7 @@ module internal PluginsHelper =
     deleteObsoleteEntities client log targetSteps sourceSteps
 
   let deleteTypes client (log:ConsoleLogger.ConsoleLogger) (sourcePlugins:seq<Plugin>) (pluginContent: Map<string,Map<string,Entity>>) =
-    log.WriteLine(LogLevel.Verbose, "Deleting types")
+    log.WriteLine(LogLevel.Info, "Deleting types")
     let sourceTypes =
       sourcePlugins
       |> Seq.map(fun pl -> pl.TypeKey, pl)
@@ -631,21 +641,24 @@ module internal PluginsHelper =
 
     deleteObsoleteEntities client log targetTypes sourceTypes
 
+  // Update if there is no sourcehash, sourcehash is different, isolationmode is different
   let updateAssembly' solution client (log:ConsoleLogger.ConsoleLogger) =
     log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
 
     proxyContext' client (fun p -> 
-      let dlls = CrmDataInternal.Entities.retrievePluginAssemblies p solution.entity.Id
 
-      dlls
+      CrmDataInternal.Entities.retrievePluginAssemblies p solution.entity.Id
       |> Seq.filter(fun x -> solution.dllName = getName x)
       |> Seq.iter(fun x ->
-        let update = x.Attributes.ContainsKey "sourcehash" || solution.hash = (getAttribute "sourcehash" x :?> string)
-        match update with
-        | true -> ()
-        | false -> 
-          log.WriteLine(LogLevel.Verbose, "Updating Assembly")
-          CrmData.CRUD.update p (updateAssembly x.Id solution.dllPath solution.assembly solution.hash) 
+        let changes = 
+          x.Attributes.ContainsKey "sourcehash" |> not
+          || solution.hash <> (getAttribute "sourcehash" x :?> string)
+          || (int solution.isolationMode) <> ((getAttribute "isolationmode" x :?> OptionSetValue).Value)
+        match changes with
+        | false -> ()
+        | true -> 
+          log.WriteLine(LogLevel.Info, "Updating Assembly")
+          CrmData.CRUD.update p (updateAssembly x.Id solution.dllPath solution.assembly solution.hash solution.isolationMode) 
           |> ignore
 
           log.WriteLine(LogLevel.Verbose, sprintf "%s: %s was updated" x.LogicalName (getName x)) ) )
@@ -656,16 +669,12 @@ module internal PluginsHelper =
     |> Array.Parallel.iter(fun x ->
       proxyContext' client (fun p -> 
         let pt = createType assemblyId x
-
+        CrmData.CRUD.create p pt (ParameterCollection())|> ignore
         log.WriteLine(LogLevel.Verbose, 
-          sprintf "Creating type: %s" (getName pt))
-        (pt, CrmData.CRUD.create p pt (ParameterCollection()))
-        |> fun (x,_) -> 
-          log.WriteLine(LogLevel.Verbose, 
-            sprintf "%s: %s was created" x.LogicalName (getName x))) )
+          sprintf "%s: %s was created" pt.LogicalName (getName pt))) )
 
   let insertTypes (solution: Solution) client (log:ConsoleLogger.ConsoleLogger) (sourcePlugins:seq<Plugin>) (pluginContent: Map<string,Map<string,Entity>>) =
-    log.WriteLine(LogLevel.Verbose, sprintf "Creating types")
+    log.WriteLine(LogLevel.Info, sprintf "Creating types")
 
     let sourceImageSet =
       sourcePlugins
@@ -752,7 +761,7 @@ module internal PluginsHelper =
           sprintf "%s: %s was updated" x.LogicalName (getName x)))
 
   let upsertSteps (solution: Solution) client (log:ConsoleLogger.ConsoleLogger) (sourcePlugins:seq<Plugin>) (pluginContent: Map<string,Map<string,Entity>>) =
-    log.WriteLine(LogLevel.Verbose, sprintf "Creating and updating steps")
+    log.WriteLine(LogLevel.Info, sprintf "Creating and updating steps")
 
     sourcePlugins
     |> Seq.groupBy(fun pl -> pl.step.className)
@@ -760,7 +769,10 @@ module internal PluginsHelper =
     |> Array.Parallel.iter(fun (key,values) -> 
       proxyContext' client (fun p -> 
 
-        let pt = CrmDataInternal.Entities.retrievePluginType p key
+        let pt = 
+          match pluginContent.["Types"].ContainsKey(key) with
+          | true -> pluginContent.["Types"].[key]
+          | false -> CrmDataInternal.Entities.retrievePluginType p key
 
         let sourceStepSet =
           values
@@ -776,7 +788,6 @@ module internal PluginsHelper =
 
         let newSteps = 
           sourceStepSet - targetStepSet
-
         let modfiedSteps = 
           Set.intersect sourceStepSet targetStepSet
           |> subsetEntity targetSteps
@@ -789,22 +800,22 @@ module internal PluginsHelper =
         if modfiedSteps |> Seq.isEmpty |> not
         then 
           log.WriteLine(LogLevel.Debug, sprintf "Updating steps for: %s" key)
-          updateSteps log client modfiedSteps sourcePlugins) )
+          updateSteps log client modfiedSteps values) )
 
   let createImages (log:ConsoleLogger.ConsoleLogger) (solution:Entity) 
-    client entity plugins (pluginStep: Entity) = 
-      entity
+    client images (plugins:Plugin seq) (pluginStep: Entity) = 
+      images
       |> Seq.toArray
       |> Array.Parallel.iter(fun y ->
         proxyContext' client (fun p -> 
           plugins
-          |> Seq.fold(fun acc pl -> 
-            pl.images
-            |> Seq.map(fun image -> (pl.step,image))
-            |> Seq.append acc) Seq.empty
-          |> Seq.filter(fun (_,image) -> y = image.name)
+          |> Seq.map(fun pl -> 
+            pl.ImagesWithKeys 
+            |> Seq.map(fun image -> (pl.step,image)))
+          |> Seq.concat
+          |> Seq.filter(fun (_,(imageKey,_)) -> y = imageKey)
           |> Seq.toArray
-          |> Array.map(fun (step,image) -> 
+          |> Array.map(fun (step,(_,image)) -> 
               let pm = createImage pluginStep.Id step.eventOperation image
               let pc = ParameterCollection()
               pc.Add("SolutionUniqueName", getAttribute "uniquename" solution)
@@ -855,68 +866,75 @@ module internal PluginsHelper =
           sprintf "%s: (%O) was updated" x.LogicalName x.Id)) 
 
   let upsertImages (solution: Solution) client (log:ConsoleLogger.ConsoleLogger) (sourcePlugins:seq<Plugin>) (pluginContent: Map<string,Map<string,Entity>>) =
-    log.WriteLine(LogLevel.Verbose, sprintf "Creating and updating images")
+    log.WriteLine(LogLevel.Info, sprintf "Creating and updating images")
 
     sourcePlugins
-    |> Seq.groupBy(fun pl -> pl.step.messageName)
+    |> Seq.groupBy(fun pl -> (pl.step.messageName))
     |> Seq.toArray
     |> Array.Parallel.iter(fun (key,values) -> 
       proxyContext' client (fun p -> 
 
-        let ps = CrmDataInternal.Entities.retrieveSdkProcessingStep p key
-
-        let sourceStepSet =
+        let ps = 
+          match pluginContent.["Steps"].ContainsKey(key) with
+          | true -> pluginContent.["Steps"].[key]
+          | false -> CrmDataInternal.Entities.retrieveSdkProcessingStep p key
+        let sourceImageSet =
           values
           |> Seq.map(fun pl -> pl.ImagesWithKeys)
           |> Seq.concat
           |> setfstSeq
 
-        let targetSteps = 
+        let targetImages = 
           pluginContent.["Images"]
           |> Map.filter(fun x _ -> x.Contains(key))
           |> Map.toSeq
 
-        let targetStepSet = setfstSeq targetSteps
-
-        let newSteps = 
-          sourceStepSet - targetStepSet
-
-        let modifiedSteps = 
-          Set.intersect sourceStepSet targetStepSet
-          |> subsetEntity targetSteps
+        let targetImageSet = setfstSeq targetImages
+        let newImages = 
+          sourceImageSet - targetImageSet
+        let modifiedImages = 
+          Set.intersect sourceImageSet targetImageSet
+          |> subsetEntity targetImages
         
-        if newSteps.IsEmpty |> not
+        if newImages.IsEmpty |> not
         then
           log.WriteLine(LogLevel.Debug, sprintf "Creating Images for: %s" key)
-          createImages log solution.entity client newSteps values ps
+          createImages log solution.entity client newImages values ps
 
-        if modifiedSteps |> Seq.isEmpty |> not
+        if modifiedImages |> Seq.isEmpty |> not
         then
           log.WriteLine(LogLevel.Debug, sprintf "Updating Images for: %s" key)
-          updateImages log client modifiedSteps sourcePlugins) )
+          updateImages log client modifiedImages values) )
 
   // Deletes plugins that exist in target but not in source
   let deletePlugins org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
-    let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll log
-    log.WriteLine(LogLevel.Verbose, "Deleting plugins")
-     // fetchData
-    let targetData =
-      Map.empty
-      |> getPluginTypes solution client log
-      |> getPluginSteps solution client log
-      |> getPluginImages client log
+    let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll PluginIsolationMode.Sandbox log
+    match solution.assemblyId with
+    | Some assemblyId -> 
+      log.WriteLine(LogLevel.Verbose, "Deleting plugins")
+      // fetchData
+      log.WriteLine(LogLevel.Verbose,"fetching plugin data from CRM")
+      let targetData =
+        Map.empty
+        |> getPluginTypes assemblyId client log
+        |> getPluginSteps solution.entity.Id client log
+        |> getPluginImages client log
 
-    // Delete old data
-    deleteImages client log sourcePlugins targetData
-    deleteSteps client log sourcePlugins targetData
-    deleteTypes client log sourcePlugins targetData
+      // Delete old data
+      deleteImages client log sourcePlugins targetData
+      deleteSteps client log sourcePlugins targetData
+      deleteTypes client log sourcePlugins targetData
 
-  let syncPlugins solution client (log:ConsoleLogger.ConsoleLogger) sourceData=
+    | None ->
+      failwith "No plugin assembly found in solution"
+
+  let syncPlugins (solution:Solution) client (log:ConsoleLogger.ConsoleLogger) sourceData =
     // fetchData
+    log.WriteLine(LogLevel.Verbose,"fetching plugin data from CRM")
     let targetData =
       Map.empty
-      |> getPluginTypes solution client log
-      |> getPluginSteps solution client log
+      |> getPluginTypes solution.assemblyId.Value client log
+      |> getPluginSteps solution.entity.Id client log
       |> getPluginImages client log
 
     // Delete old data
@@ -935,7 +953,7 @@ module internal PluginsHelper =
 
   // Syncronizes a solution
   let syncSolution org ac solutionName proj dll isolationMode (log:ConsoleLogger.ConsoleLogger) =
-    let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll log
+    let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll isolationMode log
     let solution' =
       match solution.assemblyId with
       | Some _ -> 
@@ -948,10 +966,11 @@ module internal PluginsHelper =
             dllName = solution.dllName;
             dllPath = solution.dllPath
             hash = solution.hash;
-            entity = solution.entity })
+            entity = solution.entity;
+            isolationMode = isolationMode})
 
     log.WriteLine(LogLevel.Verbose, "Syncing plugins")
     syncPlugins solution' client log sourcePlugins
 
   let syncSolution' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
-    syncSolution org ac solutionName proj dll (int PluginIsolationMode.Sandbox) log
+    syncSolution org ac solutionName proj dll PluginIsolationMode.Sandbox log

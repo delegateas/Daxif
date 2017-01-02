@@ -27,7 +27,7 @@ module Plugins =
         (LogLevel.Info, @"The solution plugins were synced successfully")
     with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
 
-  let syncSolution' org solution proj dll ap usr pwd domain isolationMode log = 
+  let syncSolution' org solution proj dll isolationMode ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
     let pwd' = String.replicate pwd.Length "*"

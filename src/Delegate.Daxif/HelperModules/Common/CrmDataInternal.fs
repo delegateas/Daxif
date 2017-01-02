@@ -539,8 +539,8 @@ module CrmDataInternal =
         (ConditionExpression(an, ConditionOperator.Equal, solutionId))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet
-                       (em.PrimaryIdAttribute, em.PrimaryNameAttribute, 
-                        "sourcehash")
+                       (em.PrimaryIdAttribute, em.PrimaryNameAttribute,
+                        "sourcehash", "isolationmode")
       q.LinkEntities.Add(le)
       CrmData.CRUD.retrieveMultiple proxy ln q
     

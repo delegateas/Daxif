@@ -105,9 +105,9 @@
     <Compile Include="HelperModules\Common\Utility.fs" />
     <Compile Include="HelperModules\Common\Resource.fs" />
     <Compile Include="HelperModules\Common\FSharpCoreExt.fs" />
-    <Compile Include="HelperModules\Common\Authentication.fs" />
     <Compile Include="HelperModules\Common\ServiceManager.fs" />
     <Compile Include="HelperModules\Common\ServiceProxy.fs" />
+    <Compile Include="HelperModules\Common\Authentication.fs" />
     <Compile Include="HelperModules\Common\CrmData.fs" />
     <Compile Include="HelperModules\Common\CrmDataInternal.fs" />
     <Compile Include="HelperModules\SerializationHelper.fs" />
@@ -176,23 +176,23 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Crm.Sdk.Proxy">
-      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.1.0.2\lib\net452\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.IdentityModel">
-      <HintPath>..\packages\Microsoft.IdentityModel.6.1.7600.16394\lib\net35\Microsoft.IdentityModel.dll</HintPath>
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.2.0.2\lib\net452\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Crm.Services.Utility">
       <HintPath>..\..\lib\Microsoft.Crm.Services.Utility.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Microsoft.IdentityModel">
+      <HintPath>..\packages\Microsoft.IdentityModel.6.1.7600.16394\lib\net35\Microsoft.IdentityModel.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Microsoft.Xrm.Sdk">
-      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.1.0.2\lib\net452\Microsoft.Xrm.Sdk.dll</HintPath>
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.2.0.2\lib\net452\Microsoft.Xrm.Sdk.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SolutionPackager">
-      <HintPath>..\packages\Microsoft.CrmSdk.CoreTools.8.1.0.2\content\bin\coretools\SolutionPackager.exe</HintPath>
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreTools.8.2.0.2\content\bin\coretools\SolutionPackager.exe</HintPath>
     </Reference>
     <Reference Include="Suave">
       <HintPath>..\packages\Suave.1.1.1\lib\net40\Suave.dll</HintPath>
@@ -233,8 +233,4 @@
     <Reference Include="mscorlib" />
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
-  <PropertyGroup>
-    <PreBuildEvent>IF EXIST $(TargetPath).LOCKED  (del $(TargetPath).LOCKED) ELSE (IF EXIST $(TargetPath) (move $(TargetPath) $(TargetPath).LOCKED))
-IF EXIST "$(TargetDir)*pdb.LOCKED" (del "$(TargetDir)*pdb.LOCKED") ELSE (IF EXIST "$(TargetDir)*.pdb" (move "$(TargetDir)*.pdb" *.pdb.LOCKED))</PreBuildEvent>
-  </PropertyGroup>
 </Project>
