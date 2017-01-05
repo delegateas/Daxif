@@ -38,8 +38,10 @@ module CrmDataInternal =
       resp
       |> Array.iter (fun r -> 
         if r.Fault <> null then 
+          let req = reqs.[r.RequestIndex]
+          let entityId = (req.Parameters.["Target"] :?> Entity).Id
           log.WriteLine(LogLevel.Error,
-            (sprintf "Error when performing %s: %s" reqs.[r.RequestIndex].RequestName 
+            (sprintf "Error when performing %s on %s: %s" req.RequestName (entityId.ToString())
               r.Fault.Message)))
       resp
       |> Array.filter (fun x -> x.Fault = null)

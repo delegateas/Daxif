@@ -90,7 +90,9 @@ module internal DGSolutionHelper =
     // Find all types in the solution
     let types = 
       assemblies
-      |> Seq.map(fun asm -> CrmDataInternal.Entities.retrievePluginTypes p asm.Id)
+      |> Seq.toArray
+      |> Array.Parallel.map(fun asm -> CrmDataInternal.Entities.retrievePluginTypes p asm.Id)
+      |> Array.toSeq
       |> Seq.concat
       |> Seq.map(fun x -> x.Id, getName x)
 
@@ -111,11 +113,12 @@ module internal DGSolutionHelper =
     // Note: Use 
     let images = 
       steps
-      |> Seq.map(fun step ->
+      |> Seq.toArray
+      |> Array.Parallel.map(fun step ->
         CrmDataInternal.Entities.retrievePluginProcessingStepImages p step.Id
         |> Seq.map(fun x -> x.Id, getName step + " " + getName x))
+      |> Array.toSeq
       |> Seq.concat
-      
 
     asmName, types, stepsName, images
 
@@ -207,7 +210,7 @@ module internal DGSolutionHelper =
 
     log.WriteLine(LogLevel.Info, @"DGSolution exported successfully")
 
-  let importDGSolution org ac solutionName zipPath (log:ConsoleLogger)=
+  let importDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
     log.WriteLine(LogLevel.Verbose, 
       @"Attempting to retrieve dgSolution.xml file from solution package")
 
@@ -244,11 +247,11 @@ module internal DGSolutionHelper =
       let diffdgSol =
         dgSol.states
         |> Map.toArray
-        |> Array.map(fun (_,guidState) -> 
+        |> Array.Parallel.map(fun (_,guidState) -> 
            CrmData.CRUD.retrieveReq guidState.logicalName guidState.id 
            :> OrganizationRequest )
         |> CrmData.CRUD.performAsBulk p
-        |> Array.map(fun resp -> 
+        |> Array.Parallel.map(fun resp -> 
           let resp' = resp.Response :?> Messages.RetrieveResponse 
           resp'.Entity)
         |> Array.filter(fun target -> 
