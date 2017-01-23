@@ -1,5 +1,16 @@
 # Release Notes
 
+#### 2.3.3.0 - Jan 23 2017
+* Refactored plugin sync to be more readable and reduce the amount calls to CRM 
+  improving the synchronization time
+* Added new method `syncSolution` for synching plugins that takes in an enum specifing the 
+  isolationmode of the plugin assembly
+* Added two new import functions for importing entities with or without references. 
+  `importWithoutReferences` imports entities withouth any `EntityReferences` attributes
+  and `importReferences` that only entities with EntityReferences attributes
+* Reduceed the number of ExecuteMultipleRequest Calls to 10 call made in parallel in DataHelper 
+  to on-premise environments due to limitation with CRM on-premise
+
 #### 2.3.2.0 - Sep 29 2016
 * Changed description of synchronized plugins/workflow activities to include who did it and when it was performed
 * Fixed low timespan for timeout when using with on-premise environment
