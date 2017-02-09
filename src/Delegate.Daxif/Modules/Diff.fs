@@ -13,12 +13,10 @@ module Diff =
     log'.WriteLine(LogLevel.Info, @"Delta between source and target solutions.")
     log'.WriteLine(LogLevel.Verbose, @"Source: " + source)
     log'.WriteLine(LogLevel.Verbose, @"Target: " + target)
-    try 
-      DiffHelper.solution' source target log'
-      log'.WriteLine
-        (LogLevel.Info, 
-         @"The delta between source and target solutions was created successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DiffHelper.solution' source target log'
+    log'.WriteLine
+      (LogLevel.Info, 
+        @"The delta between source and target solutions was created successfully")
   
   let solutionApp source target log = 
     let log' = ConsoleLogger.ConsoleLogger log
@@ -26,15 +24,11 @@ module Diff =
     log'.WriteLine(LogLevel.Info, @"Delta between source and target solutions.")
     log'.WriteLine(LogLevel.Verbose, @"Source: " + source)
     log'.WriteLine(LogLevel.Verbose, @"Target: " + target)
-    try 
-      let app = DiffHelper.solutionApp source target log'
-      log'.WriteLine
-        (LogLevel.Info, 
-         @"The delta between source and target solutions was created successfully")
-      app
-    with ex -> 
-      log'.WriteLine(LogLevel.Error, getFullException ex)
-      OK(getFullException ex)
+    let app = DiffHelper.solutionApp source target log'
+    log'.WriteLine
+      (LogLevel.Info, 
+        @"The delta between source and target solutions was created successfully")
+    app
   
   let summary source target log = 
     let log' = ConsoleLogger.ConsoleLogger log
@@ -42,12 +36,8 @@ module Diff =
     log'.WriteLine(LogLevel.Info, @"Delta between source and target solutions.")
     log'.WriteLine(LogLevel.Verbose, @"Source: " + source)
     log'.WriteLine(LogLevel.Verbose, @"Target: " + target)
-    try 
-      let csv = DiffHelper.Summary.build source target log'
-      log'.WriteLine
-        (LogLevel.Info, 
-         @"CSV file with between source and target solutions was created successfully")
-      csv
-    with ex -> 
-      log'.WriteLine(LogLevel.Error, getFullException ex)
-      getFullException ex
+    let csv = DiffHelper.Summary.build source target log'
+    log'.WriteLine
+      (LogLevel.Info, 
+        @"CSV file with between source and target solutions was created successfully")
+    csv

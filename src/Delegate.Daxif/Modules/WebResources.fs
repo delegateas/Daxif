@@ -20,8 +20,6 @@ module WebResources =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      WebResourcesHelper.syncSolution' org ac location log'
-      log'.WriteLine
-        (LogLevel.Info, @"The solution webresources were synced successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    WebResourcesHelper.syncSolution' org ac location log'
+    log'.WriteLine
+      (LogLevel.Info, @"The solution webresources were synced successfully")

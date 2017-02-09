@@ -20,8 +20,6 @@ module Workflow =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      WorkflowHelper.syncSolution' org ac solution dll log'
-      log'.WriteLine
-        (LogLevel.Info, @"The solution Workflow were synced successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    WorkflowHelper.syncSolution' org ac solution dll log'
+    log'.WriteLine
+      (LogLevel.Info, @"The solution Workflow were synced successfully")

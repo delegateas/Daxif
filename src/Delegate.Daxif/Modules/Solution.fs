@@ -22,10 +22,8 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      SolutionHelper.createPublisher' org ac name display prefix log'
-      log'.WriteLine(LogLevel.Info, @"The publisher was created successfully.")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.createPublisher' org ac name display prefix log'
+    log'.WriteLine(LogLevel.Info, @"The publisher was created successfully.")
   
   let create org name display pubPrefix ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -42,10 +40,8 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      SolutionHelper.create' org ac name display pubPrefix log'
-      log'.WriteLine(LogLevel.Info, @"The solution was created successfully.")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.create' org ac name display pubPrefix log'
+    log'.WriteLine(LogLevel.Info, @"The solution was created successfully.")
   
   let delete org solution ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -60,10 +56,8 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      SolutionHelper.delete' org ac solution log'
-      log'.WriteLine(LogLevel.Info, @"The deleted was created successfully.")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.delete' org ac solution log'
+    log'.WriteLine(LogLevel.Info, @"The deleted was created successfully.")
 
   let merge org sourceSolution targetSolution ap usr pwd domain log =
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -78,10 +72,8 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      SolutionHelper.merge' org ac sourceSolution targetSolution log'
-      log'.WriteLine(LogLevel.Info, @"The solutions was merged successfully.")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.merge' org ac sourceSolution targetSolution log'
+    log'.WriteLine(LogLevel.Info, @"The solutions was merged successfully.")
   
   let pluginSteps org solution enable ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -96,15 +88,13 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      SolutionHelper.pluginSteps' org ac solution enable log'
-      let msg' = 
-        enable |> function 
-        | true -> "enabled"
-        | false -> "disabled"
-      log'.WriteLine
-        (LogLevel.Info, @"The solution plugins was successfully " + msg')
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.pluginSteps' org ac solution enable log'
+    let msg' = 
+      enable |> function 
+      | true -> "enabled"
+      | false -> "disabled"
+    log'.WriteLine
+      (LogLevel.Info, @"The solution plugins was successfully " + msg')
   
   let workflow org solution enable ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -119,16 +109,14 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      SolutionHelper.workflow' org ac solution enable log'
-      let msg' = 
-        enable |> function 
-        | true -> "enabled"
-        | false -> "disabled"
-      log'.WriteLine
-        (LogLevel.Info, 
-         @"The solution workflow activities was successfully " + msg')
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.workflow' org ac solution enable log'
+    let msg' = 
+      enable |> function 
+      | true -> "enabled"
+      | false -> "disabled"
+    log'.WriteLine
+      (LogLevel.Info, 
+        @"The solution workflow activities was successfully " + msg')
   
   let export org solution location managed ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -145,10 +133,8 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      SolutionHelper.export' org ac solution location managed log'
-      log'.WriteLine(LogLevel.Info, @"The solution was exported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.export' org ac solution location managed log'
+    log'.WriteLine(LogLevel.Info, @"The solution was exported successfully")
   
   let import org solution location managed ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -165,10 +151,8 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      SolutionHelper.import' org ac solution location managed log' |> ignore
-      log'.WriteLine(LogLevel.Info, @"The solution was imported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.import' org ac solution location managed log' |> ignore
+    log'.WriteLine(LogLevel.Info, @"The solution was imported successfully")
 
   let exportWithDGSolution org solution location managed ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -186,10 +170,8 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      SolutionHelper.exportWithDGSolution' org ac ac' solution location managed log'
-      log'.WriteLine(LogLevel.Info, @"The extended solution was exported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.exportWithDGSolution' org ac ac' solution location managed log'
+    log'.WriteLine(LogLevel.Info, @"The extended solution was exported successfully")
   
   let importWithDGSolution org solution location managed ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -207,10 +189,8 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      SolutionHelper.importWithDGSolution' org ac ac' solution location managed log' |> ignore
-      log'.WriteLine(LogLevel.Info, @"The extended solution was imported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.importWithDGSolution' org ac ac' solution location managed log' |> ignore
+    log'.WriteLine(LogLevel.Info, @"The extended solution was imported successfully")
   
   // TODO: 
   let extract solution location customizations map project log = 
@@ -219,10 +199,8 @@ module Solution =
     log'.WriteLine(LogLevel.Info, @"Extract solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
-    try 
-      SolutionHelper.extract' location customizations map project log' log
-      log'.WriteLine(LogLevel.Info, @"The solution was extracted successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.extract' location customizations map project log' log
+    log'.WriteLine(LogLevel.Info, @"The solution was extracted successfully")
   
   // TODO: 
   let pack solution location customizations map managed log = 
@@ -231,10 +209,8 @@ module Solution =
     log'.WriteLine(LogLevel.Info, @"Pack solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
-    try 
-      SolutionHelper.pack' location customizations map managed log' log
-      log'.WriteLine(LogLevel.Info, @"The solution was packed successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    SolutionHelper.pack' location customizations map managed log' log
+    log'.WriteLine(LogLevel.Info, @"The solution was packed successfully")
   
   // TODO: 
   let updateServiceContext org location ap usr pwd domain exe lcid log = 
@@ -251,13 +227,11 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      log'.WriteLine(LogLevel.Info, @"Updating the service context...")
-      SolutionHelper.updateServiceContext' org' location ap usr pwd domain exe 
-        lcid log'
-      log'.WriteLine
-        (LogLevel.Info, @"The service context was updated successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    log'.WriteLine(LogLevel.Info, @"Updating the service context...")
+    SolutionHelper.updateServiceContext' org' location ap usr pwd domain exe 
+      lcid log'
+    log'.WriteLine
+      (LogLevel.Info, @"The service context was updated successfully")
   
   let updateCustomServiceContext org location ap usr pwd domain exe log 
       solutions entities extraArgs = 
@@ -274,13 +248,11 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      log'.WriteLine(LogLevel.Info, @"Updating the custom service context...")
-      SolutionHelper.updateCustomServiceContext' org' location ap usr pwd domain 
-        exe log' solutions entities extraArgs
-      log'.WriteLine
-        (LogLevel.Info, @"The custom service context was updated successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    log'.WriteLine(LogLevel.Info, @"Updating the custom service context...")
+    SolutionHelper.updateCustomServiceContext' org' location ap usr pwd domain 
+      exe log' solutions entities extraArgs
+    log'.WriteLine
+      (LogLevel.Info, @"The custom service context was updated successfully")
   
   // TODO: 
   let updateTypeScriptContext org location ap usr pwd domain exe log solutions 
@@ -298,15 +270,13 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      log'.WriteLine
-        (LogLevel.Info, 
-         @"Updating the TypeScript context in the WebResource folder...")
-      SolutionHelper.updateTypeScriptContext' org' location ap usr pwd domain 
-        exe log' solutions entities extraArgs
-      log'.WriteLine
-        (LogLevel.Info, @"The service context was updated successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    log'.WriteLine
+      (LogLevel.Info, 
+        @"Updating the TypeScript context in the WebResource folder...")
+    SolutionHelper.updateTypeScriptContext' org' location ap usr pwd domain 
+      exe log' solutions entities extraArgs
+    log'.WriteLine
+      (LogLevel.Info, @"The service context was updated successfully")
 
   // Counts all the components in the solution.
   let count org solution ap usr pwd domain log = 
@@ -321,10 +291,8 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      let _count = SolutionHelper.count' org' solution ac
-      log'.WriteLine
-        (LogLevel.Info, @"The solution components were counted successfully")
-      log'.WriteLine
-        (LogLevel.Info, @"The solution contains " + string _count + " components")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    let _count = SolutionHelper.count' org' solution ac
+    log'.WriteLine
+      (LogLevel.Info, @"The solution components were counted successfully")
+    log'.WriteLine
+      (LogLevel.Info, @"The solution contains " + string _count + " components")

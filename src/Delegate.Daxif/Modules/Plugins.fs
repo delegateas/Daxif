@@ -21,11 +21,9 @@ module Plugins =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      PluginsHelper.syncSolution' org ac solution proj dll log'
-      log'.WriteLine
-        (LogLevel.Info, @"The solution plugins were synced successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    PluginsHelper.syncSolution' org ac solution proj dll log'
+    log'.WriteLine
+      (LogLevel.Info, @"The solution plugins were synced successfully")
 
   let syncSolution' org solution proj dll isolationMode ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -42,11 +40,9 @@ module Plugins =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      PluginsHelper.syncSolution org ac solution proj dll isolationMode log'
-      log'.WriteLine
-        (LogLevel.Info, @"The solution plugins were synced successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    PluginsHelper.syncSolution org ac solution proj dll isolationMode log'
+    log'.WriteLine
+      (LogLevel.Info, @"The solution plugins were synced successfully")
 
   let deletePlugins org solution proj dll ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -63,8 +59,6 @@ module Plugins =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      PluginsHelper.deletePlugins org ac solution proj dll log'
-      log'.WriteLine
-        (LogLevel.Info, @"The solution plugins were deleted successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    PluginsHelper.deletePlugins org ac solution proj dll log'
+    log'.WriteLine
+      (LogLevel.Info, @"The solution plugins were deleted successfully")

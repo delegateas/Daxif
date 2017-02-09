@@ -20,11 +20,9 @@ module Translations =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      TranslationsHelper.export' org ac solution location log'
-      log'.WriteLine
-        (LogLevel.Info, @"The solution translations were exported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    TranslationsHelper.export' org ac solution location log'
+    log'.WriteLine
+      (LogLevel.Info, @"The solution translations were exported successfully")
   
   let import org solution location ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -40,8 +38,6 @@ module Translations =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      TranslationsHelper.import' org ac solution location log'
-      log'.WriteLine
-        (LogLevel.Info, @"The solution translations were imported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    TranslationsHelper.import' org ac solution location log'
+    log'.WriteLine
+      (LogLevel.Info, @"The solution translations were imported successfully")
