@@ -56,24 +56,11 @@ module internal ConsoleLogger =
       | LogLevel.File -> failwith "LogLevel.File is @deprecated."
       | LogLevel.Debug -> prettyPrint cc.DarkYellow obc LogLevel.Debug str
       | _ -> ()
-
-    let agent() = 
-      Agent.Start(fun inbox -> 
-        let rec loop = 
-          async { 
-            let! (logLevel, msg) = inbox.Receive()
-            logger logLevel msg
-            return! loop
-          }
-        loop)
-
-    // Reducer (one single agent). Side effects thread-safe
-    let reducer = agent()
     
     member t.WriteLine(logLevel, str) = 
       match (level.HasFlag logLevel) with
       | false -> ()
-      | true -> reducer.Post(logLevel, str)
+      | true -> logger logLevel str
 
     member t.overwriteLastLine() = 
       Console.SetCursorPosition(0,Console.CursorTop-1)
