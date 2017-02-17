@@ -19,16 +19,12 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      let guid = DataHelper.exists' org ac entityName filter log'
-      log'.WriteLine
-        (LogLevel.Info, 
-         @"The data was retrieved successfully " + guid.ToString())
-      guid
-    with ex -> 
-      log'.WriteLine(LogLevel.Error, getFullException ex)
-      Guid.Empty
-  
+    let guid = DataHelper.exists' org ac entityName filter log'
+    log'.WriteLine
+      (LogLevel.Info, 
+        @"The data was retrieved successfully " + guid.ToString())
+    guid
+
   let count org entityNames ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
@@ -42,12 +38,10 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.count' org ac entityNames log'
-      log'.WriteLine
-        (LogLevel.Info, @"The data count was retrieved successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
-  
+    DataHelper.count' org ac entityNames log'
+    log'.WriteLine
+      (LogLevel.Info, @"The data count was retrieved successfully")
+
   let updateState org entityName filter state ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
@@ -60,10 +54,8 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.updateState'' org ac entityName filter state log' |> ignore
-      log'.WriteLine(LogLevel.Info, @"The data state was updated successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.updateState'' org ac entityName filter state log' |> ignore
+    log'.WriteLine(LogLevel.Info, @"The data state was updated successfully")
   
   let reassignAllRecords org userFrom userTo ap usr pwd domain log = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -77,10 +69,8 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.reassignAllRecords'' org ac userFrom userTo log' |> ignore
-      log'.WriteLine(LogLevel.Info, @"The data was assigned successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.reassignAllRecords'' org ac userFrom userTo log' |> ignore
+    log'.WriteLine(LogLevel.Info, @"The data was assigned successfully")
   
   let export org location entityNames ap usr pwd domain log serialize = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -96,10 +86,8 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.export' org ac location entityNames log' serialize
-      log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.export' org ac location entityNames log' serialize
+    log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
   
   let exportDelta org location entityNames date ap usr pwd domain log serialize = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -115,10 +103,8 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.exportDelta' org ac location entityNames date log' serialize
-      log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.exportDelta' org ac location entityNames date log' serialize
+    log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
   
   let exportView org location view user ap usr pwd domain log serialize = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -133,10 +119,8 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.exportView' org ac location view user log' serialize
-      log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.exportView' org ac location view user log' serialize
+    log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
   
   let migrate org location ap usr pwd domain log serialize map = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -151,10 +135,8 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.migrate' org ac location log' serialize map
-      log'.WriteLine(LogLevel.Info, @"The data was migrated successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.migrate' org ac location log' serialize map
+    log'.WriteLine(LogLevel.Info, @"The data was migrated successfully")
   
   let import org location ap usr pwd domain log serialize attribs data = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -169,10 +151,8 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.import'' org ac location log' serialize true true [||] attribs data
-      log'.WriteLine(LogLevel.Info, @"The data was imported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.import'' org ac location log' serialize true true [||] attribs data
+    log'.WriteLine(LogLevel.Info, @"The data was imported successfully")
 
   let importWithoutReferences org location ap usr pwd domain log serialize attribs data = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -187,10 +167,8 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.import'' org ac location log' serialize true false [||] attribs data
-      log'.WriteLine(LogLevel.Info, @"The data was imported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.import'' org ac location log' serialize true false [||] attribs data
+    log'.WriteLine(LogLevel.Info, @"The data was imported successfully")
 
   let importReferences org location ap usr pwd domain log serialize referenceFilter attribs data = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -205,11 +183,9 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.import'' org ac location log' serialize false true referenceFilter attribs data
-      log'.WriteLine(LogLevel.Info, @"The data was imported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
-  
+    DataHelper.import'' org ac location log' serialize false true referenceFilter attribs data
+    log'.WriteLine(LogLevel.Info, @"The data was imported successfully")
+ 
   let reassignOwner org location ap usr pwd domain log serialize data = 
     let ac = Authentication.getCredentials ap usr pwd domain
     let log' = ConsoleLogger.ConsoleLogger log
@@ -223,10 +199,8 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.reassignOwner'' org ac location log' serialize data
-      log'.WriteLine(LogLevel.Info, @"The data was reassigned successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.reassignOwner'' org ac location log' serialize data
+    log'.WriteLine(LogLevel.Info, @"The data was reassigned successfully")
   
   let associationImport org location ap usr pwd domain log serialize data = 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -241,10 +215,8 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.associationImport' org ac location log' serialize data
-      log'.WriteLine(LogLevel.Info, @"The relations were imported successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.associationImport' org ac location log' serialize data
+    log'.WriteLine(LogLevel.Info, @"The relations were imported successfully")
 
   let publishDuplicateDetectionRules org dupRules ap usr pwd domain log= 
     let ac = Authentication.getCredentials ap usr pwd domain
@@ -258,7 +230,5 @@ module Data =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      DataHelper.DuplicateDetectionRules.publish org ac dupRules log'
-      log'.WriteLine(LogLevel.Info, @"The Duplicate Detection Rules were published succesfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    DataHelper.DuplicateDetectionRules.publish org ac dupRules log'
+    log'.WriteLine(LogLevel.Info, @"The Duplicate Detection Rules were published succesfully")

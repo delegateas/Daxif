@@ -18,8 +18,6 @@ module Info =
     log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
     log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
     log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    try 
-      let (v, _) = InfoHelper.version' org ac log'
-      log'.WriteLine
-        (LogLevel.Info, @"The CRM version: " + v + " was retrieved successfully")
-    with ex -> log'.WriteLine(LogLevel.Error, getFullException ex)
+    let (v, _) = InfoHelper.version' org ac log'
+    log'.WriteLine
+      (LogLevel.Info, @"The CRM version: " + v + " was retrieved successfully")
