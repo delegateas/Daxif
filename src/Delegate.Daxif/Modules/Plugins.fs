@@ -16,11 +16,7 @@ module Plugins =
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins VS Project: " + proj)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins Assembly: " + dll)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     PluginsHelper.syncSolution' org ac solution proj dll log'
     log'.WriteLine
       (LogLevel.Info, @"The solution plugins were synced successfully")
@@ -35,11 +31,7 @@ module Plugins =
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins VS Project: " + proj)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins Assembly: " + dll)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     PluginsHelper.syncSolution org ac solution proj dll isolationMode log'
     log'.WriteLine
       (LogLevel.Info, @"The solution plugins were synced successfully")
@@ -54,11 +46,7 @@ module Plugins =
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins VS Project: " + proj)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins Assembly: " + dll)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     PluginsHelper.deletePlugins org ac solution proj dll log'
     log'.WriteLine
       (LogLevel.Info, @"The solution plugins were deleted successfully")

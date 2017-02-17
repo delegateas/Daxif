@@ -204,3 +204,9 @@ module internal Utility =
       assemblyVersion
       Environment.UserName
       (DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss \"GMT\"zzz"))
+
+  let logAuthentication ap usr pwd domain (log: ConsoleLogger.ConsoleLogger) =
+    log.WriteLine(LogLevel.Verbose, @"Authentication Provider: " + ap)
+    log.WriteLine(LogLevel.Verbose, @"User: " + usr)
+    log.WriteLine(LogLevel.Verbose, @"Password: " + pwd)
+    log.WriteLine(LogLevel.Verbose, @"Domain: " + domain)

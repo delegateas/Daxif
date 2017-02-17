@@ -15,11 +15,7 @@ module Workflow =
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to Workflow Assembly: " + dll)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     WorkflowHelper.syncSolution' org ac solution dll log'
     log'.WriteLine
       (LogLevel.Info, @"The solution Workflow were synced successfully")

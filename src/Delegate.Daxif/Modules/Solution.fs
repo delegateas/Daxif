@@ -17,11 +17,7 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"Name: " + name)
     log'.WriteLine(LogLevel.Verbose, @"Display name: " + display)
     log'.WriteLine(LogLevel.Verbose, @"Prefix: " + prefix)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.createPublisher' org ac name display prefix log'
     log'.WriteLine(LogLevel.Info, @"The publisher was created successfully.")
   
@@ -35,11 +31,7 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"Name: " + name)
     log'.WriteLine(LogLevel.Verbose, @"Display name: " + display)
     log'.WriteLine(LogLevel.Verbose, @"Publisher prefix: " + pubPrefix)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.create' org ac name display pubPrefix log'
     log'.WriteLine(LogLevel.Info, @"The solution was created successfully.")
   
@@ -51,11 +43,7 @@ module Solution =
     log'.WriteLine(LogLevel.Info, @"Delete solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.delete' org ac solution log'
     log'.WriteLine(LogLevel.Info, @"The deleted was created successfully.")
 
@@ -67,11 +55,7 @@ module Solution =
     log'.WriteLine(LogLevel.Info, 
       (sprintf @"Merging %s solution into %s: " targetSolution sourceSolution))
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.merge' org ac sourceSolution targetSolution log'
     log'.WriteLine(LogLevel.Info, @"The solutions was merged successfully.")
   
@@ -83,11 +67,7 @@ module Solution =
     log'.WriteLine(LogLevel.Info, @"PluginSteps solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.pluginSteps' org ac solution enable log'
     let msg' = 
       enable |> function 
@@ -104,11 +84,7 @@ module Solution =
     log'.WriteLine(LogLevel.Info, @"WorkflowActivities solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.workflow' org ac solution enable log'
     let msg' = 
       enable |> function 
@@ -128,11 +104,7 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
     log'.WriteLine(LogLevel.Verbose, @"Managed solution: " + managed.ToString())
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.export' org ac solution location managed log'
     log'.WriteLine(LogLevel.Info, @"The solution was exported successfully")
   
@@ -146,11 +118,7 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
     log'.WriteLine(LogLevel.Verbose, @"Managed solution: " + managed.ToString())
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.import' org ac solution location managed log' |> ignore
     log'.WriteLine(LogLevel.Info, @"The solution was imported successfully")
 
@@ -165,11 +133,7 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
     log'.WriteLine(LogLevel.Verbose, @"Managed solution: " + managed.ToString())
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.exportWithDGSolution' org ac ac' solution location managed log'
     log'.WriteLine(LogLevel.Info, @"The extended solution was exported successfully")
   
@@ -184,11 +148,7 @@ module Solution =
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
     log'.WriteLine(LogLevel.Verbose, @"Managed solution: " + managed.ToString())
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.importWithDGSolution' org ac ac' solution location managed log' |> ignore
     log'.WriteLine(LogLevel.Info, @"The extended solution was imported successfully")
   
@@ -222,12 +182,7 @@ module Solution =
     log'.WriteLine(LogLevel.Info, @"Update service context:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    log'.WriteLine(LogLevel.Info, @"Updating the service context...")
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.updateServiceContext' org' location ap usr pwd domain exe 
       lcid log'
     log'.WriteLine
@@ -243,12 +198,7 @@ module Solution =
     log'.WriteLine(LogLevel.Info, @"Update custom service context:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
-    log'.WriteLine(LogLevel.Info, @"Updating the custom service context...")
+    logAuthentication (ap.ToString()) usr pwd domain log'
     SolutionHelper.updateCustomServiceContext' org' location ap usr pwd domain 
       exe log' solutions entities extraArgs
     log'.WriteLine
@@ -265,11 +215,7 @@ module Solution =
     log'.WriteLine(LogLevel.Info, @"Update service context:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     log'.WriteLine
       (LogLevel.Info, 
         @"Updating the TypeScript context in the WebResource folder...")
@@ -287,10 +233,7 @@ module Solution =
     log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Count components in: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     let _count = SolutionHelper.count' org' solution ac
     log'.WriteLine
       (LogLevel.Info, @"The solution components were counted successfully")

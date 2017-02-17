@@ -14,11 +14,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Data exists:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     let guid = DataHelper.exists' org ac entityName filter log'
     log'.WriteLine
       (LogLevel.Info, 
@@ -33,11 +29,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Data count: " + entityNames')
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.count' org ac entityNames log'
     log'.WriteLine
       (LogLevel.Info, @"The data count was retrieved successfully")
@@ -49,11 +41,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Data state update:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.updateState'' org ac entityName filter state log' |> ignore
     log'.WriteLine(LogLevel.Info, @"The data state was updated successfully")
   
@@ -64,11 +52,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Data assignment:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.reassignAllRecords'' org ac userFrom userTo log' |> ignore
     log'.WriteLine(LogLevel.Info, @"The data was assigned successfully")
   
@@ -81,11 +65,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, @"Export data: " + entityNames')
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.export' org ac location entityNames log' serialize
     log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
   
@@ -98,11 +78,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, @"Export data: " + entityNames')
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.exportDelta' org ac location entityNames date log' serialize
     log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
   
@@ -114,11 +90,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, @"Export data based on view: " + view)
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.exportView' org ac location view user log' serialize
     log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
   
@@ -130,11 +102,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, @"Migrate data")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.migrate' org ac location log' serialize map
     log'.WriteLine(LogLevel.Info, @"The data was migrated successfully")
   
@@ -146,11 +114,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, @"Import data")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.import'' org ac location log' serialize true true [||] attribs data
     log'.WriteLine(LogLevel.Info, @"The data was imported successfully")
 
@@ -162,11 +126,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, @"Import data")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.import'' org ac location log' serialize true false [||] attribs data
     log'.WriteLine(LogLevel.Info, @"The data was imported successfully")
 
@@ -178,11 +138,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, @"Import data")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.import'' org ac location log' serialize false true referenceFilter attribs data
     log'.WriteLine(LogLevel.Info, @"The data was imported successfully")
  
@@ -194,11 +150,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, @"Reassign data to owner")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.reassignOwner'' org ac location log' serialize data
     log'.WriteLine(LogLevel.Info, @"The data was reassigned successfully")
   
@@ -210,11 +162,7 @@ module Data =
     log'.WriteLine(LogLevel.Info, @"Import relations")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.associationImport' org ac location log' serialize data
     log'.WriteLine(LogLevel.Info, @"The relations were imported successfully")
 
@@ -225,10 +173,6 @@ module Data =
     log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Publish Duplicate Detection Rules")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-    log'.WriteLine
-      (LogLevel.Verbose, @"Authentication Provider: " + ap.ToString())
-    log'.WriteLine(LogLevel.Verbose, @"User: " + usr)
-    log'.WriteLine(LogLevel.Verbose, @"Password: " + pwd')
-    log'.WriteLine(LogLevel.Verbose, @"Domain: " + domain)
+    logAuthentication (ap.ToString()) usr pwd domain log'
     DataHelper.DuplicateDetectionRules.publish org ac dupRules log'
     log'.WriteLine(LogLevel.Info, @"The Duplicate Detection Rules were published succesfully")
