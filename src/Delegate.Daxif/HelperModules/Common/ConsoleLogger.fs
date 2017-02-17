@@ -12,8 +12,6 @@ open DG.Daxif
 // TODO: 
 module internal ConsoleLogger = 
   type private cc = ConsoleColor
-  
-  type Agent = MailboxProcessor<LogLevel * string>
 
   type ConsoleLogger(logLevel : LogLevel) = 
     let threadSafe = ref String.Empty
