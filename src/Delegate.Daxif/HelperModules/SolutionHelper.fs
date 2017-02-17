@@ -341,12 +341,14 @@ module internal SolutionHelper =
                     (progress', true)
                   | _ -> // Still in progress
                     (progress', false)
-              with _ -> (progress, false)
+              with e -> 
+                sprintf @"Warning: Fetch of progress failed with the following error: %s Retrying" e.Message
+                |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
+                (progress, false)
             match completed' with
             | false -> 
-              let msg = 
-                sprintf @"Import solution: %s (%i%%)" solution (pct |> int)
-              log.WriteLine(LogLevel.Verbose, msg)
+              sprintf @"Import solution: %s (%i%%)" solution (pct |> int)
+              |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
             | true -> 
               use p' = ServiceProxy.getOrganizationServiceProxy m tc
 
@@ -374,9 +376,8 @@ module internal SolutionHelper =
                 with _ -> false
               match status with
               | true -> 
-                let msg = 
-                  sprintf  @"Solution import succeeded (ImportJob ID: %A)" jobId 
-                log.WriteLine(LogLevel.Verbose, msg)
+                sprintf  @"Solution import succeeded (ImportJob ID: %A)" jobId 
+                |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
               | false ->
                 let msg =
                   match aJobId with
