@@ -8,6 +8,7 @@ open Fake.Git
 open Fake.ReleaseNotesHelper
 open Fake.AssemblyInfoFile
 open System
+open System.IO
 
 // --------------------------------------------------------------------------------------
 // START TODO: Provide project-specific details below
@@ -34,7 +35,7 @@ let authors = [ "Delegate A/S" ]
 let tags = "F# fsharp delegate crm xrm daxifsharp"
 // Company and copyright information
 let company = "Delegate"
-let copyright = @"Copyright (c) Delegate A/S 2014"
+let copyright = @"Copyright (c) Delegate A/S 2017"
 // File system information 
 // (<solutionFile>.sln is built during the building process)
 let solutionFile = @"Delegate.Daxif"
@@ -66,17 +67,92 @@ Target "AssemblyInfo"
       Attribute.Copyright copyright
       Attribute.Version release.AssemblyVersion
       Attribute.FileVersion release.AssemblyVersion ])
+
+
 // --------------------------------------------------------------------------------------
 // Clean build results & restore NuGet packages
+
+
 Target "RestorePackages" RestorePackages
-Target "Clean" (fun _ -> CleanDirs [ "bin"; "temp" ])
 Target "CleanDocs" (fun _ -> CleanDirs [ "../docs/output" ])
-// --------------------------------------------------------------------------------------
-// Build library & test project
-Target "Build" (fun _ -> 
+
+// Setting up VS for building with FAKE
+let commonBuild target solutions =
+  //try 
+  //  solutions
+  //  |> Seq.iter (fun solution ->
+  //    let project = getBuildParamOrDefault "proj" solution
+  //    let configuration = getBuildParamOrDefault "conf" "Release"
+  //    let platform = getBuildParamOrDefault "plat" "AnyCPU"
+  //    let setParams defaults =
+  //      { defaults with
+  //          Verbosity = Some(Quiet)
+  //          Targets = [ target ]
+  //          Properties =
+  //            [
+  //              "Configuration", configuration
+  //              "Platform", platform
+  //              "RealBuild", "true"
+  //            ]
+  //      }
+  //    build setParams project
+  //  )
+  //with _ -> 
+    //printfn "Unable to build with given params. Trying old MSBuildRelease."
+    solutions
+    |> MSBuildRelease "" target
+    |> ignore
+
+let currentTimeFileFormat () = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss")
+
+Target "Clean" (fun _ -> 
+  CleanDirs [ "bin"; "temp" ]
+  
+  let extList = ["dll"; "exe"; "pdb"; "xml"; "optdata"; "sigdata"]
+  let matchesAnyExt (path: string) = extList |> List.exists (fun ext -> path.EndsWith(sprintf ".%s" ext))
+
+  let tempDaxifPath = Path.Combine(Path.GetTempPath(), "Daxif")
+  let scriptFolder = "Delegate.Daxif/ScriptTemplates"
+  Directory.CreateDirectory tempDaxifPath |> ignore
+  Directory.CreateDirectory scriptFolder |> ignore
+
+  /// Remove old locked files if possible
+  let tryDeleteFromFolder dir =
+    Directory.EnumerateFiles(dir, "*", SearchOption.TopDirectoryOnly)
+    |> Seq.filter matchesAnyExt
+    |> Seq.iter (fun path -> try File.Delete(path) with _ -> ())
+
+  /// Move potentially locked dlls
+  let moveFilesToTemp dir = 
+    Directory.EnumerateFiles(dir, "*", SearchOption.TopDirectoryOnly)
+    |> Seq.filter matchesAnyExt
+    |> Seq.iter (fun path ->
+      let filename = Path.Combine(tempDaxifPath, Path.GetFileNameWithoutExtension path)
+      let ext = Path.GetExtension path
+      let time = currentTimeFileFormat()
+      let newPath = sprintf "%s.%s.old%s" filename time ext
+      File.Move(path, newPath)
+    )
+
+  tryDeleteFromFolder tempDaxifPath
+  tryDeleteFromFolder scriptFolder
+  moveFilesToTemp scriptFolder
+  
   !!(solutionFile + "*.sln")
-  |> MSBuildRelease "" "Rebuild"
-  |> ignore)
+  |> commonBuild "Clean"
+)
+
+Target "Build" (fun _ -> 
+  !!(solutionFile + ".sln")
+  |> commonBuild "Build"
+)
+
+Target "Rebuild" (fun _ -> 
+  !!(solutionFile + "*.sln")
+  |> commonBuild "Rebuild"
+)
+
+
 // --------------------------------------------------------------------------------------
 // Run the unit tests using test runner
 Target "RunTests" (fun _ -> 
@@ -98,6 +174,29 @@ Target "NuGet" (fun _ ->
              Version = release.NugetVersion
              ReleaseNotes = String.Join(Environment.NewLine, release.Notes)
              OutputPath = "bin"
+             NoDefaultExcludes = true
+             AccessKey = getBuildParamOrDefault "delegateas-nugetkey" ""
+             Dependencies = 
+               [ "FSharp.Core", "[4.0.0.1]"
+                 "Microsoft.CrmSdk.CoreAssemblies", "[8.1.0.2]"
+                 "Microsoft.CrmSdk.CoreTools", "[8.1.0.2]"
+               ]
+             References = [] }) (@"nuget/" + project + ".nuspec"))
+
+
+// Build a NuGet package and publish it
+Target "PublishNuGet" (fun _ -> 
+  NuGet (fun p -> 
+    { p with Title = project
+             Authors = authors
+             Project = project
+             Summary = summary
+             Description = description
+             Copyright = copyright
+             Tags = tags
+             Version = release.NugetVersion
+             ReleaseNotes = String.Join(Environment.NewLine, release.Notes)
+             OutputPath = "bin"
              PublishUrl = "https://www.nuget.org/api/v2/package"
              NoDefaultExcludes = true
              AccessKey = getBuildParamOrDefault "delegateas-nugetkey" ""
@@ -106,9 +205,9 @@ Target "NuGet" (fun _ ->
                [ "FSharp.Core", "[4.0.0.1]"
                  "Microsoft.CrmSdk.CoreAssemblies", "[8.1.0.2]"
                  "Microsoft.CrmSdk.CoreTools", "[8.1.0.2]"
-                 "Suave", "[1.1.0]"
-                 "XMLDiffPatch", "[1.0.8.28]" ]
+               ]
              References = [] }) (@"nuget/" + project + ".nuspec"))
+
 // --------------------------------------------------------------------------------------
 // Generate the documentation
 Target "GenerateDocs" 
@@ -122,6 +221,8 @@ Target "GenerateDocsLocal" (fun _ ->
   executeFSIWithArgs "../docs/" "getLibs.fsx" [] [] |> ignore
   executeFSIWithArgs "../docs/" "getContent.fsx" [] [] |> ignore
   executeFSIWithArgs "../docs/" "generate.fsx" [] [] |> ignore)
+
+
 // --------------------------------------------------------------------------------------
 // Release Scripts
 Target "ReleaseDocs" (fun _ -> 
@@ -140,10 +241,12 @@ Target "ReleaseDocs" (fun _ ->
 )
 
 Target "Release" DoNothing
+
+
 // --------------------------------------------------------------------------------------
 // Run all targets by default. Invoke 'build <Target>' to override
 Target "All" DoNothing
-"Clean" ==> "RestorePackages" ==> "AssemblyInfo" ==> "Build" ==> "All"
+"Clean" ==> "RestorePackages" ==> "AssemblyInfo" ==> "Rebuild" ==> "All"
 "All" ==> "CleanDocs" ==> "GenerateDocsLocal"
 "All" ==> "CleanDocs" ==> "GenerateDocs" ==> "ReleaseDocs" ==> "Release"
 "All" ==> "NuGet" ==> "Release"

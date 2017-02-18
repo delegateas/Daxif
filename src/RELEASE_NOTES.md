@@ -1,5 +1,12 @@
 # Release Notes
 
+### 3.0.0 - Apr 11 2017
+* *New API*
+* New `Environment` record which stores connection information
+* Completely reworked starting scripts
+* Local credential storage added. Credentials can now be encrypted and stored locally in `.daxif` files.
+* Reworked plugin synchronization
+
 ### 2.4.1 - Mar 14 2017
 * Udpated DGSolution to also include WebResources and Workflows (processes)
 * Changed DGSolution to read solution name from solution.xml and use Guid to compare objects to persist between environments where possible
@@ -248,7 +255,7 @@
 * Added more explicit error messages
 
 #### 1.3.0.28 - Mar 03 2015
-* Updated DG.XrmOrg.XrmSolution.SolutionExtract script file to comply with TFS/Git
+* Updated SolutionExtract script file to comply with TFS/Git
 
 #### 1.3.0.27 - Feb 26 2015
 * Added order for import of data based on alphabetical order
@@ -353,7 +360,7 @@
 * Added support for enabling/disabling all the plug-in related to a given solution
 
 #### 1.1.0.18 - Jun 30 2014
-* Updated DG.XrmOrg.XrmSolution.SolutionUpdateContext.fsx script example
+* Updated SolutionUpdateContext.fsx script example
 
 #### 1.1.0.17 - Jun 30 2014
 * Added support for Danish (LCID 1030) OptionSets labels

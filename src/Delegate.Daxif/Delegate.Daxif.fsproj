@@ -26,11 +26,10 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>ScriptTemplates</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>
-    </DocumentationFile>
+    <DocumentationFile>ScriptTemplates\Delegate.Daxif.xml</DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\devenv.exe</StartProgram>
     <StartWorkingDirectory>..\..\..\</StartWorkingDirectory>
@@ -81,99 +80,95 @@
     <PreBuildEvent>
     </PreBuildEvent>
   </PropertyGroup>
+  <!--<PropertyGroup>
+    <FakeTargetsPath>..\Targets\fake.targets</FakeTargetsPath>
+  </PropertyGroup>-->
+  <Import Project="$(FakeTargetsPath)" Condition="Exists($(FakeTargetsPath)) And '$(RealBuild)'!='true'" />
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Daxif.fs" />
-    <Compile Include="ProvidedTypes\AssemblyReader.fs" />
-    <Compile Include="ProvidedTypes\AssemblyReaderReflection.fs" />
-    <Compile Include="ProvidedTypes\ProvidedTypes.fsi" />
-    <Compile Include="ProvidedTypes\ProvidedTypes.fs" />
-    <Compile Include="ProvidedTypes\ProvidedTypesContext.fs" />
-    <Compile Include="ProvidedTypes\ProvidedTypesTesting.fs" />
-    <Compile Include="Signatures\CrmData.fsi" />
-    <Compile Include="Signatures\Data.fsi" />
-    <Compile Include="Signatures\Info.fsi" />
-    <Compile Include="Signatures\Serialization.fsi" />
-    <Compile Include="Signatures\Solution.fsi" />
-    <Compile Include="Signatures\Translations.fsi" />
-    <Compile Include="Signatures\WebResources.fsi" />
-    <Compile Include="Signatures\Plugins.fsi" />
-    <Compile Include="Signatures\Workflow.fsi" />
-    <Compile Include="Signatures\TypeProvider.fsi" />
-    <Compile Include="Signatures\Diff.fsi" />
-    <Compile Include="HelperModules\Common\ConsoleLogger.fs" />
-    <Compile Include="HelperModules\Common\Utility.fs" />
-    <Compile Include="HelperModules\Common\Resource.fs" />
-    <Compile Include="HelperModules\Common\FSharpCoreExt.fs" />
-    <Compile Include="HelperModules\Common\ServiceManager.fs" />
-    <Compile Include="HelperModules\Common\ServiceProxy.fs" />
-    <Compile Include="HelperModules\Common\Authentication.fs" />
-    <Compile Include="HelperModules\Common\CrmData.fs" />
-    <Compile Include="HelperModules\Common\CrmDataInternal.fs" />
-    <Compile Include="HelperModules\SerializationHelper.fs" />
-    <Compile Include="HelperModules\DataHelper.fs" />
-    <Compile Include="HelperModules\InfoHelper.fs" />
-    <Compile Include="HelperModules\DGSolutionHelper.fs" />
-    <Compile Include="HelperModules\SolutionHelper.fs" />
-    <Compile Include="HelperModules\TranslationsHelper.fs" />
-    <Compile Include="HelperModules\TypeProviderHelper.fs" />
-    <Compile Include="HelperModules\WebResourcesHelper.fs" />
-    <Compile Include="HelperModules\PluginsHelper.fs" />
-    <Compile Include="HelperModules\WorkflowHelper.fs" />
-    <Compile Include="HelperModules\DiffHelper.fs" />
-    <Compile Include="Modules\Data.fs" />
-    <Compile Include="Modules\Info.fs" />
-    <Compile Include="Modules\Serialization.fs" />
-    <Compile Include="Modules\Solution.fs" />
-    <Compile Include="Modules\Translations.fs" />
-    <Compile Include="Modules\WebResources.fs" />
-    <Compile Include="Modules\Plugins.fs" />
-    <Compile Include="Modules\Workflow.fs" />
-    <Compile Include="Modules\TypeProvider.fs" />
-    <Compile Include="Modules\Diff.fs" />
-    <None Include="Tests\SetupTests.fsx" />
-    <None Include="Tests\Delegate.DaxifTests.fsx" />
-    <None Include="Tests\SerializationUnitTests.fsx" />
-    <None Include="Tests\MetadataIntegrationTests.fsx" />
-    <None Include="Tests\DataUnitTests.fsx" />
-    <None Include="Tests\ServiceManagerUnitTests.fsx" />
-    <None Include="Tests\SolutionIntegrationTests.fsx" />
-    <None Include="Tests\WebResourcesHelperIntegrationTests.fsx" />
-    <None Include="Tests\PluginIntegrationTests.fsx" />
-    <None Include="Tests\WorkflowIntegrationTests.fsx" />
-    <None Include="Tests\AuthInfo.fsx" />
-    <EmbeddedResource Include="Resources\diff\diff.js" />
-    <EmbeddedResource Include="Resources\diff\diff.html" />
-    <EmbeddedResource Include="Resources\diff\diffStyle.css" />
+    <None Include="bin\coretools\SolutionPackager.exe" />
+    <Content Include="bin\coretools\Other Redistributable.txt" />
+    <None Include="bin\coretools\Microsoft.Xrm.Tooling.CrmConnectControl.dll" />
+    <None Include="bin\coretools\Microsoft.Xrm.Tooling.Connector.dll" />
+    <None Include="bin\coretools\Microsoft.Xrm.Sdk.dll" />
+    <None Include="bin\coretools\Microsoft.Xrm.Sdk.Deployment.dll" />
+    <None Include="bin\coretools\Microsoft.IdentityModel.Clients.ActiveDirectory.WindowsForms.dll" />
+    <None Include="bin\coretools\Microsoft.IdentityModel.Clients.ActiveDirectory.dll" />
+    <None Include="bin\coretools\Microsoft.Crm.Sdk.Proxy.dll" />
+    <None Include="bin\coretools\LicenseTerms.docx" />
+    <Content Include="bin\coretools\CrmSvcUtil.xml" />
+    <Content Include="bin\coretools\CrmSvcUtil.exe.config" />
+    <None Include="bin\coretools\CrmSvcUtil.exe" />
     <EmbeddedResource Include="Resources\img\favicon.ico" />
     <EmbeddedResource Include="Resources\img\delegate_daxif_logo.png" />
-    <None Include="DG.EnsureAssemblies.fsx" />
-    <None Include="DG.EnsureAssemblies.Standalone.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.AuthInfo.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.Config.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.DataExportSource.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.DataImportTarget.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.DataInMemoryMigrate.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionCreateDev.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionExportDev.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionExtract.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionImportDev.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionImportTest.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionPack.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionUpdateContext.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionUpdateCustomContext.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionUpdateTsContext.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.WebResourcesSyncDev.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.SolutionDiff.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.WorkflowSyncDev.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.PluginsSyncDev.fsx" />
-    <None Include="DG.XrmOrg.XrmSolution.CountEntities.fsx" />
+    <None Include="ScriptTemplates\_Config.fsx" />
+    <None Include="ScriptTemplates\_EnsureAssemblies.fsx" />
+    <None Include="ScriptTemplates\_Setup.fsx" />
+    <None Include="ScriptTemplates\CountEntities.fsx" />
+    <None Include="ScriptTemplates\DataExportSource.fsx" />
+    <None Include="ScriptTemplates\DataImportTarget.fsx" />
+    <None Include="ScriptTemplates\GenerateCSharpContext.fsx" />
+    <None Include="ScriptTemplates\GenerateTypeScriptContext.fsx" />
+    <None Include="ScriptTemplates\PluginSyncDev.fsx" />
+    <None Include="ScriptTemplates\SolutionCreateDev.fsx" />
+    <None Include="ScriptTemplates\SolutionExportDev.fsx" />
+    <None Include="ScriptTemplates\SolutionExtract.fsx" />
+    <None Include="ScriptTemplates\SolutionImportDev.fsx" />
+    <None Include="ScriptTemplates\SolutionImportTest.fsx" />
+    <None Include="ScriptTemplates\SolutionPack.fsx" />
+    <None Include="ScriptTemplates\WebResourceSyncDev.fsx" />
+    <None Include="ScriptTemplates\WorkflowSyncDev.fsx" />
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Daxif.fs" />
+    <Compile Include="ConsoleLogger.fs" />
+    <Compile Include="Common\Utility.fs" />
+    <Compile Include="Common\CrmUtility.fs" />
+    <Compile Include="Common\CrmAuth.fs" />
+    <Compile Include="Common\Resource.fs" />
+    <Compile Include="Common\FSharpCoreExt.fs" />
+    <Compile Include="Common\ServiceManager__ToDeprecate.fs" />
+    <Compile Include="Common\ServiceProxy__ToDeprecate.fs" />
+    <Compile Include="Common\Authentication__ToDeprecate.fs" />
+    <Compile Include="Common\CrmDataHelper.fs" />
+    <Compile Include="Common\CrmData.fs" />
+    <Compile Include="Common\CrmDataInternal.fs" />
+    <Compile Include="Setup\CredentialManagement.fs" />
+    <Compile Include="Setup\EnvironmentSetup.fs" />
+    <Compile Include="Modules\Info\InfoHelper.fs" />
+    <Compile Include="Modules\Info\Main.fs" />
+    <Compile Include="Modules\Serialization\SerializationHelper.fs" />
+    <Compile Include="Modules\Serialization\Main.fs" />
+    <Compile Include="Modules\Solution\DGSolutionHelper.fs" />
+    <Compile Include="Modules\Solution\SolutionHelper.fs" />
+    <Compile Include="Modules\Solution\Main.fs" />
+    <Compile Include="Modules\Data\DataHelper.fs" />
+    <Compile Include="Modules\Data\Main.fs" />
+    <Compile Include="Modules\Translations\TranslationsHelper.fs" />
+    <Compile Include="Modules\Translations\Main.fs" />
+    <Compile Include="Modules\Plugins\Domain.fs" />
+    <Compile Include="Modules\Plugins\Validation.fs" />
+    <Compile Include="Modules\Plugins\PluginDetection.fs" />
+    <Compile Include="Modules\Plugins\EntitySetup.fs" />
+    <Compile Include="Modules\Plugins\Compare.fs" />
+    <Compile Include="Modules\Plugins\Query.fs" />
+    <Compile Include="Modules\Plugins\Retrieval.fs" />
+    <Compile Include="Modules\Plugins\Sync.fs" />
+    <Compile Include="Modules\Plugins\Main.fs" />
+    <Compile Include="Modules\Workflows\WorkflowsHelper.fs" />
+    <Compile Include="Modules\Workflows\Main.fs" />
+    <Compile Include="Modules\WebResources\WebResourcesHelper.fs" />
+    <Compile Include="Modules\WebResources\Main.fs" />
+    <Compile Include="API\Data.fs" />
+    <Compile Include="API\Plugin.fs" />
+    <Compile Include="API\Solution.fs" />
+    <Compile Include="API\Translations.fs" />
+    <Compile Include="API\WebResource.fs" />
+    <Compile Include="API\Workflow.fs" />
+    <Compile Include="API\Info.fs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
-      <HintPath>..\packages\FSharp.Core.4.0.0.1\lib\net40\FSharp.Core.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\FSharp.Core.4.1.2\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Crm.Sdk.Proxy">
       <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.2.0.2\lib\net452\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
@@ -194,20 +189,16 @@
     <Reference Include="SolutionPackager">
       <HintPath>..\packages\Microsoft.CrmSdk.CoreTools.8.2.0.2\content\bin\coretools\SolutionPackager.exe</HintPath>
     </Reference>
-    <Reference Include="Suave">
-      <HintPath>..\packages\Suave.1.1.1\lib\net40\Suave.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
+    <Reference Include="System.Activities" />
+    <Reference Include="System.Activities.Presentation" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
-    <Reference Include="XmlDiffPatch">
-      <HintPath>..\packages\XMLDiffPatch.1.0.8.28\lib\net\XmlDiffPatch.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="System.ValueTuple">
+      <HintPath>..\packages\System.ValueTuple.4.3.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
     </Reference>
-    <Reference Include="XmlDiffPatch.View">
-      <HintPath>..\packages\XMLDiffPatch.1.0.8.28\lib\net\XmlDiffPatch.View.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
+    <Reference Include="System.Workflow.Activities" />
+    <Reference Include="System.Workflow.ComponentModel" />
+    <Reference Include="System.Workflow.Runtime" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />

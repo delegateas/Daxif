@@ -1,19 +1,5 @@
 ﻿namespace DG.Daxif
 
-// Info    = (1 <<< 0) ||| (1 <<< 2)
-// Warning = (1 <<< 1) ||| (1 <<< 2)
-// Error   = (1 <<< 2)
-// Verbose = (1 <<< 0) ||| (1 <<< 1) ||| (1 <<< 2) ||| (1 <<< 3)
-// File    = (1 <<< 0) ||| (1 <<< 1) ||| (1 <<< 2) ||| (1 <<< 3) ||| (1 <<< 4)
-/// Defines the level of logging which should be done for specific message.
-type LogLevel = // TODO: remove File and replace with guide of .exe > _out.txt 2> _error.log
-  | None    =  0
-  | Info    =  1 //  1 (2^0) Indicates logs for an informational message.
-  | Warning =  3 //  2 (2^1) Indicates logs for a warning.
-  | Error   =  7 //  4 (2^2) Indicates logs for an error.
-  | Verbose = 15 //  8 (2^3) Indicates logs at all levels.
-  | Debug   = 31 // 16 (2^4) Indicates logs for debugging
-  | File    = 63 // 32 (2^5) Indicates logs at all levels and saved to a file
 
 /// Represents what type of serialization should be done to encode/decode files
 type Serialize = 
