@@ -98,6 +98,7 @@ Target "NuGet" (fun _ ->
              Version = release.NugetVersion
              ReleaseNotes = String.Join(Environment.NewLine, release.Notes)
              OutputPath = "bin"
+             PublishUrl = "https://www.nuget.org/api/v2/package"
              NoDefaultExcludes = true
              AccessKey = getBuildParamOrDefault "delegateas-nugetkey" ""
              Publish = hasBuildParam "delegateas-nugetkey"
