@@ -1,5 +1,10 @@
 # Release Notes
 
+### 2.4.0 - Feb 19 2017
+* Added new functionality `Plugins.syncSolutionWhitelist`
+* Removed a lot of try/catch in main methods to allow exceptions to be caught outside of Daxif
+* Removed Agent usage in ConsoleLogger
+
 #### 2.3.3.0 - Jan 23 2017
 * Refactored plugin sync to be more readable and reduce the amount calls to CRM 
   improving the synchronization time
