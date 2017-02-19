@@ -13,7 +13,7 @@ module Info =
     log'.WriteLine(LogLevel.Info, daxifVersion)
     log'.WriteLine(LogLevel.Info, @"Retrieve CRM version:")
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-    logAuthentication (ap.ToString()) usr pwd domain log'
+    logAuthentication ap usr pwd' domain log'
     let (v, _) = InfoHelper.version' org ac log'
     log'.WriteLine
       (LogLevel.Info, @"The CRM version: " + v + " was retrieved successfully")

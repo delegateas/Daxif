@@ -941,7 +941,7 @@ module internal PluginsHelper =
     upsertImages solution client log sourceData targetData
 
   // Syncronizes a solution
-  let syncSolution org ac solutionName proj dll isolationMode (log:ConsoleLogger.ConsoleLogger) =
+  let syncSolution org ac solutionName proj dll isolationMode whitelist (log:ConsoleLogger.ConsoleLogger) =
     let (client, solution, sourcePlugins) = setupData org ac solutionName proj dll isolationMode log
     let solution' =
       match solution.assemblyId with
@@ -959,7 +959,13 @@ module internal PluginsHelper =
             isolationMode = isolationMode})
 
     log.WriteLine(LogLevel.Verbose, "Syncing plugins")
-    syncPlugins solution' client log sourcePlugins
+    let pluginsToSync =
+      match whitelist with
+      | None       -> sourcePlugins
+      | Some list -> 
+        let set = Set.ofSeq list
+        sourcePlugins
+        |> Seq.cache
+        |> Seq.filter (fun plugin -> set.Contains plugin.TypeKey)
 
-  let syncSolution' org ac solutionName proj dll (log:ConsoleLogger.ConsoleLogger) =
-    syncSolution org ac solutionName proj dll PluginIsolationMode.Sandbox log
+    syncPlugins solution' client log pluginsToSync

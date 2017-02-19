@@ -29,6 +29,15 @@ Plugins
      -> ap:AuthenticationProviderType
      -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
 
+  /// Synchronize plugins in a solution
+  val public syncSolutionWhitelist : wsdl:Uri
+     -> solution:string
+     -> proj:string
+     -> dll:string
+     -> whitelist:string seq
+     -> ap:AuthenticationProviderType
+     -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
+
   /// Delete plugins in target solution that does not exist in source dll
   val public deletePlugins : wsdl:Uri
      -> solution:string

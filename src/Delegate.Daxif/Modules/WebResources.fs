@@ -15,7 +15,7 @@ module WebResources =
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to webresources: " + location)
-    logAuthentication (ap.ToString()) usr pwd domain log'
+    logAuthentication ap usr pwd' domain log'
     WebResourcesHelper.syncSolution' org ac location log'
     log'.WriteLine
       (LogLevel.Info, @"The solution webresources were synced successfully")

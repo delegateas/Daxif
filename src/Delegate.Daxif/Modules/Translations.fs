@@ -15,7 +15,7 @@ module Translations =
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-    logAuthentication (ap.ToString()) usr pwd domain log'
+    logAuthentication ap usr pwd' domain log'
     TranslationsHelper.export' org ac solution location log'
     log'.WriteLine
       (LogLevel.Info, @"The solution translations were exported successfully")
@@ -29,7 +29,7 @@ module Translations =
     log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
-    logAuthentication (ap.ToString()) usr pwd domain log'
+    logAuthentication ap usr pwd' domain log'
     TranslationsHelper.import' org ac solution location log'
     log'.WriteLine
       (LogLevel.Info, @"The solution translations were imported successfully")

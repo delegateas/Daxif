@@ -16,8 +16,8 @@ module Plugins =
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins VS Project: " + proj)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins Assembly: " + dll)
-    logAuthentication (ap.ToString()) usr pwd domain log'
-    PluginsHelper.syncSolution' org ac solution proj dll log'
+    logAuthentication ap usr pwd' domain log'
+    PluginsHelper.syncSolution org ac solution proj dll PluginIsolationMode.Sandbox None log' 
     log'.WriteLine
       (LogLevel.Info, @"The solution plugins were synced successfully")
 
@@ -31,8 +31,23 @@ module Plugins =
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins VS Project: " + proj)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins Assembly: " + dll)
-    logAuthentication (ap.ToString()) usr pwd domain log'
-    PluginsHelper.syncSolution org ac solution proj dll isolationMode log'
+    logAuthentication ap usr pwd' domain log'
+    PluginsHelper.syncSolution org ac solution proj dll isolationMode None log'
+    log'.WriteLine
+      (LogLevel.Info, @"The solution plugins were synced successfully")
+
+  let syncSolutionWhitelist org solution proj dll whitelist ap usr pwd domain log = 
+    let ac = Authentication.getCredentials ap usr pwd domain
+    let log' = ConsoleLogger.ConsoleLogger log
+    let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
+    log'.WriteLine(LogLevel.Info, @"Sync solution Plugins: " + solution)
+    log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
+    log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
+    log'.WriteLine(LogLevel.Verbose, @"Path to Plugins VS Project: " + proj)
+    log'.WriteLine(LogLevel.Verbose, @"Path to Plugins Assembly: " + dll)
+    logAuthentication ap usr pwd' domain log'
+    PluginsHelper.syncSolution org ac solution proj dll PluginIsolationMode.Sandbox (Some whitelist) log'
     log'.WriteLine
       (LogLevel.Info, @"The solution plugins were synced successfully")
 
@@ -46,7 +61,7 @@ module Plugins =
     log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins VS Project: " + proj)
     log'.WriteLine(LogLevel.Verbose, @"Path to Plugins Assembly: " + dll)
-    logAuthentication (ap.ToString()) usr pwd domain log'
+    logAuthentication ap usr pwd' domain log'
     PluginsHelper.deletePlugins org ac solution proj dll log'
     log'.WriteLine
       (LogLevel.Info, @"The solution plugins were deleted successfully")
