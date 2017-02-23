@@ -334,17 +334,15 @@ module internal SolutionHelper =
                 | None ->
                   (progress', j.Attributes.Contains("completedon"))
                 | Some id ->
-                  match Info.retrieveAsyncJobState p' id with
-                  | AsyncJobState.Succeeded 
-                  | AsyncJobState.Failed 
-                  | AsyncJobState.Canceled ->
-                    (progress', true)
-                  | _ -> // Still in progress
-                    (progress', false)
-              with e -> 
-                sprintf @"Warning: Fetch of progress failed with the following error: %s Retrying" e.Message
-                |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
-                (progress, false)
+                  try
+                    match Info.retrieveAsyncJobState p' id with
+                    | AsyncJobState.Succeeded 
+                    | AsyncJobState.Failed 
+                    | AsyncJobState.Canceled ->
+                      (progress', true)
+                    | _ -> (progress', false)
+                  with _ -> (progress', false)
+              with _ -> (progress, false)
             match completed' with
             | false -> 
               sprintf @"Import solution: %s (%i%%)" solution (pct |> int)
@@ -461,7 +459,6 @@ module internal SolutionHelper =
     match status with
     | Choice2Of2 exn -> raise exn
     | _ -> excel
-    
 
   let exportWithDGSolution' org ac ac' solution location managed (log : ConsoleLogger.ConsoleLogger) = 
     export' org ac solution location managed log
@@ -478,7 +475,6 @@ module internal SolutionHelper =
     import' org ac solution location managed log |> ignore
     log.WriteLine(LogLevel.Info, @"Importing DGSolution")
     DGSolutionHelper.importDGSolution org ac' solution location log
-   
 
   //TODO:
   let extract' location (customizations : string) (map : string) project 
