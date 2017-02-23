@@ -19,7 +19,7 @@ module internal DGSolutionHelper =
       stateCode: int
       statusCode: int }
 
-  // Recording holding the states of entities and which plugins to keep
+  // Recording holding the states of entities and which plugins and webresources to keep
   // Note: the different plugin guids are not sure to be equal across environments
   // so the name is used to identify the different parts of the plugins
   type DelegateSolution =
@@ -27,12 +27,17 @@ module internal DGSolutionHelper =
       keepAssemblies: seq<Guid*string>
       keepPluginTypes: seq<Guid*string>
       keepPluginSteps: seq<Guid*string>
-      keepPluginImages: seq<Guid*string>}
+      keepPluginImages: seq<Guid*string>
+      keepWorkflows: seq<Guid*string>
+      keepWebresources: seq<Guid*string>
+      keepBusinessRules: seq<Guid*string>}
 
   let asmLogicName = @"pluginassembly"
   let typeLogicName = @"plugintype"
   let stepLogicName = @"sdkmessageprocessingstep"
   let imgLogicName = @"sdkmessageprocessingstepimage"
+  let webResLogicalName = @"webresource"
+  let workflowLogicalName = @"workflow"
 
   let getName (x:Entity) = x.Attributes.["name"] :?> string
    
@@ -55,9 +60,13 @@ module internal DGSolutionHelper =
     b |> Seq.filter(fun (_,z) -> 
       ((fun y -> y = z),a) ||> Seq.exists)
 
+  let getEntityIds (entities: seq<Entity>) =
+    entities
+    |> Seq.map(fun r -> r.Id, getName r)
+
   // Fetches the entity of views in a packaged solution file from an exported 
   // solution
-  let getViews p (xmlFile:string) log =
+  let getViews p (xmlFile:string) =
    
     // Parse the customization.xml and find all the nodes containing "savedquery"
     // under the node "SavedQueries"
@@ -69,16 +78,21 @@ module internal DGSolutionHelper =
         |> Seq.map(fun node -> Guid.Parse node.Value)
 
     // Fetch the entities of the views
-
     savedQueryGuids
     |> Seq.map(fun guid -> CrmData.CRUD.retrieve p "savedquery" guid)
 
   // Retrievs the workflows defined in the solution
-  let getWorkflows p solution log =
+  let getWorkflows p solution =
     CrmDataInternal.Entities.retrieveWorkflows p solution
 
+  let getWebresources p solution =
+    CrmDataInternal.Entities.retrieveWebResources p solution
+
+  let getBusinessRules p solution =
+    CrmDataInternal.Entities.retrieveWebResources p solution
+
   // Retrievs the assemblies, types, active steps, and images of a solution
-  let getPlugins p solution log =
+  let getPluginsIds p solution =
     
     // Find all assemblies in the solution
     let assemblies = 
@@ -122,6 +136,19 @@ module internal DGSolutionHelper =
 
     asmName, types, stepsName, images
 
+  let deactivateBusinessRules p ln target (diff: Set<string>) log =
+    match diff.Count with
+    | 0 -> ()
+    | _ -> 
+      diff
+      |> Set.toSeq
+      |> subset target
+      |> Seq.map( fun (x,_) ->
+        CrmDataInternal.Entities.updateStateReq ln x 0 1 :> OrganizationRequest )
+      |> Seq.toArray
+      |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
+
+
   // Stores entities statecode and statuscode in a seperate file to be
   // implemented on import
   let exportDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
@@ -144,12 +171,17 @@ module internal DGSolutionHelper =
     let entry = archive.GetEntry("customizations.xml")
     entry.ExtractToFile(xmlFile)
 
-    log.WriteLine(LogLevel.Verbose, 
-      "Finding entities to be persisted")
+    log.WriteLine(LogLevel.Verbose, "Finding entities to be persisted")
+
     // find the entities to be persisted
+    let views = getViews p xmlFile
+    let workflows = getWorkflows p solution.Id
+    let BusinessRules = getBusinessRules p solution.Id
+
     let entities =
-      [("Views",getViews p xmlFile log)
-       ("Workflows",getWorkflows p solution.Id log)]
+      [("Views",views)
+       ("Workflows",workflows)
+       ("BusinessRules",BusinessRules)]
       |> List.toSeq
 
     entities
@@ -176,21 +208,27 @@ module internal DGSolutionHelper =
     log.WriteLine(LogLevel.Verbose, "Finding plugins to be persisted")
 
     // Find assemblies, plugin types, active plugin steps, and plugin images 
+    let asmsIds, typesIds, stepsIds, imgsIds = getPluginsIds p solution.Id
 
-    let asms, types, steps, imgs = getPlugins p solution.Id log
-
-    [|("Assemblies", asms); ("Plugin Types", types) 
-      ("Plugin Steps", steps); ("Step Images", imgs)|]
+    [|("Assemblies", asmsIds); ("Plugin Types", typesIds) 
+      ("Plugin Steps", stepsIds); ("Step Images", imgsIds)|]
     |> Array.iter(fun (name, x) -> 
       log.WriteLine(LogLevel.Verbose, sprintf @"Found %d %s" (Seq.length x) name )
       )
 
+    let workflowsIds = workflows |> getEntityIds
+    let webResIds = getWebresources p solution.Id |> getEntityIds
+    let businessRulsIds = BusinessRules |> getEntityIds
+
     let delegateSolution = 
       {states=states
-       keepAssemblies = asms
-       keepPluginTypes = types
-       keepPluginSteps = steps
-       keepPluginImages = imgs}
+       keepAssemblies = asmsIds
+       keepPluginTypes = typesIds
+       keepPluginSteps = stepsIds
+       keepPluginImages = imgsIds
+       keepWorkflows = workflowsIds
+       keepWebresources = webResIds
+       keepBusinessRules = businessRulsIds}
     
     log.WriteLine(LogLevel.Verbose, @"Creating solution file")
 
@@ -240,7 +278,6 @@ module internal DGSolutionHelper =
       let dgSol = SerializationHelper.deserializeXML<DelegateSolution> xmlContent
 
       // Read the status and statecode of the entities and update them in crm
-
       log.WriteLine(LogLevel.Verbose, @"Finding states of entities to be updated")
 
       // Find the source entities that have different code values than target
@@ -277,17 +314,28 @@ module internal DGSolutionHelper =
 
       log.WriteLine(LogLevel.Verbose, "Synching plugins")
 
-      // Sync Plugins
-      let targetAsms, targetTypes, targetSteps, targetImgs = getPlugins p solution.Id log
+      // Sync Plugins and Webresources
+      let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds p solution.Id
+      let targetWorkflows = getWebresources p solution.Id |> getEntityIds
+      let targetWebRes = getWebresources p solution.Id |> getEntityIds
+      let targetBusinessRules = getBusinessRules p solution.Id |> getEntityIds
 
-      [|(imgLogicName,(dgSol.keepPluginImages, targetImgs))
-        (stepLogicName,(dgSol.keepPluginSteps, targetSteps))
-        (typeLogicName,(dgSol.keepPluginTypes, targetTypes))
-        (asmLogicName,(dgSol.keepAssemblies, targetAsms))|]
-      |> Array.iter(fun (ln, (source, target)) -> 
+      [|(imgLogicName,(dgSol.keepPluginImages, targetImgs), None)
+        (stepLogicName,(dgSol.keepPluginSteps, targetSteps), None)
+        (typeLogicName,(dgSol.keepPluginTypes, targetTypes), None)
+        (asmLogicName,(dgSol.keepAssemblies, targetAsms), None)
+        (webResLogicalName,(dgSol.keepWebresources, targetWebRes), None)
+        (workflowLogicalName,(dgSol.keepWebresources, targetWorkflows), None)
+        (workflowLogicalName,(dgSol.keepWebresources, targetBusinessRules), Some(deactivateBusinessRules))|]
+      |> Array.iter(fun (ln, (source, target), func) ->   
+        
         let s = source |> Seq.map snd |> Set.ofSeq
         let t = target |> Seq.map snd |> Set.ofSeq
         let diff = t - s
+
+        match func with
+        | None -> ()
+        | Some(f) -> f p ln target diff log
         
         log.WriteLine(LogLevel.Verbose, sprintf "Found %d '%s' entities to be deleted " diff.Count ln)
         match diff.Count with
@@ -301,6 +349,3 @@ module internal DGSolutionHelper =
           |> Seq.toArray
           |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
         )
-
-      log.WriteLine(LogLevel.Info, @"DGSolution imported succesfully")
-      
