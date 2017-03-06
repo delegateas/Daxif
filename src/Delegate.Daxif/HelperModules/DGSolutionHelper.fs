@@ -13,7 +13,7 @@ open DG.Daxif.HelperModules.Common.ConsoleLogger
 module internal DGSolutionHelper =
 
   // Record for holding the state of an entity
-  type GuidState =
+  type EntityState =
     { id: Guid
       logicalName: string
       stateCode: int
@@ -23,14 +23,13 @@ module internal DGSolutionHelper =
   // Note: the different plugin guids are not sure to be equal across environments
   // so the name is used to identify the different parts of the plugins
   type DelegateSolution =
-    { states: Map<string, GuidState> 
+    { states: Map<string, EntityState> 
       keepAssemblies: seq<Guid*string>
       keepPluginTypes: seq<Guid*string>
       keepPluginSteps: seq<Guid*string>
       keepPluginImages: seq<Guid*string>
       keepWorkflows: seq<Guid*string>
-      keepWebresources: seq<Guid*string>
-      keepBusinessRules: seq<Guid*string>}
+      keepWebresources: seq<Guid*string>}
 
   let asmLogicName = @"pluginassembly"
   let typeLogicName = @"plugintype"
@@ -64,6 +63,9 @@ module internal DGSolutionHelper =
     entities
     |> Seq.map(fun r -> r.Id, getName r)
 
+  let takeName = snd
+  let takeGuid (inp: (Guid*string)) = inp |> fst |> fun x -> x.ToString()
+
   // Fetches the entity of views in a packaged solution file from an exported 
   // solution
   let getViews p (xmlFile:string) =
@@ -86,9 +88,6 @@ module internal DGSolutionHelper =
     CrmDataInternal.Entities.retrieveWorkflows p solution
 
   let getWebresources p solution =
-    CrmDataInternal.Entities.retrieveWebResources p solution
-
-  let getBusinessRules p solution =
     CrmDataInternal.Entities.retrieveWebResources p solution
 
   // Retrievs the assemblies, types, active steps, and images of a solution
@@ -121,7 +120,7 @@ module internal DGSolutionHelper =
       steps
       |> Seq.map(fun x -> 
         let stage = getAttribute "stage" x :?> OptionSetValue
-        x.Id, (stage.Value.ToString()) + (getName x))
+        x.Id, (getName x))
 
     // Find all images of active steps 
     // Note: Use 
@@ -136,7 +135,7 @@ module internal DGSolutionHelper =
 
     asmName, types, stepsName, images
 
-  let deactivateBusinessRules p ln target (diff: Set<string>) log =
+  let deactivateWorkflows p ln target (diff: Set<string>) log =
     match diff.Count with
     | 0 -> ()
     | _ -> 
@@ -176,12 +175,10 @@ module internal DGSolutionHelper =
     // find the entities to be persisted
     let views = getViews p xmlFile
     let workflows = getWorkflows p solution.Id
-    let BusinessRules = getBusinessRules p solution.Id
 
     let entities =
       [("Views",views)
-       ("Workflows",workflows)
-       ("BusinessRules",BusinessRules)]
+       ("Workflows",workflows)]
       |> List.toSeq
 
     entities
@@ -218,7 +215,6 @@ module internal DGSolutionHelper =
 
     let workflowsIds = workflows |> getEntityIds
     let webResIds = getWebresources p solution.Id |> getEntityIds
-    let businessRulsIds = BusinessRules |> getEntityIds
 
     let delegateSolution = 
       {states=states
@@ -227,8 +223,7 @@ module internal DGSolutionHelper =
        keepPluginSteps = stepsIds
        keepPluginImages = imgsIds
        keepWorkflows = workflowsIds
-       keepWebresources = webResIds
-       keepBusinessRules = businessRulsIds}
+       keepWebresources = webResIds}
     
     log.WriteLine(LogLevel.Verbose, @"Creating solution file")
 
@@ -316,21 +311,19 @@ module internal DGSolutionHelper =
 
       // Sync Plugins and Webresources
       let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds p solution.Id
-      let targetWorkflows = getWebresources p solution.Id |> getEntityIds
+      let targetWorkflows = getWorkflows p solution.Id |> getEntityIds
       let targetWebRes = getWebresources p solution.Id |> getEntityIds
-      let targetBusinessRules = getBusinessRules p solution.Id |> getEntityIds
 
-      [|(imgLogicName,(dgSol.keepPluginImages, targetImgs), None)
-        (stepLogicName,(dgSol.keepPluginSteps, targetSteps), None)
-        (typeLogicName,(dgSol.keepPluginTypes, targetTypes), None)
-        (asmLogicName,(dgSol.keepAssemblies, targetAsms), None)
-        (webResLogicalName,(dgSol.keepWebresources, targetWebRes), None)
-        (workflowLogicalName,(dgSol.keepWebresources, targetWorkflows), None)
-        (workflowLogicalName,(dgSol.keepWebresources, targetBusinessRules), Some(deactivateBusinessRules))|]
-      |> Array.iter(fun (ln, (source, target), func) ->   
+      [|(imgLogicName, dgSol.keepPluginImages, targetImgs, takeGuid, None)
+        (stepLogicName, dgSol.keepPluginSteps, targetSteps, takeGuid, None)
+        (typeLogicName, dgSol.keepPluginTypes, targetTypes, takeName, None)
+        (asmLogicName, dgSol.keepAssemblies, targetAsms, takeGuid, None)
+        (webResLogicalName, dgSol.keepWebresources, targetWebRes, takeGuid, None)
+        (workflowLogicalName, dgSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
+      |> Array.iter(fun (ln, source, target, fieldCompFunc, func) ->   
         
-        let s = source |> Seq.map snd |> Set.ofSeq
-        let t = target |> Seq.map snd |> Set.ofSeq
+        let s = source |> Seq.map fieldCompFunc |> Set.ofSeq
+        let t = target |> Seq.map fieldCompFunc |> Set.ofSeq
         let diff = t - s
 
         match func with
