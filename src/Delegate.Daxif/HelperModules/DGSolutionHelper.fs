@@ -4,6 +4,8 @@ open System
 open System.IO
 open System.IO.Compression
 open System.Xml
+open System.Xml.Linq
+open System.Xml.XPath
 open Microsoft.Xrm.Sdk
 open DG.Daxif
 open DG.Daxif.HelperModules.Common
@@ -244,13 +246,22 @@ module internal DGSolutionHelper =
     log.WriteLine(LogLevel.Info, @"DGSolution exported successfully")
 
   let importDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
-    log.WriteLine(LogLevel.Verbose, 
-      @"Attempting to retrieve dgSolution.xml file from solution package")
-
-    // Check that the packaged solution contains a dgSolution.xml file
     use zipToOpen = new FileStream(zipPath, FileMode.Open)
     use archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update)
 
+    log.WriteLine(LogLevel.Verbose, 
+      @"Retrieving solution.xml from solution package")
+    let entry = archive.GetEntry("solution.xml")
+    let xd = XDocument.Load(entry.Open())
+    let zipSolName = xd.XPathSelectElement("/ImportExportXml/SolutionManifest/UniqueName").Value;
+    if zipSolName <> solutionName then
+      log.WriteLine(LogLevel.Verbose, 
+        sprintf "Solution name '%s' from solution.xml differs from solutionName argument: '%s'" zipSolName solutionName);
+      log.WriteLine(LogLevel.Verbose, 
+        sprintf "Using '%s'" zipSolName);
+
+    log.WriteLine(LogLevel.Verbose, 
+      @"Attempting to retrieve dgSolution.xml file from solution package")
     match archive.Entries |> Seq.exists(fun e -> e.Name = "dgSolution.xml") with                                        
     | false -> 
       log.WriteLine(LogLevel.Info, 
@@ -262,7 +273,7 @@ module internal DGSolutionHelper =
       let m = ServiceManager.createOrgService org
       let tc = m.Authenticate(ac)
       use p = ServiceProxy.getOrganizationServiceProxy m tc
-      let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
+      let solution = CrmDataInternal.Entities.retrieveSolution p zipSolName
 
       // Fetch the dgSolution.xml file and unserialize it
       let entry = archive.GetEntry("dgSolution.xml")
@@ -271,7 +282,7 @@ module internal DGSolutionHelper =
       let xmlContent = writer.ReadToEnd()
       
       let dgSol = SerializationHelper.deserializeXML<DelegateSolution> xmlContent
-
+      
       // Read the status and statecode of the entities and update them in crm
       log.WriteLine(LogLevel.Verbose, @"Finding states of entities to be updated")
 
