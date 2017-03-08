@@ -68,6 +68,19 @@ module internal DGSolutionHelper =
   let takeName = snd
   let takeGuid (inp: (Guid*string)) = inp |> fst |> fun x -> x.ToString()
 
+  let getSolutionNameFromSolution solutionName (archive: ZipArchive) (log :ConsoleLogger.ConsoleLogger) =
+    log.WriteLine(LogLevel.Verbose, 
+      @"Retrieving solution.xml from solution package")
+    let entry = archive.GetEntry("solution.xml")
+    let xd = XDocument.Load(entry.Open())
+    let zipSolName = xd.XPathSelectElement("/ImportExportXml/SolutionManifest/UniqueName").Value;
+    if zipSolName <> solutionName then
+      log.WriteLine(LogLevel.Verbose, 
+        sprintf "Solution name '%s' from solution.xml differs from solutionName argument: '%s'" zipSolName solutionName);
+      log.WriteLine(LogLevel.Verbose, 
+        sprintf "Using '%s'" zipSolName);
+    zipSolName
+
   // Fetches the entity of views in a packaged solution file from an exported 
   // solution
   let getViews p (xmlFile:string) =
@@ -249,16 +262,7 @@ module internal DGSolutionHelper =
     use zipToOpen = new FileStream(zipPath, FileMode.Open)
     use archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update)
 
-    log.WriteLine(LogLevel.Verbose, 
-      @"Retrieving solution.xml from solution package")
-    let entry = archive.GetEntry("solution.xml")
-    let xd = XDocument.Load(entry.Open())
-    let zipSolName = xd.XPathSelectElement("/ImportExportXml/SolutionManifest/UniqueName").Value;
-    if zipSolName <> solutionName then
-      log.WriteLine(LogLevel.Verbose, 
-        sprintf "Solution name '%s' from solution.xml differs from solutionName argument: '%s'" zipSolName solutionName);
-      log.WriteLine(LogLevel.Verbose, 
-        sprintf "Using '%s'" zipSolName);
+    let zipSolName = getSolutionNameFromSolution solutionName archive log
 
     log.WriteLine(LogLevel.Verbose, 
       @"Attempting to retrieve dgSolution.xml file from solution package")
@@ -268,7 +272,7 @@ module internal DGSolutionHelper =
         @"Import of DGSolution omitted. No stored dgSolution.xml file found")
 
     | true -> 
-      log.WriteLine(LogLevel.Verbose, @"Solution xml file found")
+      log.WriteLine(LogLevel.Verbose, @"dgSolution.xml file found")
 
       let m = ServiceManager.createOrgService org
       let tc = m.Authenticate(ac)
