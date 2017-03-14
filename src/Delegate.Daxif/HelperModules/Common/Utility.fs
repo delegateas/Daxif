@@ -98,7 +98,7 @@ module internal Utility =
     | true -> ()
     | false -> Directory.CreateDirectory(path) |> ignore
 
-  let createTempFolder =
+  let createTempFolder () =
     let folderName = Guid.NewGuid().ToString()
 
     let tmpFolder = Path.Combine(Path.GetTempPath(), folderName)

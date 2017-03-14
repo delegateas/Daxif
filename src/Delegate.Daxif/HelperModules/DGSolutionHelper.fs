@@ -71,15 +71,28 @@ module internal DGSolutionHelper =
   let getSolutionNameFromSolution solutionName (archive: ZipArchive) (log :ConsoleLogger.ConsoleLogger) =
     log.WriteLine(LogLevel.Verbose, 
       @"Retrieving solution.xml from solution package")
-    let entry = archive.GetEntry("solution.xml")
-    let xd = XDocument.Load(entry.Open())
-    let zipSolName = xd.XPathSelectElement("/ImportExportXml/SolutionManifest/UniqueName").Value;
-    if zipSolName <> solutionName then
-      log.WriteLine(LogLevel.Verbose, 
-        sprintf "Solution name '%s' from solution.xml differs from solutionName argument: '%s'" zipSolName solutionName);
-      log.WriteLine(LogLevel.Verbose, 
-        sprintf "Using '%s'" zipSolName);
-    zipSolName
+    match archive.Entries |> Seq.exists(fun e -> e.Name = "solution.xml") with
+    | false -> 
+      failwith "Incorrect CRM package. solution.xml file not found"
+      solutionName
+    | true -> 
+      let solutionNameNode = 
+        archive.GetEntry("solution.xml")
+        |> fun entry -> XDocument.Load(entry.Open())
+        |> fun xd -> xd.XPathSelectElement("/ImportExportXml/SolutionManifest/UniqueName");
+      match not solutionNameNode.IsEmpty, solutionNameNode.Value <> solutionName with
+      | false, _ ->  
+        failwith "Incorrect CRM package. Solution name not found in package"
+        solutionName
+      | true, false -> 
+        solutionName
+      | true, true -> 
+        let zipSolName = solutionNameNode.Value
+        log.WriteLine(LogLevel.Verbose, 
+          sprintf "Solution name '%s' from solution.xml differs from solutionName argument: '%s'" zipSolName solutionName);
+        log.WriteLine(LogLevel.Verbose, sprintf "Using '%s'" zipSolName);
+        zipSolName
+      
 
   // Fetches the entity of views in a packaged solution file from an exported 
   // solution
@@ -175,7 +188,7 @@ module internal DGSolutionHelper =
 
     // Retriev Customization.xml file from the solution package and store it in 
     // a temp folder
-    let tempFolder = createTempFolder
+    let tempFolder = createTempFolder ()
 
     log.WriteLine(LogLevel.Verbose, @"Extracting customization.xml from solution")
 
@@ -268,12 +281,8 @@ module internal DGSolutionHelper =
       @"Attempting to retrieve dgSolution.xml file from solution package")
     match archive.Entries |> Seq.exists(fun e -> e.Name = "dgSolution.xml") with                                        
     | false -> 
-      log.WriteLine(LogLevel.Info, 
-        @"Import of DGSolution omitted. No stored dgSolution.xml file found")
-
+      failwith @"DGSolution import fialed. No stored dgSolution.xml file found in package"
     | true -> 
-      log.WriteLine(LogLevel.Verbose, @"dgSolution.xml file found")
-
       let m = ServiceManager.createOrgService org
       let tc = m.Authenticate(ac)
       use p = ServiceProxy.getOrganizationServiceProxy m tc
