@@ -1,5 +1,12 @@
 # Release Notes
 
+### 2.4.1 - Mar 14 2017
+* Udpated DGSolution to also include WebResources and Workflows (processes)
+* Changed DGSolution to read solution name from solution.xml and use Guid to compare objects to persist between environments where possible
+* Fixed a bug in DGSolution where plugins with same name would cause problems. Changed to use Guid instead of names
+* Fixed a bug in `Solution.Import` where the progression would report 0% for a long time and then jump to ~95%
+* Fixed a bug where multiple call to `Solution.exportWithDGSolution` would cause an error
+
 ### 2.4.0 - Feb 19 2017
 * Added new functionality `Plugins.syncSolutionWhitelist`
 * Removed a lot of try/catch in main methods to allow exceptions to be caught outside of Daxif
