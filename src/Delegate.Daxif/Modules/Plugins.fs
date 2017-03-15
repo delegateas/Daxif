@@ -65,3 +65,16 @@ module Plugins =
     PluginsHelper.deletePlugins org ac solution proj dll log'
     log'.WriteLine
       (LogLevel.Info, @"The solution plugins were deleted successfully")
+
+  let clearPlugins org solution ap usr pwd domain log = 
+    let ac = Authentication.getCredentials ap usr pwd domain
+    let log' = ConsoleLogger.ConsoleLogger log
+    let pwd' = String.replicate pwd.Length "*"
+    log'.WriteLine(LogLevel.Info, daxifVersion)
+    log'.WriteLine(LogLevel.Info, @"Delete solution Plugins: " + solution)
+    log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
+    log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
+    logAuthentication ap usr pwd' domain log'
+    PluginsHelper.clearPlugins org ac solution log'
+    log'.WriteLine
+      (LogLevel.Info, @"The solution plugins were deleted successfully")

@@ -918,6 +918,47 @@ module internal PluginsHelper =
     | None ->
       failwith "No plugin assembly found in solution"
 
+  /// clear all plugins in target solution
+  let clearPlugins org ac solutionName (log:ConsoleLogger.ConsoleLogger) =
+    let m = ServiceManager.createOrgService org
+    let tc = m.Authenticate(ac)
+    use proxy = ServiceProxy.getOrganizationServiceProxy m tc
+
+    let solution = CrmDataInternal.Entities.retrieveSolution proxy solutionName
+    
+    let assemblies = 
+      CrmDataInternal.Entities.retrievePluginAssemblies proxy solution.Id
+      |> Seq.filter (fun asm -> (asm.Attributes.["name"] :?> string).Contains("Plugin"))
+      |> Array.ofSeq
+    log.WriteLine(LogLevel.Verbose, sprintf "Found %d assemblies" (Array.length assemblies))
+
+    let types = 
+      assemblies 
+      |> Seq.map (fun asm -> CrmDataInternal.Entities.retrievePluginTypes proxy asm.Id) 
+      |> Seq.concat |> Array.ofSeq
+    log.WriteLine(LogLevel.Debug, sprintf "Found %d plugin types" (Array.length types))
+
+    let steps = 
+      types
+      |> Seq.map (fun ty -> CrmDataInternal.Entities.retrievePluginProcessingSteps proxy ty.Id) 
+      |> Seq.concat |> Array.ofSeq
+    log.WriteLine(LogLevel.Verbose, sprintf "Found %d plugin steps" (Array.length steps))
+
+    let images = 
+      steps 
+      |> Seq.map (fun step -> CrmDataInternal.Entities.retrievePluginProcessingStepImages proxy step.Id) 
+      |> Seq.concat |> Array.ofSeq
+    log.WriteLine(LogLevel.Verbose, sprintf "Found %d plugin step images" (Array.length images))
+
+    log.WriteLine(LogLevel.Verbose, sprintf "Starting to delete all the plugin types, steps and images")
+    [| images; steps; types |]
+    |> Array.concat
+    |> Array.iter (fun e -> 
+        try
+          CrmData.CRUD.delete proxy e.LogicalName e.Id |> ignore
+        with _ ->
+          log.WriteLine(LogLevel.Verbose, sprintf "Unable to delete %s (%A)" e.LogicalName e.Id))
+
   let syncPlugins (solution:Solution) client (log:ConsoleLogger.ConsoleLogger) sourceData =
     // fetchData
     log.WriteLine(LogLevel.Verbose,"fetching plugin data from CRM")

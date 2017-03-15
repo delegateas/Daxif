@@ -45,3 +45,9 @@ Plugins
      -> dll:string
      -> ap:AuthenticationProviderType
      -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
+
+  /// Clear all plugins in target solution
+  val public clearPlugins : wsdl:Uri
+     -> solution:string
+     -> ap:AuthenticationProviderType
+     -> usr:string -> pwd:string -> domain:string -> logLevel:LogLevel -> unit
