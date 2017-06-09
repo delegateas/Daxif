@@ -15,6 +15,7 @@ open Microsoft.Xrm.Sdk.Query
 open DG.Daxif
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
+open DG.Daxif.Common.InternalUtility
 open DG.Daxif.Modules.Serialization
 
 let throttle = function
@@ -388,7 +389,7 @@ let import' org ac location (log:ConsoleLogger) serialize attribs data =
                                
                           let eri' = eri.ToString()
 
-                          let et = dMem (p, (ern,eri,erm.PrimaryIdAttribute |> Some))
+                          let et = dMem (p, (ern, eri, erm.PrimaryIdAttribute |> Some))
 
                           match et with
                           | false -> 

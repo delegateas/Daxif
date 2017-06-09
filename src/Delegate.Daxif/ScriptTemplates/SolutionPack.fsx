@@ -1,33 +1,24 @@
 ﻿(**
 SolutionPack
 ============
+*)
 
-Libraries
----------
+#load @"_Config.fsx"
+open _Config
+open DG.Daxif
+open DG.Daxif.Common
 
-Config information *)
-#load @"Config.fsx"
+// Unmanaged
+Solution.Pack(
+  Utility.addEndingToFilename Path.Daxif.unmanagedSolution "_packed", 
+  Path.SolPack.customizationsFolder, 
+  Path.SolPack.xmlMappingFile, 
+  managed = false)
 
-module cfg = Config
-
-(** Open libraries for use *)
-open DG.Daxif.Modules
-
-(**
-DAXIF# operations
------------------
-
-Pack solution *)
-cfg.ensureFolder cfg.solutions
-
-let map  = cfg.rootFolder + @"\..\Blueprint\xml"
-let cms  = cfg.rootFolder + @"\..\Blueprint\customizations"
-
-let zipu = cfg.solutions + cfg.solution + @"_.zip"
-let zipm = cfg.solutions + cfg.solution + @"_managed_.zip"
-
-Solution.pack
-  cfg.solution zipu cms map false cfg.log
-
-Solution.pack
-  cfg.solution zipm cms map true cfg.log
+// Managed
+Solution.Pack(
+  Utility.addEndingToFilename Path.Daxif.managedSolution "_packed", 
+  Path.SolPack.customizationsFolder, 
+  Path.SolPack.xmlMappingFile, 
+  managed = true
+)

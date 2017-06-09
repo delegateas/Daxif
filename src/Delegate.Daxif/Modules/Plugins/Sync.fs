@@ -72,13 +72,13 @@ let update proxy imgDiff stepDiff =
 
 
 /// Creates types and returns guid map for them.
-let createTypes proxy typeDiff asmId tTypes =
+let createTypes proxy typeDiff asmId targetTypes =
   let newTypes =
     typeDiff.adds 
     |> Map.toArray
     |> Array.map (fun (name, _) -> name, EntitySetup.createType asmId name)
 
-  let orgTypeMap = tTypes |> Map.map (fun _ (e: Entity) -> e.Id)
+  let orgTypeMap = targetTypes |> Map.map (fun _ (e: Entity) -> e.Id)
   let typeMap =
     newTypes 
     |> Array.map (snd >> makeCreateReq >> toOrgReq)
@@ -93,7 +93,7 @@ let createTypes proxy typeDiff asmId tTypes =
 
 
 /// Creates steps and binds to matching plugin types. Returns a guid map for steps.
-let createSteps proxy stepDiff tSteps typeMap =
+let createSteps proxy stepDiff targetSteps typeMap =
   let stepsArray =
     stepDiff.adds
     |> Map.toArray
@@ -115,7 +115,7 @@ let createSteps proxy stepDiff tSteps typeMap =
     )
 
   // Perform creates and add to guid map
-  let orgStepMap = getStepMap proxy tSteps
+  let orgStepMap = getStepMap proxy targetSteps
 
   let stepMap =
     newSteps 
@@ -146,7 +146,7 @@ let createImages proxy imgDiff stepMap =
 
 /// Creates additions to the plugin configuration in the correct order and
 /// passes guid maps to next step in process
-let create proxy imgDiff stepDiff typeDiff asmId tTypes tSteps =
-  createTypes proxy typeDiff asmId tTypes
-  |> createSteps proxy stepDiff tSteps
+let create proxy imgDiff stepDiff typeDiff asmId targetTypes targetSteps =
+  createTypes proxy typeDiff asmId targetTypes
+  |> createSteps proxy stepDiff targetSteps
   |> createImages proxy imgDiff

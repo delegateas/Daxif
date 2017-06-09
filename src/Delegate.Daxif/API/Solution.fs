@@ -94,3 +94,16 @@ type Solution private () =
     let logLevel = logLevel ?| LogLevel.Verbose
     
     Main.createPublisher env.url name displayName prefix env.apToUse usr pwd dmn logLevel
+
+  /// <summary>Extracts a solution package using the SolutionPackager</summary>
+  static member Extract(solutionFile, customizationsFolder, xmlMappingFile, projectFile, ?logLevel) =
+    let logLevel = logLevel ?| LogLevel.Verbose
+
+    Main.extract solutionFile customizationsFolder xmlMappingFile projectFile
+
+  /// <summary>Packs a solution package using the SolutionPackager</summary>
+  static member Pack(outputFile, customizationsFolder, xmlMappingFile, ?managed, ?logLevel) =
+    let logLevel = logLevel ?| LogLevel.Verbose
+    let managed = managed ?| false
+
+    Main.pack outputFile customizationsFolder xmlMappingFile managed

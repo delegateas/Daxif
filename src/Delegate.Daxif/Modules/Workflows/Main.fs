@@ -5,6 +5,7 @@ open DG.Daxif.Common
 open DG.Daxif.Modules
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
+open DG.Daxif.Common.InternalUtility
 
 let syncSolution org solution dll ap usr pwd domain log = 
   let ac = Authentication.getCredentials ap usr pwd domain

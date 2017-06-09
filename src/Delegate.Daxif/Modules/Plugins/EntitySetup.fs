@@ -6,6 +6,7 @@ open Microsoft.Xrm.Sdk
 open DG.Daxif
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
+open DG.Daxif.Common.InternalUtility
 
 open Domain
 open CrmUtility

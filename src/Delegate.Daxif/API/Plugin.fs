@@ -3,7 +3,8 @@
 open DG.Daxif.Common
 open DG.Daxif.Modules.Plugin
 module sol = DG.Daxif.Modules.Solution.Main
-open Utility
+open DG.Daxif.Common.Utility
+open DG.Daxif.Common.InternalUtility
 
 type Plugin private () =
 

@@ -4,18 +4,17 @@ SolutionUpdateTsContext
 *)
 
 #load @"_Config.fsx"
-module cfg = _Config
-
+open _Config
 open DG.Daxif
 
-Solution.GenerateTypeScriptContext(cfg.devEnv, cfg.Path.xrmDefinitelyTyped, cfg.Path.xrmTypings,
+Solution.GenerateTypeScriptContext(Env.dev, Path.xrmDefinitelyTyped, Path.xrmTypings,
   solutions = [
-    cfg.solutionName
+    XrmSolution.name
     ],
   entities = [
     // eg. "systemuser"
     ],
   extraArguments = [
     "web", ""
-    "jsLib", cfg.Path.jsLib
+    "jsLib", Path.jsLib
     ])

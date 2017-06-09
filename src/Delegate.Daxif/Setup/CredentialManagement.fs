@@ -7,18 +7,16 @@ module internal DG.Daxif.Setup.CredentialManagement
 open System
 open System.IO
 open System.Text
-open System.Security
 open System.Security.Cryptography
-
-open DG.Daxif
 open DG.Daxif.Common.Utility
+
 
 module internal HelperMethods =
   let protect (usr, pwd, dmn) =
     ProtectedData.Protect(Encoding.UTF8.GetBytes(sprintf "%s\n%s\n%s" usr pwd dmn), null, DataProtectionScope.CurrentUser)
     |> Convert.ToBase64String
 
-  let unprotect (toDecode: string) =
+  let unprotect toDecode =
     ProtectedData.Unprotect(Convert.FromBase64String(toDecode), null, DataProtectionScope.CurrentUser)
     |> Encoding.UTF8.GetString
     |> fun str -> 
@@ -61,9 +59,6 @@ module internal HelperMethods =
     saveCredsToFile key creds
     creds
 
-  
-let removeCredentials key =
-  HelperMethods.getCredsFilePathFromKey key |> File.Delete
 
 let getCredentials key =
   match HelperMethods.loadCredsFromFile key with
@@ -71,4 +66,18 @@ let getCredentials key =
   | None -> HelperMethods.getCredsFromInputAndStore key
   
 
+let promptNewCreds key =
+  let path = HelperMethods.getCredsFilePathFromKey key
+  match File.Exists path with
+  | false -> None
+  | true  ->
+    printfn "Do you want to delete the currently stored credentials and re-enter new ones? [y/n]"
+    let response = Console.ReadLine()
+    match response with
+    | ParseRegex "(y|yes)" x ->
+      File.Delete path
+      Some (getCredentials key)
+    | _ ->
+      None
+    
   

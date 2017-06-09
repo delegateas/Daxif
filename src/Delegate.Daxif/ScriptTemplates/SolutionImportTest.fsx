@@ -4,11 +4,10 @@ SolutionImportTest
 *)
 
 #load @"_Config.fsx"
-module cfg = _Config
-
-open System.IO
+open _Config
 open DG.Daxif
+open DG.Daxif.Common.Utility
 
-let zip = Path.Combine(cfg.Path.crmSolutions, cfg.solutionName + @"_managed_.zip")
+let zip = Path.Daxif.crmSolutionsFolder ++ (XrmSolution.name + @".zip")
 
-Solution.Import(cfg.testEnv, zip, activatePluginSteps = true, extended = true)
+Solution.Import(Env.test, zip, activatePluginSteps = true, extended = true)

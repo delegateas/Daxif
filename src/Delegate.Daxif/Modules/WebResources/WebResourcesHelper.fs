@@ -5,6 +5,7 @@ open System.IO
 open Microsoft.Xrm.Sdk
 open DG.Daxif
 open DG.Daxif.Common
+open DG.Daxif.Common.InternalUtility
 
 // Types of webresource actions
 type WebResourceAction = 
@@ -33,7 +34,7 @@ let localResourceToWebResource file prefix solution
   let wt = 
     Enum.Parse(typeof<WebResourceType>, ext.ToUpper()) :?> WebResourceType
   let wr = Entity("webresource")
-  wr.Attributes.Add("content", Utility.fileToBase64 (file))
+  wr.Attributes.Add("content", fileToBase64 (file))
   wr.Attributes.Add("displayname", Path.GetFileName wn)
   wr.Attributes.Add("name", wn)
   wr.Attributes.Add("webresourcetype", OptionSetValue(int wt))
@@ -143,8 +144,8 @@ let syncSolution' org ac location (log : ConsoleLogger) =
     |> Array.Parallel.map (fun (x, y) -> 
           let x' = x.Attributes.["content"] :?> string
           let y' = y.Attributes.["content"] :?> string
-          let h1 = x' |> Utility.fnv1aHash
-          let h2 = y' |> Utility.fnv1aHash
+          let h1 = x' |> fnv1aHash
+          let h2 = y' |> fnv1aHash
           x.Attributes.["content"] <- y'
           let xdn = x.Attributes.["displayname"] :?> string
           let ydn = y.Attributes.["displayname"] :?> string

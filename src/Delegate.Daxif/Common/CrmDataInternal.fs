@@ -259,7 +259,7 @@ module CrmDataInternal =
       |> fun x -> 
         let fetchxml = 
           x.Attributes.["fetchxml"] :?> string 
-          |> DG.Daxif.Common.Utility.decode
+          |> InternalUtility.decode
         let req = Messages.FetchXmlToQueryExpressionRequest()
         req.FetchXml <- fetchxml
         let resp = 

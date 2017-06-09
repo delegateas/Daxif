@@ -10,8 +10,9 @@ open Microsoft.Xrm.Sdk
 open DG.Daxif
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
-open DG.Daxif.Modules.Serialization
+open DG.Daxif.Common.InternalUtility
 open DG.Daxif.Common.CrmUtility
+open DG.Daxif.Modules.Serialization
 
 // Record for holding the state of an entity
 type EntityState =
@@ -174,7 +175,7 @@ let exportDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
 
   // Retriev Customization.xml file from the solution package and store it in 
   // a temp folder
-  let tempFolder = Utility.createTempFolder()
+  let tempFolder = InternalUtility.createTempFolder()
 
   log.WriteLine(LogLevel.Verbose, @"Extracting customization.xml from solution")
 

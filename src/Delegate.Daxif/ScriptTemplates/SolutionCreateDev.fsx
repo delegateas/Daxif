@@ -4,11 +4,9 @@ SolutionCreateDev
 *)
 
 #load @"_Config.fsx"
-module cfg = _Config
-
-open System.IO
+open _Config
 open DG.Daxif
 
-Solution.CreatePublisher(cfg.devEnv, cfg.pubName, cfg.pubDisplay, cfg.pubPrefix)
+Solution.CreatePublisher(Env.dev, Publisher.name, Publisher.displayName, Publisher.prefix)
 
-Solution.Create(cfg.devEnv, cfg.solutionName, cfg.solutionDisplayName, cfg.pubPrefix)
+Solution.Create(Env.dev, XrmSolution.name, XrmSolution.displayName, CrmPublisher.prefix)

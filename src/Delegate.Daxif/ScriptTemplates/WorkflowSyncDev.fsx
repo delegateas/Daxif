@@ -4,8 +4,7 @@ WorkflowSyncDev
 *)
 
 #load @"_Config.fsx"
-module cfg = _Config
-
+open _Config
 open DG.Daxif
 
-Workflow.Sync(cfg.devEnv, cfg.Path.workflowDll, cfg.solutionName)
+Workflow.Sync(Env.dev, Path.workflowDll, XrmSolution.name)

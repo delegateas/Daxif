@@ -3,8 +3,7 @@ DataExportSource
 =================
 *)
 #load @"_Config.fsx"
-module cfg = _Config
-
+open _Config
 open DG.Daxif
 
 let entities = 
@@ -13,4 +12,4 @@ let entities =
     "contact"
   |]
 
-Data.Export(cfg.devEnv, entities, cfg.Path.data)
+Data.Export(Env.dev, entities, Path.Daxif.dataFolder)

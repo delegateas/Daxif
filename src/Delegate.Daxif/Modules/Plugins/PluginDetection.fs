@@ -6,6 +6,7 @@ open System.Reflection
 open System.Xml.Linq
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
+open DG.Daxif.Common.InternalUtility
 
 open Domain
 
@@ -127,7 +128,7 @@ let getAssemblyContextFromDll projectPath dllPath isolationMode =
       |> Set.ofSeq
       |> Set.map(fun x -> 
         match File.GetLastWriteTimeUtc x > asmWriteTime with
-        | true  -> failwithf "A file in the project was updated later than compiled assembly: %s" x
+        | true  -> failwithf "A file in the project was updated later than compiled assembly: %s\nPlease recompile and synchronize again." x
         | false -> File.ReadAllBytes(x) |> sha1CheckSum'
       )
       |> Set.fold(fun a x -> a + x |> sha1CheckSum) String.Empty

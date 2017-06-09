@@ -1,9 +1,10 @@
 ﻿module DG.Daxif.Modules.Plugin.Main
 
 open DG.Daxif
-open DG.Daxif.Common.Utility
 open DG.Daxif.Modules.Plugin
 open DG.Daxif.Common
+open DG.Daxif.Common.Utility
+open DG.Daxif.Common.InternalUtility
 
 open Domain
 
@@ -36,13 +37,13 @@ let analyze proxyGen projectPath dllPath solutionName isolationMode =
 
 
 /// Performs a full synchronization of plugins
-let performSync proxy solutionName asmCtx asm (sTypes, sSteps, sImgs) (tTypes, tSteps, tImgs) =
+let performSync proxy solutionName asmCtx asm (sourceTypes, sourceSteps, sourceImgs) (targetTypes, targetSteps, targetImgs) =
   log.Info "Starting plugin synchronization"
   
   // Find differences
-  let typeDiff = mapDiff sTypes tTypes Compare.pluginType
-  let stepDiff = mapDiff sSteps tSteps Compare.step
-  let imgDiff = mapDiff sImgs tImgs Compare.image
+  let typeDiff = mapDiff sourceTypes targetTypes Compare.pluginType
+  let stepDiff = mapDiff sourceSteps targetSteps Compare.step
+  let imgDiff = mapDiff sourceImgs targetImgs Compare.image
 
   // Perform sync
   log.Info "Deleting old registrations"
@@ -55,7 +56,7 @@ let performSync proxy solutionName asmCtx asm (sTypes, sSteps, sImgs) (tTypes, t
   Sync.update proxy imgDiff stepDiff
 
   log.Info "Creating new registrations"
-  Sync.create proxy imgDiff stepDiff typeDiff asmId tTypes tSteps
+  Sync.create proxy imgDiff stepDiff typeDiff asmId targetTypes targetSteps
 
   log.Info "Plugin synchronization was successful"
 
@@ -75,9 +76,9 @@ let syncSolution proxyGen projectPath dllPath solutionName isolationMode dryRun 
     log.Info "***** Dry run *****"
     let regTypes, regSteps, regImages = registered
     let localTypes, localSteps, localImages = local
-    printMergePartition "Types" localTypes regTypes Compare.pluginType
-    printMergePartition "Steps" localSteps regSteps Compare.step
-    printMergePartition "Images" localImages regImages Compare.image
+    printMergePartition "Types" localTypes regTypes Compare.pluginType log 
+    printMergePartition "Steps" localSteps regSteps Compare.step log
+    printMergePartition "Images" localImages regImages Compare.image log
 
   local, registered
     

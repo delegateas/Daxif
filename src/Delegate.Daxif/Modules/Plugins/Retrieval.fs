@@ -91,7 +91,7 @@ let getRelevantMessagesAndFilters proxy (steps: Step seq) =
   // Filters
   let filterRequests = 
     steps
-    |> Seq.distinctBy (fun step -> step.logicalName)
+    |> Seq.distinctBy (fun step -> step.eventOperation, step.logicalName)
     |> Seq.map (fun step -> 
       let messageId = messageMap.[step.eventOperation]
 

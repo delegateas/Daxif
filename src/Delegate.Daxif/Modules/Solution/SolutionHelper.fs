@@ -499,7 +499,7 @@ let extract' location (customizations : string) (map : string) project
     sp.Run()
   with ex -> log.WriteLine(LogLevel.Error, sprintf "%s" ex.Message)
   log.WriteLine(LogLevel.Info, "End output from SolutionPackager")
-  touch project
+  InternalUtility.touch project
   ()
       
 //TODO:

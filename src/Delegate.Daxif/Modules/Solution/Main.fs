@@ -5,6 +5,7 @@ open System.IO
 open DG.Daxif
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
+open DG.Daxif.Common.InternalUtility
 
 let createPublisher org name display prefix ap usr pwd domain log = 
   let ac = Authentication.getCredentials ap usr pwd domain
@@ -161,21 +162,17 @@ let importWithDGSolution org location ap usr pwd domain log =
   log'.WriteLine(LogLevel.Info, @"The extended solution was imported successfully")
   
 // TODO: 
-let extract solution location customizations map project log = 
+let extract location customizations map project log = 
   let log' = ConsoleLogger log
   log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Extract solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
   log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
   SolutionHelper.extract' location customizations map project log' log
   log'.WriteLine(LogLevel.Info, @"The solution was extracted successfully")
   
 // TODO: 
-let pack solution location customizations map managed log = 
+let pack location customizations map managed log = 
   let log' = ConsoleLogger log
   log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Pack solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
   log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
   SolutionHelper.pack' location customizations map managed log' log
   log'.WriteLine(LogLevel.Info, @"The solution was packed successfully")

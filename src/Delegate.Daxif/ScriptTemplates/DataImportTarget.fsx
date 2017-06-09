@@ -4,9 +4,7 @@ DataImportTarget
 *)
 
 #load @"_Config.fsx"
-module cfg = _Config
-
+open _Config
 open DG.Daxif
-open DG.Daxif.Modules
 
-Data.Import(cfg.testEnv, cfg.Path.data, serialize = Serialize.JSON)
+Data.Import(Env.test, Path.Daxif.dataFolder, serialize = Serialize.JSON)
