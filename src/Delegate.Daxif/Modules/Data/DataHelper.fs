@@ -1165,14 +1165,12 @@ module DuplicateDetectionRules =
 
   let retrieveDR proxy = 
     let f = FilterExpression()
-    f.AddCondition
-      (@"statecode", ConditionOperator.Equal, 0)
-    f.AddCondition
-      (@"statuscode", ConditionOperator.Equal, 0)
+    f.AddCondition(@"statecode", ConditionOperator.Equal, 0)
+    f.AddCondition(@"statuscode", ConditionOperator.Equal, 0)
     let q = QueryExpression("duplicaterule")
     q.ColumnSet <- ColumnSet([|"duplicateruleid";"name"|])
     q.Criteria <- f
-    CrmData.CRUD.retrieveMultiple proxy "duplicaterule" q
+    CrmDataHelper.retrieveMultiple proxy q
 
   let publish org ac (dupRules:(string)[]) (log:ConsoleLogger) =
 

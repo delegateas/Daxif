@@ -46,5 +46,3 @@ let authenticate org ap username password domain =
   let at = m.Authenticate(getCredentials ap username password domain)
   m,at
 
-let proxyInstance manager authToken =
-  getOrganizationServiceProxy manager authToken

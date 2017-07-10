@@ -1,6 +1,6 @@
-﻿module internal DG.Daxif.Modules.Plugin.Retrieval
+﻿module DG.Daxif.Modules.Plugin.Retrieval
 
-
+open System
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Messages
 
@@ -9,6 +9,7 @@ open DG.Daxif.Common.Utility
 
 open Domain
 open CrmUtility
+open CrmDataHelper
 
 
 /// Retrieve registered plugins from CRM related to a certain assembly and solution
@@ -33,8 +34,9 @@ let retrieveRegistered proxy solutionId assemblyId =
 
   // Images do not have a unique name. It will be combined with the name of the parent step.
   let imageMap = 
-    Query.pluginStepImagesBySolution solutionId 
-    |> CrmDataHelper.retrieveMultiple proxy 
+    steps
+    |> Seq.map (fun s -> Query.pluginStepImagesByStep s.Id)
+    |> CrmDataHelper.bulkRetrieveMultiple proxy
     |> Seq.choose (fun img -> 
       let stepId = img.GetAttributeValue<EntityReference>("sdkmessageprocessingstepid").Id
       match stepGuidMap.TryFind stepId with
@@ -55,17 +57,16 @@ let retrieveRegisteredByAssembly proxy solutionId assemblyName =
     Query.pluginAssembliesBySolution solutionId
     |> CrmDataHelper.retrieveMultiple proxy
     |> Seq.tryFind (fun a -> getRecordName a = assemblyName)
-    
+    ?|> AssemblyRegistration.fromEntity
 
-  match targetAssembly ?|> fun a -> a.Id with
-  | None       -> Map.empty, Map.empty, Map.empty
-  | Some asmId -> retrieveRegistered proxy solutionId asmId
+  match targetAssembly with
+  | None         -> Map.empty, Map.empty, Map.empty
+  | Some asmInfo -> retrieveRegistered proxy solutionId asmInfo.id
   |> fun maps -> targetAssembly, maps
 
 
-/// Retrieves the necessary SdkMessage and SdkMessageFilter guids 
-/// for a collection of Steps
-let getRelevantMessagesAndFilters proxy (steps: Step seq) =
+/// Retrieves the necessary SdkMessage and SdkMessageFilter GUIDs for a collection of Steps
+let getRelevantMessagesAndFilters proxy (steps: Step seq) : Map<(EventOperation * LogicalName), (Guid * Guid)> =
   // Messages
   let messageRequests = 
     steps
@@ -116,7 +117,7 @@ let getRelevantMessagesAndFilters proxy (steps: Step seq) =
    
 
 /// Retrieves the associated event operation for a given collection of step entities
-/// and creates a map for the images to use
+/// and creates a map of it. This map is used for the images associated with the steps
 let getStepMap proxy (steps: Map<string, Entity>) =
   let messageGuids =
     steps
@@ -130,7 +131,7 @@ let getStepMap proxy (steps: Map<string, Entity>) =
 
   let eventOpMap =
     messageGuids
-    |> Array.map (fun guid -> (makeRetrieve "sdkmessage" guid [| "name" |]) :> OrganizationRequest)
+    |> Array.map (fun guid -> makeRetrieve "sdkmessage" guid (RetrieveSelect.Fields ["name"]) |> toOrgReq)
     |> CrmDataHelper.performAsBulkResultHandling proxy raiseExceptionIfFault
       (fun resp -> 
         let guid = messageGuids.[resp.RequestIndex]
@@ -141,5 +142,5 @@ let getStepMap proxy (steps: Map<string, Entity>) =
     |> Map.ofArray
 
   steps
-  |> Map.map (fun n e -> 
-    e.Id, eventOpMap.[e.GetAttributeValue<EntityReference>("sdkmessageid").Id])
+  |> Map.map (fun _ step -> 
+    step.Id, eventOpMap.[step.GetAttributeValue<EntityReference>("sdkmessageid").Id])

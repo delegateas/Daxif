@@ -31,7 +31,8 @@ type DelegateSolution =
     keepPluginSteps: seq<Guid*string>
     keepPluginImages: seq<Guid*string>
     keepWorkflows: seq<Guid*string>
-    keepWebresources: seq<Guid*string>}
+    keepWebresources: seq<Guid*string>
+  }
 
 let asmLogicName = @"pluginassembly"
 let typeLogicName = @"plugintype"
@@ -40,7 +41,7 @@ let imgLogicName = @"sdkmessageprocessingstepimage"
 let webResLogicalName = @"webresource"
 let workflowLogicalName = @"workflow"
 
-let getName (x:Entity) = x.Attributes.["name"] :?> string
+let getName (x:Entity) = x.GetAttributeValue<string>("name")
    
 // Tries to get an attribute from an entit. Fails if the attribute does not exist.
 let getAttribute key (x:Entity)= 
@@ -171,7 +172,7 @@ let exportDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
   let tc = m.Authenticate(ac)
   use p = ServiceProxy.getOrganizationServiceProxy m tc
 
-  let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
+  let solution = CrmDataInternal.Entities.retrieveSolutionId p solutionName
 
   // Retriev Customization.xml file from the solution package and store it in 
   // a temp folder
@@ -258,22 +259,24 @@ let exportDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
 
   log.WriteLine(LogLevel.Info, @"DGSolution exported successfully")
 
-let importDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
+
+/// Import solution
+let importDGSolution org ac solutionName zipPath =
   use zipToOpen = new FileStream(zipPath, FileMode.Open)
   use archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update)
 
   let zipSolName = getSolutionNameFromSolution solutionName archive log
 
-  log.WriteLine(LogLevel.Verbose, 
-    @"Attempting to retrieve dgSolution.xml file from solution package")
+  log.Verbose @"Attempting to retrieve dgSolution.xml file from solution package"
   match archive.Entries |> Seq.exists(fun e -> e.Name = "dgSolution.xml") with                                        
   | false -> 
     failwith @"DGSolution import failed. No dgSolution.xml file found in solution package"
+
   | true -> 
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
-    let solution = CrmDataInternal.Entities.retrieveSolution p zipSolName
+    let solution = CrmDataInternal.Entities.retrieveSolutionId p zipSolName
 
     // Fetch the dgSolution.xml file and unserialize it
     let entry = archive.GetEntry("dgSolution.xml")
@@ -284,7 +287,7 @@ let importDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
     let dgSol = SerializationHelper.deserializeXML<DelegateSolution> xmlContent
       
     // Read the status and statecode of the entities and update them in crm
-    log.WriteLine(LogLevel.Verbose, @"Finding states of entities to be updated")
+    log.Verbose @"Finding states of entities to be updated"
 
     // Find the source entities that have different code values than target
     let diffdgSol =
@@ -303,8 +306,7 @@ let importDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
         getCodeValue "statuscode" target <> source.statusCode)
 
       
-    log.WriteLine(LogLevel.Verbose, 
-      sprintf @"Found %d entity states to be updated" diffdgSol.Length )
+    log.Verbose @"Found %d entity states to be updated" diffdgSol.Length
 
     // Update the entities states
     match diffdgSol |> Seq.length with
@@ -318,7 +320,7 @@ let importDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
           x'.stateCode x'.statusCode :> OrganizationRequest )
       |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
 
-    log.WriteLine(LogLevel.Verbose, "Synching plugins")
+    log.Verbose "Synching plugins"
 
     // Sync Plugins and Webresources
     let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds p solution.Id
@@ -338,17 +340,17 @@ let importDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
       let diff = t - s
 
       match func with
-      | None -> ()
-      | Some(f) -> f p ln target diff log
+      | None   -> ()
+      | Some f -> f p ln target diff log
         
-      log.WriteLine(LogLevel.Verbose, sprintf "Found %d '%s' entities to be deleted " diff.Count ln)
+      log.Verbose "Found %d '%s' entities to be deleted " diff.Count ln
       match diff.Count with
       | 0 -> ()
       | _ -> 
         diff
         |> Set.toSeq
         |> subset target
-        |> Seq.map( fun (x,_) ->
+        |> Seq.map (fun (x, _) ->
           CrmData.CRUD.deleteReq ln x :> OrganizationRequest)
         |> Seq.toArray
         |> CrmDataInternal.CRUD.performAsBulkWithOutput p log

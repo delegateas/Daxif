@@ -39,7 +39,4 @@ module internal ServiceProxy =
   let proxyContext iServiceM authCred f =
     use p = getOrganizationServiceProxy iServiceM authCred
     f p
-
-  let proxyGen iServiceM authCred () =
-    getOrganizationServiceProxy iServiceM authCred
-
+    

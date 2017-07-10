@@ -17,39 +17,37 @@ type WebResourceAction =
 let (+/) a b = a + @"/" + b
 let fullpath (a : string) r = a.Replace(@"\", @"/") +/ r
   
-let subset a (b : Entity seq) = 
-  b |> Seq.filter (fun x -> 
-          let z = x.Attributes.["name"] :?> string
-          ((fun y -> y = z), a) ||> Seq.exists)
+let getMatchingEntitiesByName namesToKeep =
+  Seq.filter (fun (x: Entity) -> 
+    namesToKeep |> Set.contains (x.GetAttributeValue<string>("name"))
+  )
   
 // Convert a local web resource file to an entity object.
-let localResourceToWebResource file prefix solution 
-    (log : ConsoleLogger) = 
-  let (log : ConsoleLogger) = log
-  let ps = prefix + "_" + solution
-  let fn = Path.GetFileName(file)
+let localResourceToWebResource file (namePrefix: string) = 
+  let fileName = Path.GetFileName(file)
   let ext = Path.GetExtension(file).ToUpper().Replace(@".", String.Empty)
-  let rp = file.Substring(file.IndexOf(ps) + ps.Length)
-  let wn = ps + rp.Replace(@"\", @"/")
-  let wt = 
-    Enum.Parse(typeof<WebResourceType>, ext.ToUpper()) :?> WebResourceType
+  let rp = file.Substring(file.IndexOf(namePrefix) + namePrefix.Length)
+  let webResourceName = namePrefix + rp.Replace(@"\", @"/")
+  let webResourceType = Enum.Parse(typeof<WebResourceType>, ext.ToUpper()) :?> WebResourceType
+
   let wr = Entity("webresource")
   wr.Attributes.Add("content", fileToBase64 (file))
-  wr.Attributes.Add("displayname", Path.GetFileName wn)
-  wr.Attributes.Add("name", wn)
-  wr.Attributes.Add("webresourcetype", OptionSetValue(int wt))
-  match wt with
+  wr.Attributes.Add("displayname", Path.GetFileName webResourceName)
+  wr.Attributes.Add("name", webResourceName)
+  wr.Attributes.Add("webresourcetype", OptionSetValue(int webResourceType))
+
+  match webResourceType with
   | WebResourceType.XAP -> wr.Attributes.Add("silverlightversion", "4.0")
   | _ -> ()
-  match wn.Contains(@"-") with // TODO: Do more complex HTML check
-  | false -> wr |> Some
+
+  match webResourceName.Contains(@"-") with // TODO: Do more complex HTML check
+  | false -> Some wr
   | true -> 
-    let msg = "Webname: " + wn + " is not supported"
-    log.WriteLine(LogLevel.Error, msg)
+    log.WriteLine(LogLevel.Error, "Webname: " + webResourceName + " is not supported")
     None
   
-// Get all local webresources by enumerating all folders at given location,
-// while looking for supported file types.
+/// Get all local webresources by enumerating all folders at given location,
+/// while looking for supported file types.
 let getLocalResourcesHelper location = 
   seq { 
     let exts = 
@@ -62,8 +60,7 @@ let getLocalResourcesHelper location =
         match exts' with
         | [] -> ()
         | n0 :: tail -> 
-          yield! Directory.EnumerateFiles
-                    (location, @"*" + n0, SearchOption.AllDirectories)
+          yield! Directory.EnumerateFiles(location, @"*" + n0, SearchOption.AllDirectories)
           yield! getLocalResources' tail
       }
       
@@ -82,120 +79,115 @@ let getPrefixAndUniqueName location =
     failwith 
       @"Incorrect root folder (must only contain 1 folder ex: 'publishPrefix_uniqueSolutionName'"
   
-/// Filter out any folders/files which are labeled with "_nosync" and
-/// reformat the filename.
-let localFiles location prefix solution = 
+/// Filter out any files which are labeled with "_nosync"
+let localFiles location = 
   getLocalResourcesHelper location
-  |> Seq.map (fun x -> 
-        let ps = prefix + "_" + solution
-        let fn = Path.GetFileName(x)
-        let rp = x.Substring(x.IndexOf(ps) + ps.Length)
-        ps + rp.Replace(@"\", @"/"))
+  |> Seq.filter (fun name -> not <| name.EndsWith("_nosync"))
   |> Set.ofSeq
+ 
+let getSyncActions proxy webresourceFolder solutionName =
+  let (solutionId, prefix) = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy solutionName
+  let webResources = CrmDataInternal.Entities.retrieveWebResources proxy solutionId
   
-let syncSolution' org ac location (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  let (prefix, solutionName) = getPrefixAndUniqueName location
-  let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
-  let wr = CrmDataInternal.Entities.retrieveWebResources p solution.Id
-  let source = localFiles location prefix solutionName
-    
-  let target = 
-    wr
-    |> Seq.map (fun x -> x.Attributes.["name"] :?> string)
+  let wrPrefix = sprintf "%s_%s" prefix solutionName
+
+  let localWRs = localFiles webresourceFolder  
+  let crmWRs = 
+    webResources
+    |> Seq.map (fun x -> x.GetAttributeValue<string>("name"))
     |> Set.ofSeq
     
-  let create = source - target
-  let delete = target - source
-  let update = Set.intersect source target // only if different fnv1aHash
-    
-  let create' = 
-    create
+  let create = 
+    localWRs - crmWRs
     |> Set.toArray
-    |> Array.Parallel.map 
-          (fun x -> 
-          localResourceToWebResource ((location, x) ||> fullpath) prefix 
-            solutionName log)
+    |> Array.Parallel.map (fun x -> 
+      localResourceToWebResource (fullpath webresourceFolder x) wrPrefix
+    )
     |> Array.choose (fun x -> id x)
     |> Array.Parallel.map (fun x -> WebResourceAction.Create, x)
     
-  let delete' = 
-    (delete, wr)
-    ||> subset
+  let delete = 
+    getMatchingEntitiesByName (crmWRs - localWRs) webResources
     |> Seq.toArray
     |> Array.Parallel.map (fun x -> WebResourceAction.Delete, x)
     
-  let update' = 
-    (update, wr)
-    ||> subset
+  let update = 
+    getMatchingEntitiesByName (Set.intersect localWRs crmWRs) webResources
     |> Seq.toArray
-    |> Array.Parallel.map (fun x -> 
-          let y = x.Attributes.["name"] :?> string
-          let x' = 
-            localResourceToWebResource ((location, y) ||> fullpath) prefix 
-              solutionName log
-          x, x')
-    |> Array.choose (fun (x, y) -> 
-          (x, y) |> function 
-          | _, None -> None
-          | u, Some v -> (u, v) |> Some)
-    |> Array.Parallel.map (fun (x, y) -> 
-          let x' = x.Attributes.["content"] :?> string
-          let y' = y.Attributes.["content"] :?> string
-          let h1 = x' |> fnv1aHash
-          let h2 = y' |> fnv1aHash
-          x.Attributes.["content"] <- y'
-          let xdn = x.Attributes.["displayname"] :?> string
-          let ydn = y.Attributes.["displayname"] :?> string
-          x.Attributes.["displayname"] <- ydn
-          h1 = h2 && xdn = ydn, x)
+    |> Array.Parallel.map (fun currentWr -> 
+      let name = currentWr.GetAttributeValue<string>("name")
+      let localWr = localResourceToWebResource (fullpath webresourceFolder name) wrPrefix
+      currentWr, localWr
+    )
+    |> Array.choose (function 
+      | _, None   -> None
+      | u, Some v -> (u, v) |> Some
+    )
+    |> Array.Parallel.map (fun (currentWr, localWr) -> 
+      let currentContent = currentWr.GetAttributeValue<string>("content")
+      let localContent = localWr.GetAttributeValue<string>("content")
+      currentWr.Attributes.["content"] <- localContent
+
+      let currentDisplayName = currentWr.GetAttributeValue<string>("displayname")
+      let localDisplayName = localWr.GetAttributeValue<string>("displayname")
+      currentWr.Attributes.["displayname"] <- localDisplayName
+
+      currentContent = localContent && currentDisplayName = localDisplayName, currentWr
+    )
     |> Array.filter (fun (x, _) -> not x)
     |> Array.Parallel.map (fun (_, y) -> WebResourceAction.Update, y)
     
   seq { 
-    yield! create'
-    yield! delete'
-    yield! update'
+    yield! create
+    yield! delete
+    yield! update
   }
-  |> Seq.toArray
-  |> Array.Parallel.map (fun (x, y) -> 
-        use p' = ServiceProxy.getOrganizationServiceProxy m tc
-        let yrn = y.Attributes.["name"] :?> string
-        try 
-          match x with
-          | WebResourceAction.Create -> 
-            let pc = ParameterCollection()
-            pc.Add("SolutionUniqueName", solutionName)
-            let guid = CrmData.CRUD.create p' y pc
-            let msg = sprintf "%s: (%O,%s) was created" y.LogicalName guid yrn
-            log.WriteLine(LogLevel.Verbose, msg)
-          | WebResourceAction.Update -> 
-            CrmData.CRUD.update p' y |> ignore
-            let msg = sprintf "%s: (%O,%s) was updated" yrn y.Id yrn //y.LogicalName y.Id yrn?
-            log.WriteLine(LogLevel.Verbose, msg)
-          | WebResourceAction.Delete -> 
-            CrmData.CRUD.delete p' y.LogicalName y.Id |> ignore
-            let msg = sprintf "%s: (%O,%s) was deleted" y.LogicalName y.Id yrn
-            log.WriteLine(LogLevel.Verbose, msg)
-          true
-        with ex -> 
-          log.WriteLine
-            (LogLevel.Error, 
-            ex.Message.Replace(string y.Id, string y.Id + ", " + yrn))
-          false)
-  |> (fun partition -> 
-  match (Seq.exists id partition), (Seq.exists not partition) with
+
+let syncSolution org ac location solutionName = 
+  let m = ServiceManager.createOrgService org
+  let tc = m.Authenticate(ac)
+  use p = ServiceProxy.getOrganizationServiceProxy m tc
+  
+  let syncActions = getSyncActions p location solutionName
+  
+  let actionSuccess =
+    syncActions
+    |> Seq.toArray
+    |> Array.Parallel.map (fun (x, y) -> 
+          use p' = ServiceProxy.getOrganizationServiceProxy m tc
+          let yrn = y.GetAttributeValue<string>("name")
+          try 
+            match x with
+            | WebResourceAction.Create -> 
+              let pc = ParameterCollection()
+              pc.Add("SolutionUniqueName", solutionName)
+              let guid = CrmData.CRUD.create p' y pc
+              log.Verbose "%s: (%O,%s) was created" y.LogicalName guid yrn
+
+            | WebResourceAction.Update -> 
+              CrmData.CRUD.update p' y |> ignore
+              log.Verbose "%s: (%O,%s) was updated" yrn y.Id yrn
+
+            | WebResourceAction.Delete -> 
+              CrmData.CRUD.delete p' y.LogicalName y.Id |> ignore
+              log.Verbose "%s: (%O,%s) was deleted" y.LogicalName y.Id yrn
+
+            true
+          with ex -> 
+            log.WriteLine(LogLevel.Error, ex.Message.Replace(string y.Id, string y.Id + ", " + yrn))
+            false
+          )
+
+  match (Seq.exists id actionSuccess), (Seq.exists not actionSuccess) with
   | false, false -> ()
   | false, true -> failwith "Nothing to publish, all changes failed"
   | true, fail -> 
-    log.WriteLine(LogLevel.Verbose, @"Publishing changes to the solution")
+    log.Verbose @"Publishing changes to the solution"
     CrmDataHelper.publishAll p
+
     match fail with
     | false -> 
-      log.WriteLine(LogLevel.Verbose, "All changes were successfully published")
+      log.Verbose "All changes were successfully published"
     | true -> 
-      log.WriteLine
-        (LogLevel.Verbose, "Some changes were successfully published")
-      failwith "Some changes failed")
+      log.Verbose "Some changes were successfully published"
+      failwith "Some changes failed"

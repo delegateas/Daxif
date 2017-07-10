@@ -7,7 +7,6 @@ open System.IO
 open System.Reflection
 open System.Security.Cryptography
 open System.Text
-open System.Text.RegularExpressions
 open System.Net.Sockets
 open System.Net
 open DG.Daxif
@@ -43,10 +42,13 @@ let fnv1aHash' (bytes : byte []) =
   fnv1Hash'' fnvob 0
   
 let fnv1aHash (key: string) = 
-  key
-  |> Encoding.UTF8.GetBytes
-  |> fnv1aHash'
-  |> fun x -> x.ToString("X")
+  match isNull key with
+  | true -> ""
+  | false ->
+    key
+    |> Encoding.UTF8.GetBytes
+    |> fnv1aHash'
+    |> fun x -> x.ToString("X")
   
 let decode = Web.HttpUtility.HtmlDecode
 let encode = Web.HttpUtility.HtmlEncode
@@ -117,7 +119,10 @@ let syncDescription () =
     (DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss \"GMT\"zzz"))
 
 let logAuthentication ap usr pwd domain (log: ConsoleLogger) =
-  log.Verbose "Authentication Provider: %s" (ap.ToString())
+  log.Verbose "Authentication Provider: %O" ap
   log.Verbose "User: %s" usr
   log.Verbose "Password: %s" pwd
   log.Verbose "Domain: %s" domain
+
+let logVersion (log: ConsoleLogger) =
+  log.Info "%s" daxifVersion

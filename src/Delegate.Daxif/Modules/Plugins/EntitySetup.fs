@@ -14,7 +14,7 @@ open CrmUtility
 
 /// Used to set the requied attribute messagePropertyName 
 /// based on the message class when creating images
-let propertyName =
+let propertyNames =
   Map.empty
     .Add("Assign","Target")
     .Add("Create","id")
@@ -31,7 +31,7 @@ let propertyName =
 
 
 /// Creates a new assembly in CRM with the provided information
-let createAssembly name pathToDll (asm: Assembly) hash (isolationMode:PluginIsolationMode) =
+let createAssembly name pathToDll (asm: Assembly) hash (isolationMode: PluginIsolationMode) =
   let pa = Entity("pluginassembly")
   pa.Attributes.Add("name", name)
   pa.Attributes.Add("content", pathToDll |> fileToBase64)
@@ -58,15 +58,15 @@ let createStep (typeId:Guid) (messageId:Guid) (filterId:Guid) name step =
   ps.Attributes.Add("asyncautodelete", false)
   ps.Attributes.Add("rank", step.executionOrder)
   ps.Attributes.Add("mode", OptionSetValue(step.executionMode))
-  ps.Attributes.Add("plugintypeid", EntityReference("plugintype",typeId))
-  ps.Attributes.Add("sdkmessageid", EntityReference("sdkmessage",messageId))
+  ps.Attributes.Add("plugintypeid", EntityReference("plugintype", typeId))
+  ps.Attributes.Add("sdkmessageid", EntityReference("sdkmessage", messageId))
   ps.Attributes.Add("stage", OptionSetValue(step.executionStage))
   ps.Attributes.Add("filteringattributes", step.filteredAttributes)
   ps.Attributes.Add("supporteddeployment", OptionSetValue(step.deployment))
   ps.Attributes.Add("description", syncDescription())
   match guidNotSet step.userContext with
     | true -> ()
-    | false -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser",step.userContext))
+    | false -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser", step.userContext))
   String.IsNullOrEmpty(step.logicalName) |> function
     | true  -> ()
     | false ->
@@ -76,14 +76,16 @@ let createStep (typeId:Guid) (messageId:Guid) (filterId:Guid) name step =
 
 /// Create a new image with the provided image informations under the defined step
 let createImage (stepId:Guid) eventOperation image =
+  if not <| propertyNames.ContainsKey eventOperation then
+    failwithf "Could not create step images since event operation '%s' was not recognized." eventOperation
+
   let psi = Entity("sdkmessageprocessingstepimage")
   psi.Attributes.Add("name", image.name)
   psi.Attributes.Add("entityalias", image.entityAlias)
   psi.Attributes.Add("imagetype", OptionSetValue(image.imageType))
   psi.Attributes.Add("attributes", image.attributes)
-  psi.Attributes.Add("messagepropertyname", propertyName.[eventOperation])
-  psi.Attributes.Add("sdkmessageprocessingstepid", 
-    EntityReference("sdkmessageprocessingstep",stepId))
+  psi.Attributes.Add("messagepropertyname", propertyNames.[eventOperation])
+  psi.Attributes.Add("sdkmessageprocessingstepid", EntityReference("sdkmessageprocessingstep", stepId))
   psi
 
 /// Used to update an existing step with changes to its attributes
@@ -100,7 +102,7 @@ let updateStep (stepId:Guid) step =
   ps.Attributes.Add("description", syncDescription())
   match guidNotSet step.userContext with
     | true -> ps.Attributes.Add("impersonatinguserid", null)
-    | false -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser",step.userContext))
+    | false -> ps.Attributes.Add("impersonatinguserid", EntityReference("systemuser", step.userContext))
   ps
 
 /// Used to update an existing image with changes to its attributes

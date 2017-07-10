@@ -4,8 +4,8 @@ Config
 
 Sets up all the necessary variables and functions to be used for the other scripts. 
 *)
-#r @"Microsoft.Xrm.Sdk.dll"
-#r @"Delegate.Daxif.dll"
+#r @"bin\Microsoft.Xrm.Sdk.dll"
+#r @"bin\Delegate.Daxif.dll"
 open System
 open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
@@ -54,11 +54,11 @@ module Env =
 CRM Solution Setup 
 ------------------
 **)
-module XrmSolution =
-  let name = @"XrmSolution"
-  let displayName = @"XrmSolution"
+module SolutionInfo =
+  let name = @"SolutionName"
+  let displayName = @"Solution Name"
 
-module Publisher =
+module PublisherInfo =
   let prefix = @"dg"
   let name = @"delegateas"
   let displayName = @"Delegate A/S"
@@ -73,47 +73,25 @@ Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 module Path =
   let daxifRoot = __SOURCE_DIRECTORY__
   let solutionRoot = daxifRoot ++ @"..\.."
-
-  (* Code setup *)  
-  // Where to find the plugin and workflow related assemblies and projects
-  let pluginProjFile = solutionRoot ++ @"Plugins\Plugins.csproj"
-  let pluginDll = solutionRoot ++ @"Plugins\bin\Release\ILMerged.Delegate.XrmOrg.XrmSolution.Plugins.dll"
-  let workflowDll = solutionRoot ++ @"Workflow\bin\Release\ILMerged.Delegate.XrmOrg.XrmSolution.Workflow.dll"
-  
-  /// Where to place generated C# context
-  let businessDomain = solutionRoot ++ @"BusinessDomain"
-
-  (* Web resources *)
-  let webResources = solutionRoot ++ @"WebResources"
-  let webResourceSrc = webResources ++ @"src"
-  
-  /// Where to place generated declaration files from XrmDefinitelyTyped
-  let xrmTypings = webResources ++ @"typings\XRM"
-
-  /// Where to place XrmQuery javascript files
-  let jsLib = webResourceSrc ++ (sprintf "%s_%s" Publisher.prefix XrmSolution.name) ++ "lib"
-  
-
-  (* Various tools *)
   let toolsFolder = daxifRoot ++ @".."
-  let xrmContext = toolsFolder ++ @"XrmContext\XrmContext.exe"
-  let xrmDefinitelyTyped = toolsFolder ++ @"XrmDefinitelyTyped\XrmDefinitelyTyped.exe"
+  
+  let webResourceFolder = solutionRoot ++ @"WebResources"
+  let webResourceSrcFolder = webResourceFolder ++ @"src"
 
 
-  /// Paths used for SolutionPackager
-  module SolPack =
-    let projName = "XrmSolution"
+  /// Path information used by the SolutionPackager scripts
+  module SolutionPack =
+    let projName = "SolutionBlueprint"
     let projFolder = solutionRoot ++ projName
-    let xmlMappingFile = projFolder ++ (sprintf "%s.xml" XrmSolution.name)
+    let xmlMappingFile = projFolder ++ (sprintf "%s.xml" SolutionInfo.name)
     let customizationsFolder = projFolder ++ @"customizations"
     let projFile = projFolder ++ (sprintf @"%s.csproj" projName)
-
 
   /// Paths Daxif uses to store/load files
   module Daxif =
     let crmSolutionsFolder = daxifRoot ++ "solutions"
-    let unmanagedSolution = crmSolutionsFolder ++ (sprintf "%s.zip" XrmSolution.name)
-    let managedSolution = crmSolutionsFolder ++ (sprintf "%s_managed.zip" XrmSolution.name)
+    let unmanagedSolution = crmSolutionsFolder ++ (sprintf "%s.zip" SolutionInfo.name)
+    let managedSolution = crmSolutionsFolder ++ (sprintf "%s_managed.zip" SolutionInfo.name)
 
     let translationsFolder = daxifRoot ++ "translations"
     let metadataFolder = daxifRoot ++ "metadata"

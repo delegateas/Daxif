@@ -202,7 +202,7 @@ let syncSolution' org ac solutionName dll (log:ConsoleLogger) =
   use p = ServiceProxy.getOrganizationServiceProxy m tc
   let asm = Assembly.LoadFile(dllPath); 
   let dllName = Path.GetFileNameWithoutExtension(dll'); 
-  let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
+  let solution = CrmDataInternal.Entities.retrieveSolutionId p solutionName
 
   let asmId = instantiateAssembly solution dllName dllPath asm p log
 

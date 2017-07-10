@@ -60,8 +60,15 @@ let projDependencies (vsproj:string) =
 /// plugin, step and image records
 let tupleToRecord 
   ((className, stage, eventOp, logicalName),
-    (deployment, mode, stepName, order, fAttr, userId),
+    (deployment, mode, _, order, fAttr, userId),
     imgTuples) = 
+
+  let entity' = 
+    String.IsNullOrEmpty(logicalName) |> function
+    | true -> "any Entity" | false -> logicalName
+  let execMode = (enum<ExecutionMode> mode).ToString()
+  let execStage = (enum<ExecutionStage> stage).ToString()
+  let stepName = sprintf "%s: %s %s %s of %s" className execMode execStage eventOp entity'
 
   let step = 
     { pluginTypeName = className
@@ -92,7 +99,7 @@ let tupleToRecord
 
 /// Calls "PluginProcessingStepConfigs" in the plugin assembly that returns a
 /// tuple contaning the plugin informations
-let getPluginsFromAssembly (asm:Assembly) =
+let getPluginsFromAssembly (asm: Assembly) =
   try
     asm.GetTypes() |> fun xs -> 
       let y = xs |> Array.filter (fun x -> x.Name = @"Plugin") |> Array.toList
@@ -115,7 +122,7 @@ let getPluginsFromAssembly (asm:Assembly) =
       (getFullException(ex))
 
 /// Analyzes an assembly based on a path to its compiled assembly and its project file
-let getAssemblyContextFromDll projectPath dllPath isolationMode =
+let getAssemblyContextFromDll projectPath dllPath isolationMode ignoreOutdatedAssembly =
   let dllFullPath = Path.GetFullPath(dllPath)
   let dllTempPath = Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString() + @".dll")
   let dllName     = Path.GetFileNameWithoutExtension(dllFullPath); 
@@ -127,11 +134,11 @@ let getAssemblyContextFromDll projectPath dllPath isolationMode =
       projDependencies projectPath 
       |> Set.ofSeq
       |> Set.map(fun x -> 
-        match File.GetLastWriteTimeUtc x > asmWriteTime with
-        | true  -> failwithf "A file in the project was updated later than compiled assembly: %s\nPlease recompile and synchronize again." x
+        match not(ignoreOutdatedAssembly) && File.GetLastWriteTimeUtc x > asmWriteTime with
+        | true  -> failwithf "A file in the project was updated later than compiled assembly: %s\nPlease recompile and synchronize again, or use the \"ignoreOutdatedAssembly\" option." x
         | false -> File.ReadAllBytes(x) |> sha1CheckSum'
       )
-      |> Set.fold(fun a x -> a + x |> sha1CheckSum) String.Empty
+      |> Set.fold (fun a x -> a + x |> sha1CheckSum) String.Empty
 
   let asm = Assembly.LoadFile(dllTempPath); 
     

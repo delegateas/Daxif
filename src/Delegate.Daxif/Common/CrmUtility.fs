@@ -13,6 +13,7 @@ open System.Xml
 open System.Xml.Linq
 open System.Xml.XPath
 
+
 /// Tries to fetch an attribute. If the attribute does not exist,
 /// a default value is returned.
 let defaultAttributeVal (e:Entity) key (def:'a) =
@@ -31,38 +32,7 @@ let guidNotSet = (=) Guid.Empty
 /// Fetches the name of an entity
 let getRecordName (x:Entity) = x.GetAttributeValue<string>("name")
 
-/// Makes an update request from an entity object
-let makeUpdateReq e = 
-  let req = UpdateRequest()
-  req.Target <- e
-  req
-
-/// Makes an create request from an entity object
-let makeCreateReq e = 
-  let req = CreateRequest()
-  req.Target <- e
-  req
-
-/// Makes an delete request from an entity reference
-let makeDeleteReq (e: Entity) = 
-  let req = DeleteRequest()
-  req.Target <- e.ToEntityReference()
-  req
-
-
-/// Makes an delete request from an entity reference
-let makeRetrieve (logicalName: string) (guid: Guid) (cs: string[]) = 
-  let req = RetrieveRequest()
-  req.Target <- EntityReference(logicalName, guid)
-  req.ColumnSet <- ColumnSet(cs)
-  req
-
-/// Makes an delete request from an entity reference
-let makeRetrieveMultiple (q: QueryExpression) = 
-  let req = RetrieveMultipleRequest()
-  req.Query <- q
-  req
-
+/// Upcasts a request to an OrganizationRequest
 let toOrgReq x = x :> OrganizationRequest
 
 /// Attaches a given request to a solution
@@ -88,6 +58,7 @@ let raiseExceptionIfFault (fault: OrganizationServiceFault) =
   | err -> parseFault fault |> String.concat "\n" |> failwith
 
 
+/// Gets solution information from given ZipArchive
 let getSolutionInformation (archive: ZipArchive) =
   match archive.Entries |> Seq.exists(fun e -> e.Name = "solution.xml") with
   | false -> 
@@ -107,7 +78,36 @@ let getSolutionInformation (archive: ZipArchive) =
       | false -> solutionNameNode.Value, managedNode.Value = "1"
 
 
+/// Gets solution information from zip file found at given path
 let getSolutionInformationFromFile path = 
   use zipStream = new FileStream(path, FileMode.Open)
   use archive = new ZipArchive(zipStream, ZipArchiveMode.Read)
   getSolutionInformation archive
+
+
+/// Takes a QueryExpression and outputs it as a formatted string
+let queryExpressionToString (query: QueryExpression) = 
+
+  let rec filterHelper level (filter: FilterExpression) = seq {
+    let indent = String.replicate level "\t"
+
+    yield sprintf "%s%A(" indent filter.FilterOperator
+    yield!
+      filter.Conditions 
+      |> Seq.map (fun c -> sprintf "\t%s%s %A %A" indent c.AttributeName c.Operator c.Values)
+    
+    yield!
+      filter.Filters 
+      |> Seq.map (filterHelper (level+1))
+      |> Seq.concat
+    
+    yield sprintf "%s)" indent
+  }
+  
+  let filter = filterHelper 1 query.Criteria |> List.ofSeq
+
+  sprintf "LogicalName: %s" query.EntityName
+  :: sprintf "Columns: %A" query.ColumnSet
+  :: sprintf "Filter: "
+  :: filter
+  |> String.concat "\n"

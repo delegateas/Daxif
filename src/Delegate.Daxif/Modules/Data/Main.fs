@@ -9,7 +9,7 @@ open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 
 let exists org entityName filter ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   log'.WriteLine(LogLevel.Info, daxifVersion)
@@ -23,7 +23,7 @@ let exists org entityName filter ap usr pwd domain log =
   guid  
 
 let count org entityNames ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let entityNames' = entityNames |> Array.reduce (fun x y -> x + "," + y)
   let pwd' = String.replicate pwd.Length "*"
@@ -36,7 +36,7 @@ let count org entityNames ap usr pwd domain log =
     (LogLevel.Info, @"The data count was retrieved successfully")
 
 let updateState org entityName filter state ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   log'.WriteLine(LogLevel.Info, daxifVersion)
@@ -47,7 +47,7 @@ let updateState org entityName filter state ap usr pwd domain log =
   log'.WriteLine(LogLevel.Info, @"The data state was updated successfully")
   
 let reassignAllRecords org userFrom userTo ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   log'.WriteLine(LogLevel.Info, daxifVersion)
@@ -58,7 +58,7 @@ let reassignAllRecords org userFrom userTo ap usr pwd domain log =
   log'.WriteLine(LogLevel.Info, @"The data was assigned successfully")
   
 let export org location entityNames ap usr pwd domain log serialize = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let entityNames' = entityNames |> Array.reduce (fun x y -> x + "," + y)
   let pwd' = String.replicate pwd.Length "*"
@@ -71,7 +71,7 @@ let export org location entityNames ap usr pwd domain log serialize =
   log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
   
 let exportDelta org location entityNames date ap usr pwd domain log serialize = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let entityNames' = entityNames |> Array.reduce (fun x y -> x + "," + y)
   let pwd' = String.replicate pwd.Length "*"
@@ -84,7 +84,7 @@ let exportDelta org location entityNames date ap usr pwd domain log serialize =
   log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
   
 let exportView org location view user ap usr pwd domain log serialize = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   log'.WriteLine(LogLevel.Info, daxifVersion)
@@ -96,7 +96,7 @@ let exportView org location view user ap usr pwd domain log serialize =
   log'.WriteLine(LogLevel.Info, @"The data was exported successfully")
   
 let migrate org location ap usr pwd domain log serialize map = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   log'.WriteLine(LogLevel.Info, daxifVersion)
@@ -108,7 +108,7 @@ let migrate org location ap usr pwd domain log serialize map =
   log'.WriteLine(LogLevel.Info, @"The data was migrated successfully")
   
 let import org location ap usr pwd domain log serialize additionalAttributes guidRemapping includeAttributes includeReferences referenceFilter = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   log'.WriteLine(LogLevel.Info, daxifVersion)
@@ -121,7 +121,7 @@ let import org location ap usr pwd domain log serialize additionalAttributes gui
 
  
 let reassignOwner org location ap usr pwd domain log serialize data = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   log'.WriteLine(LogLevel.Info, daxifVersion)
@@ -133,7 +133,7 @@ let reassignOwner org location ap usr pwd domain log serialize data =
   log'.WriteLine(LogLevel.Info, @"The data was reassigned successfully")
   
 let associationImport org location ap usr pwd domain log serialize guidRemapping = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   log'.WriteLine(LogLevel.Info, daxifVersion)
@@ -145,7 +145,7 @@ let associationImport org location ap usr pwd domain log serialize guidRemapping
   log'.WriteLine(LogLevel.Info, @"The relations were imported successfully")
 
 let publishDuplicateDetectionRules org dupRules ap usr pwd domain log= 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   log'.WriteLine(LogLevel.Info, daxifVersion)

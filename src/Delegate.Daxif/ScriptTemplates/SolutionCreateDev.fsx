@@ -7,6 +7,6 @@ SolutionCreateDev
 open _Config
 open DG.Daxif
 
-Solution.CreatePublisher(Env.dev, Publisher.name, Publisher.displayName, Publisher.prefix)
+Solution.CreatePublisher(Env.dev, PublisherInfo.name, PublisherInfo.displayName, PublisherInfo.prefix)
 
-Solution.Create(Env.dev, XrmSolution.name, XrmSolution.displayName, CrmPublisher.prefix)
+Solution.Create(Env.dev, SolutionInfo.name, SolutionInfo.displayName, PublisherInfo.prefix)

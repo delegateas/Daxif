@@ -10,11 +10,13 @@ open Microsoft.Xrm.Sdk.Metadata
 open Microsoft.Xrm.Sdk.Query
 open DG.Daxif
 open DG.Daxif.Common
+open CrmDataHelper
 
 // http://msdn.microsoft.com/en-us/library/microsoft.xrm.sdk.organizationrequest.requestname.aspx
 module CrmDataInternal = 
   
   module internal Info = 
+
     let private versionHelper v = 
       match v |> Seq.head with
       | '5' -> CrmReleases.CRM2011
@@ -29,8 +31,8 @@ module CrmDataInternal =
       resp.Version, resp.Version |> versionHelper
 
     let retrieveAsyncJobState proxy asyncJobId =
-      let systemJob = CrmData.CRUD.retrieve proxy "asyncoperation" asyncJobId
-      systemJob.Attributes.["statuscode"] :?> OptionSetValue 
+      let systemJob = CrmDataHelper.retrieve proxy "asyncoperation" asyncJobId (RetrieveSelect.Fields ["statuscode"])
+      systemJob.GetAttributeValue<OptionSetValue>("statuscode")
       |> fun o -> Utility.stringToEnum<AsyncJobState> (o.Value.ToString())
 
   module internal CRUD =
@@ -39,34 +41,18 @@ module CrmDataInternal =
       resp
       |> Array.iter (fun r -> 
         if r.Fault <> null then 
-          log.WriteLine(LogLevel.Error,
-            (sprintf "Error when performing %s: %s" (Seq.item r.RequestIndex reqs).RequestName 
-              r.Fault.Message)))
+          log.Error "Error when performing %s: %s" (Seq.item r.RequestIndex reqs).RequestName r.Fault.Message
+      )
       resp
       |> Array.filter (fun x -> x.Fault = null)
       |> Array.length
       |> fun count -> 
-        log.WriteLine(LogLevel.Verbose,
-          (sprintf "Succesfully performed %d/%d actions in %A" count (Seq.length reqs)
-            proxy.ServiceConfiguration.CurrentServiceEndpoint.Address))
+        log.Verbose "Succesfully performed %d/%d actions in %A" count (Seq.length reqs) 
+          proxy.ServiceConfiguration.CurrentServiceEndpoint.Address
   
 
   module internal Entities = 
-    let seqTryHead' s = Seq.tryPick Some s
-    
-    let seqTryHead logicName entityName (s : seq<'a>) : 'a = 
-      match s |> seqTryHead' with
-      | Some v -> v
-      | None -> 
-        let potentialEntityName = 
-          match String.IsNullOrEmpty(entityName) with
-          | true -> ""
-          | false -> ", " + entityName
-        (logicName, potentialEntityName)
-        ||> sprintf 
-              "Failed to retrieve %s %s. No entitiy with that name in CRM."
-        |> failwith
-    
+
     let updateStateReq logicalName guid state status = 
       let req = Messages.SetStateRequest()
       req.EntityMoniker <- EntityReference(logicalName, id = guid)
@@ -131,11 +117,10 @@ module CrmDataInternal =
       let an = @"systemuserid"
       let q = QueryExpression(ln)
       let f = FilterExpression()
-      f.AddCondition
-        (ConditionExpression("domainname", ConditionOperator.Equal, domainName))
+      f.AddCondition(ConditionExpression("domainname", ConditionOperator.Equal, domainName))
       q.Criteria <- f
       q.ColumnSet <- ColumnSet(an)
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln domainName
+      CrmDataHelper.retrieveFirstMatch proxy q
     
     let existCrm proxy logicalName guid primaryattribute = 
       let (proxy : OrganizationServiceProxy) = proxy
@@ -167,7 +152,7 @@ module CrmDataInternal =
       let q = QueryExpression(logicalName)
       q.ColumnSet <- ColumnSet(em.PrimaryIdAttribute)
       q.Criteria <- f
-      let es = (CrmData.CRUD.retrieveMultiple proxy logicalName q)
+      let es = CrmDataHelper.retrieveMultiple proxy q
       
       let guid' = 
         match Seq.length es > 0 with
@@ -183,7 +168,7 @@ module CrmDataInternal =
       let q = QueryExpression(logicalName)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy logicalName q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrieveEntitiesLight proxy logicalName filter = 
       let (filter : Map<string, obj>) = filter
@@ -194,18 +179,18 @@ module CrmDataInternal =
       let q = QueryExpression(logicalName)
       q.ColumnSet <- ColumnSet(em.PrimaryIdAttribute, em.PrimaryNameAttribute)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy logicalName q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrieveAllEntities proxy logicalName = 
       let q = QueryExpression(logicalName)
       q.ColumnSet <- ColumnSet(true)
-      CrmData.CRUD.retrieveMultiple proxy logicalName q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrieveAllEntitiesLight proxy logicalName = 
       let em = CrmData.Metadata.entity proxy logicalName
       let q = QueryExpression(logicalName)
       q.ColumnSet <- ColumnSet(em.PrimaryIdAttribute, em.PrimaryNameAttribute)
-      CrmData.CRUD.retrieveMultiple proxy logicalName q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrieveRootBusinessUnit proxy = 
       let ln = @"businessunit"
@@ -216,7 +201,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(an')
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln ""
+      CrmDataHelper.retrieveFirstMatch proxy q
     
     let retrieveBusinessUnit proxy name = 
       let (name : string) = name
@@ -227,7 +212,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(an)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln name
+      CrmDataHelper.retrieveFirstMatch proxy q
     
     let retrievePublisher proxy prefix = 
       let (prefix : string) = prefix
@@ -238,33 +223,29 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(an)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln prefix
+      CrmDataHelper.retrieveFirstMatch proxy q
     
-    let retrieveFromView proxy name user = 
-      let (name : string) = name
-      
+    let retrieveFromView proxy (name: string) user = 
       let ln = 
         match user with
         | true -> @"userquery"
         | false -> @"savedquery"
       
-      let an = @"name"
       let f = FilterExpression()
-      f.AddCondition(ConditionExpression(an, ConditionOperator.Equal, name))
+      f.AddCondition(ConditionExpression("name", ConditionOperator.Equal, name))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q
-      |> seqTryHead ln name
-      |> fun x -> 
-        let fetchxml = 
-          x.Attributes.["fetchxml"] :?> string 
-          |> InternalUtility.decode
-        let req = Messages.FetchXmlToQueryExpressionRequest()
-        req.FetchXml <- fetchxml
-        let resp = 
-          proxy.Execute(req) :?> Messages.FetchXmlToQueryExpressionResponse
-        resp.Query |> fun q -> CrmData.CRUD.retrieveMultiple proxy ln q
+      
+      let fetchxml = 
+        CrmDataHelper.retrieveFirstMatch proxy q
+        |> fun res -> res.GetAttributeValue<string>("fetchxml")
+        |> InternalUtility.decode
+      let req = Messages.FetchXmlToQueryExpressionRequest()
+      req.FetchXml <- fetchxml
+      let resp = 
+        proxy.Execute(req) :?> Messages.FetchXmlToQueryExpressionResponse
+      CrmDataHelper.retrieveMultiple proxy resp.Query 
 
     let retrieveSavedQueryReq proxy id status state = 
       let (id : Guid) = id
@@ -280,8 +261,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q
-      |> seqTryHead'
+      CrmDataHelper.retrieveFirstMatch proxy q
     
     let createPublisher proxy name display prefix = 
       let (name : String) = name
@@ -328,30 +308,26 @@ module CrmDataInternal =
       let (r2 : KeyValuePair<string, Guid>) = r2
       let request = createMany2ManyReq sn r1 r2
       proxy.Execute(request) :?> AssociateResponse
-    
-    let retrieveSolution proxy uniqueName = 
+
+    let retrieveSolution proxy uniqueName columnSet =
       let (uniqueName : string) = uniqueName
-      let ln = @"solution"
       let an = @"uniquename"
       let f = FilterExpression()
-      f.AddCondition
-        (ConditionExpression(an, ConditionOperator.Equal, uniqueName))
-      let q = QueryExpression(ln)
-      q.ColumnSet <- ColumnSet(an)
+      f.AddCondition(ConditionExpression(an, ConditionOperator.Equal, uniqueName))
+      let q = QueryExpression("solution")
+      q.ColumnSet <- columnSet
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln uniqueName
+      CrmDataHelper.retrieveFirstMatch proxy q
+
+    let retrieveSolutionId proxy uniqueName =
+      ColumnSet(null) |> retrieveSolution proxy uniqueName
+
+    let retrieveSolutionIdAndPrefix proxy uniqueName = 
+      ColumnSet("uniquename") |> retrieveSolution proxy uniqueName
+      |> fun e -> e.Id, "test"
 
     let retrieveSolutionAllAttributes proxy uniqueName = 
-      let (uniqueName : string) = uniqueName
-      let ln = @"solution"
-      let an = @"uniquename"
-      let f = FilterExpression()
-      f.AddCondition
-        (ConditionExpression(an, ConditionOperator.Equal, uniqueName))
-      let q = QueryExpression(ln)
-      q.ColumnSet <- ColumnSet(true)
-      q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln uniqueName
+      ColumnSet(true) |> retrieveSolution proxy uniqueName 
     
     let retrieveImportJobHelper proxy importJobId includeXML = 
       let (importJobId : Guid) = importJobId
@@ -371,8 +347,7 @@ module CrmDataInternal =
       q.ColumnSet <- ColumnSet(ans')
       q.Criteria <- f
       q.NoLock <- true
-      CrmData.CRUD.retrieveMultiple proxy ln q 
-      |> seqTryHead ln (importJobId.ToString())
+      CrmDataHelper.retrieveFirstMatch proxy q
 
     let retrieveImportJob proxy importJobId = 
       retrieveImportJobHelper proxy importJobId false
@@ -391,7 +366,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(em.PrimaryIdAttribute, em.PrimaryNameAttribute)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln uniqueName
+      CrmDataHelper.retrieveFirstMatch proxy q
     
     let tryRetrievePluginType proxy uniqueName = 
       let (uniqueName : string) = uniqueName
@@ -404,7 +379,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(em.PrimaryIdAttribute, em.PrimaryNameAttribute)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead'
+      CrmDataHelper.retrieveFirstMatch proxy q
     
     let retrievePluginTypes proxy assemblyId = 
       let (assemblyId : Guid) = assemblyId
@@ -417,7 +392,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrieveSdkMessage proxy eventOperation = 
       let (eventOperation : string) = eventOperation
@@ -430,7 +405,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(em.PrimaryIdAttribute, em.PrimaryNameAttribute)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln eventOperation
+      CrmDataHelper.retrieveFirstMatch proxy q
     
     let retrieveSdkProcessingStep proxy uniqueName = 
       let (uniqueName : string) = uniqueName
@@ -443,7 +418,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(em.PrimaryIdAttribute, em.PrimaryNameAttribute)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead ln uniqueName
+      CrmDataHelper.retrieveFirstMatch proxy q
     
     let tryRetrieveSdkProcessingStep proxy uniqueName = 
       let (uniqueName : string) = uniqueName
@@ -456,7 +431,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(em.PrimaryIdAttribute, em.PrimaryNameAttribute)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q |> seqTryHead'
+      CrmDataHelper.retrieveFirstMatch proxy q
     
     let retrieveSdkMessageFilter proxy primaryObjectType sdkMessageId = 
       let (primaryObjectType : string) = primaryObjectType
@@ -476,9 +451,8 @@ module CrmDataInternal =
            (@"sdkmessageid", ConditionOperator.Equal, sdkMessageId))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(em.PrimaryIdAttribute)
-      q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q 
-      |> seqTryHead ln (sdkMessageId.ToString())
+      q.Criteria <- f 
+      CrmDataHelper.retrieveFirstMatch proxy q
     
     let retrieveWebResources proxy solutionId = 
       let (solutionId : Guid) = solutionId
@@ -500,7 +474,7 @@ module CrmDataInternal =
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
       q.LinkEntities.Add(le)
-      CrmData.CRUD.retrieveMultiple proxy ln q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrievePluginAssembly proxy uniqueName = 
       let (uniqueName : String) = uniqueName
@@ -523,7 +497,7 @@ module CrmDataInternal =
                         "sourcehash")
       q.Criteria <- f
       q.LinkEntities.Add(le)
-      CrmData.CRUD.retrieveMultiple proxy ln q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrievePluginAssemblies proxy solutionId = 
       let (solutionId : Guid) = solutionId
@@ -543,7 +517,7 @@ module CrmDataInternal =
                        (em.PrimaryIdAttribute, em.PrimaryNameAttribute,
                         "sourcehash", "isolationmode")
       q.LinkEntities.Add(le)
-      CrmData.CRUD.retrieveMultiple proxy ln q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrievePluginProcessingSteps proxy typeId = 
       let (typeId : Guid) = typeId
@@ -555,7 +529,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrieveAllPluginProcessingSteps proxy solutionId = 
       let (solutionId : Guid) = solutionId
@@ -573,7 +547,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.LinkEntities.Add(le)
-      CrmData.CRUD.retrieveMultiple proxy ln q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrievePluginProcessingStepImages proxy stepId = 
       let (stepId : Guid) = stepId
@@ -584,7 +558,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrieveWorkflows proxy solutionId = 
       let (solutionId : Guid) = solutionId
@@ -606,7 +580,7 @@ module CrmDataInternal =
       q.ColumnSet <- ColumnSet(true)
       q.LinkEntities.Add(le)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrieveWorkflowsOfStatus proxy solutionId status = 
       let (solutionId : Guid) = solutionId
@@ -633,7 +607,7 @@ module CrmDataInternal =
       q.ColumnSet <- ColumnSet(true)
       q.LinkEntities.Add(le)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q
+      CrmDataHelper.retrieveMultiple proxy q
     
     let retrieveAllSolutionComponenets proxy solutionId =
       let (solutionId : Guid) = solutionId
@@ -652,4 +626,4 @@ module CrmDataInternal =
       q.ColumnSet <- ColumnSet(true)
       q.LinkEntities.Add(le)
       q.Criteria <- f
-      CrmData.CRUD.retrieveMultiple proxy ln q
+      CrmDataHelper.retrieveMultiple proxy q

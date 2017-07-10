@@ -69,7 +69,9 @@ type ConsoleLogger(logLevel : LogLevel) =
       | _ -> failwithf "Invalid LogLevel"
       |> fun (fgc, bgc) -> prettyPrint fgc bgc logLevel str
   
-  
+  let formatLog logLevel format =
+    Printf.ksprintf (log logLevel) format
+
   static member Global = ConsoleLogger(LogLevel.Verbose)
   member t.setLevelOption newLevel =
     match newLevel with
@@ -84,18 +86,9 @@ type ConsoleLogger(logLevel : LogLevel) =
   member t.overwriteLastLine() = 
     Console.SetCursorPosition(0, Console.CursorTop-1)
 
-  member t.Error format = 
-    Printf.ksprintf (log LogLevel.Error) format
-
-  member t.Warn format = 
-    Printf.ksprintf (log LogLevel.Warning) format
-
-  member t.Info format = 
-    Printf.ksprintf (log LogLevel.Info) format
-
-  member t.Verbose format = 
-    Printf.ksprintf (log LogLevel.Verbose) format
-
-  member t.Debug format = 
-    Printf.ksprintf (log LogLevel.Debug) format
+  member t.Error format = formatLog LogLevel.Error format
+  member t.Warn format = formatLog LogLevel.Warning format
+  member t.Info format = formatLog LogLevel.Info format
+  member t.Verbose format = formatLog LogLevel.Verbose format
+  member t.Debug format = formatLog LogLevel.Debug format
 

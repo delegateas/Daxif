@@ -7,18 +7,19 @@ SolutionPack
 open _Config
 open DG.Daxif
 open DG.Daxif.Common
+open DG.Daxif.Common.Utility
 
 // Unmanaged
 Solution.Pack(
   Utility.addEndingToFilename Path.Daxif.unmanagedSolution "_packed", 
-  Path.SolPack.customizationsFolder, 
-  Path.SolPack.xmlMappingFile, 
+  Path.SolutionPack.customizationsFolder, 
+  Path.SolutionPack.xmlMappingFile, 
   managed = false)
 
 // Managed
 Solution.Pack(
   Utility.addEndingToFilename Path.Daxif.managedSolution "_packed", 
-  Path.SolPack.customizationsFolder, 
-  Path.SolPack.xmlMappingFile, 
+  Path.SolutionPack.customizationsFolder, 
+  Path.SolutionPack.xmlMappingFile, 
   managed = true
 )

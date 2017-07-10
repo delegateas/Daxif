@@ -17,9 +17,13 @@
     @references@
   </metadata>
   <files>
-    <file src="..\Delegate.Daxif\ScriptTemplates\*.fsx" target="content\Daxif" />
     <file src="..\Delegate.Daxif\bin\Release\Delegate.Daxif.dll" target="lib\net45" />
     <file src="..\Delegate.Daxif\bin\Release\Delegate.Daxif.xml" target="lib\net45" />
     <file src="..\..\lib\Microsoft.Crm.Services.Utility.dll" target="lib\net45" />
+    
+    <file src="..\Delegate.Daxif\bin\Release\*.dll" target="content\Daxif\bin" />
+    <file src="..\Delegate.Daxif\bin\Release\*.exe" target="content\Daxif\bin" />
+    <file src="..\Delegate.Daxif\bin\Release\*.xml" target="content\Daxif\bin" />
+    <file src="..\Delegate.Daxif\ScriptTemplates\*.fsx" target="content\Daxif" />
   </files>
 </package>

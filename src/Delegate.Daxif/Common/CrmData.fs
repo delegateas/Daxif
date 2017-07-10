@@ -16,14 +16,11 @@ module CrmData =
     let private entityHelper proxy (logicalName:string) filter = 
       let (proxy : OrganizationServiceProxy) = proxy
       let (filter : EntityFilters) = filter
-      let req = OrganizationRequest()
-      let param = ParameterCollection()
-      param.Add(@"LogicalName", logicalName)
-      param.Add(@"EntityFilters", filter)
-      param.Add(@"MetadataId", Guid.Empty)
-      param.Add(@"RetrieveAsIfPublished", true)
-      req.RequestName <- @"RetrieveEntity"
-      req.Parameters.AddRange(param)
+      let req = RetrieveEntityRequest()
+      req.LogicalName <- logicalName
+      req.EntityFilters <- filter
+      req.MetadataId <- Guid.Empty
+      req.RetrieveAsIfPublished <- true
       let resp = proxy.Execute(req)
       (Seq.head resp.Results).Value :?> EntityMetadata
     
@@ -52,9 +49,7 @@ module CrmData =
       (Seq.head resp.Results).Value :?> seq<EntityMetadata>
   
   module CRUD = 
-
-    let version () = () // TODO:
-
+  
     let createReq entity parameters = 
       let (parameters : ParameterCollection) = parameters
       let req = Messages.CreateRequest()

@@ -1,4 +1,4 @@
-﻿module internal DG.Daxif.Modules.Plugin.Query
+﻿module DG.Daxif.Modules.Plugin.Query
 
 open System
 open Microsoft.Xrm.Sdk.Query
@@ -38,7 +38,7 @@ let pluginAssembliesBySolution (solutionId: Guid) =
   q
     
 /// Create a query to get plugin types by assembly
-let pluginTypesByAssembly (assemblyId : Guid) = 
+let pluginTypesByAssembly (assemblyId: Guid) = 
   let q = QueryExpression("plugintype")
   q.ColumnSet <- ColumnSet(true)
 
@@ -48,7 +48,7 @@ let pluginTypesByAssembly (assemblyId : Guid) =
   q
 
 /// Create a query to get plugin types by solution
-let pluginTypesBySolution (solutionid : Guid) = 
+let pluginTypesBySolution (solutionid: Guid) = 
   let q = QueryExpression("plugintype")
   q.ColumnSet <- ColumnSet(true)
 
@@ -114,7 +114,7 @@ let sdkMessage (eventOperation: string) =
   q
 
 /// Create a query to get a SdkMessageFilter from its parent message and entity type
-let sdkMessageFilter (primaryObjectType : string) (sdkMessageId : Guid) = 
+let sdkMessageFilter (primaryObjectType: string) (sdkMessageId: Guid) = 
   let q = QueryExpression("sdkmessagefilter")
   q.ColumnSet <- ColumnSet("sdkmessagefilterid")
 

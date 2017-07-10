@@ -187,3 +187,5 @@ let alterFilenameInPath path mapper =
 /// Adds specified ending to the end of the filename found in the path
 let addEndingToFilename path ending =
   alterFilenameInPath path (fun s -> s + ending)
+
+ 

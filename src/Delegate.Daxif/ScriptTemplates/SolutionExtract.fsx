@@ -6,4 +6,9 @@ SolutionExtract
 open _Config
 open DG.Daxif
 
-Solution.Extract(Path.Daxif.unmanagedSolution, Path.SolPack.customizationsFolder, Path.SolPack.xmlMappingFile, Path.SolPack.projFile)
+Solution.Extract(
+  Path.Daxif.unmanagedSolution, 
+  Path.SolutionPack.customizationsFolder, 
+  Path.SolutionPack.xmlMappingFile, 
+  Path.SolutionPack.projFile
+)

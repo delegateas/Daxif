@@ -3,7 +3,11 @@
 open System
 open System.Reflection
 open DG.Daxif
+open Microsoft.Xrm.Sdk
 
+type PluginIsolationMode =
+  | Sandbox = 2
+  | None    = 1
 
 (** Enum for plugin configurations **)
 type ExecutionMode = 
@@ -25,30 +29,31 @@ type ImageType =
   | PostImage = 1
   | Both = 2
 
+
+type EventOperation = String
+type LogicalName = String
+type PluginTypeName = String
+type StepName = String
+type ImageName = String
+
 /// Information about a plugin step
 type Step =
-  { pluginTypeName: String
+  { pluginTypeName: PluginTypeName
     executionStage: int
-    eventOperation: String
-    logicalName: String
+    eventOperation: EventOperation
+    logicalName: LogicalName
     deployment: int
     executionMode: int
-    name: String
+    name: StepName
     executionOrder: int
     filteredAttributes: String
     userContext: Guid 
-  } with
-  member this.messageName = 
-    let entity' = String.IsNullOrEmpty(this.logicalName) |> function
-        | true -> "any Entity" | false -> this.logicalName
-    let execMode = (enum<ExecutionMode> this.executionMode).ToString()
-    let execStage = (enum<ExecutionStage> this.executionStage).ToString()
-    sprintf "%s: %s %s %s of %s" this.pluginTypeName execMode execStage this.eventOperation entity'
+  }
 
 /// Information about a plugin step image
 type Image = 
-  { stepName: string
-    name: string
+  { stepName: StepName
+    name: ImageName
     entityAlias: string
     imageType: int
     attributes: string 
@@ -63,14 +68,14 @@ type Plugin =
   member this.TypeKey = 
     this.step.pluginTypeName
   member this.StepKey = 
-    this.step.messageName
+    this.step.name
   member this.ImagesWithKeys =
     this.images
     |> Seq.map(fun image -> sprintf "%s, %s" this.StepKey image.name, image)
 
 
 /// Information about a plugin assembly
-type AssemblyContext =
+type AssemlyLocal =
   { assembly: Assembly
     assemblyId: Option<Guid>
     dllName: String
@@ -79,3 +84,13 @@ type AssemblyContext =
     isolationMode: PluginIsolationMode
     plugins: Plugin seq
   }
+
+type AssemblyRegistration = {
+  id: Guid
+  hash: String
+} with
+  static member fromEntity (e:Entity) = 
+    {
+      id = e.Id
+      hash = e.GetAttributeValue<string>("sourcehash")
+    }

@@ -6,10 +6,14 @@ SolutionUpdateCustomContext
 #load @"_Config.fsx"
 open _Config
 open DG.Daxif
+open DG.Daxif.Common.Utility
 
-Solution.GenerateCSharpContext(Env.dev, Path.xrmContext, Path.businessDomain,
+let xrmContext = Path.toolsFolder ++ @"XrmContext\XrmContext.exe"
+let businessDomain = Path.solutionRoot ++ @"BusinessDomain"
+
+Solution.GenerateCSharpContext(Env.dev, xrmContext, businessDomain,
   solutions = [
-    XrmSolution.name
+    SolutionInfo.name
     ],
   entities = [
     // eg. "systemuser"

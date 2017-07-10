@@ -2,16 +2,22 @@
 SolutionImportArg
 =================
 
-Should be run with the FSI commandline and given an "env=<env-name>" argument.
-Performs a solution import to the environment which matches the given env-name.
+Configurable import script, which is mainly intended for use by the build server.
 
-Add "managed" as an argument to import the managed solution instead of the unmanaged.
+Arguments:
+  env=<name of environment> (required)
+  managed (optional, defaults to unmanaged)
+
+For example:
+  Managed import to test :  fsi SolutionImportArg.fsx env=Test managed 
+  Unmanaged import to dev:  fsi SolutionImportArg.fsx env=Development
 *)
 
 #load @"_Config.fsx"
 open _Config
 open DG.Daxif
 open DG.Daxif.Common.Utility
+
 
 let args = fsi.CommandLineArgs |> parseArgs
 
@@ -24,8 +30,8 @@ let solutionZipPath =
   match args |> tryFindArg ["managed"] with
   | Some _ -> "_managed"
   | None   -> ""
-  |> sprintf "%s%s.zip" XrmSolution.name
+  |> sprintf "%s%s.zip" SolutionInfo.name
   |> (++) Path.Daxif.crmSolutionsFolder
 
 
-Solution.Import(env, solutionZipPath, activatePluginSteps = true, extended = true)
+Solution.Import(env, solutionZipPath, activatePluginSteps = true (*, extended = true *))

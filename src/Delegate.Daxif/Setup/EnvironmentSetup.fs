@@ -18,7 +18,7 @@ type Connection = {
     let m, at = CrmAuth.authenticate org ap usr pwd dmn
     { serviceManagement = m; authCreds = at }
 
-  member x.GetProxy() = CrmAuth.proxyInstance x.serviceManagement x.authCreds
+  member x.GetProxy() = CrmAuth.getOrganizationServiceProxy x.serviceManagement x.authCreds
 
 
 /// Manages credentials used for connecting to a CRM environment
@@ -109,27 +109,27 @@ type Environment = {
       ex -> 
         logger ?|>+ (fun log -> log.Error "Unable to connect to CRM.")
         // Retry if credentials were stored locally
-        match x.creds ?|> fun c -> c.key with
-        | Some (Some key) -> 
-
-          match CredentialManagement.promptNewCreds key with
-          | None -> raise ex
-          | Some newCreds -> 
-            match logger with
-            | None -> x.connect()
-            | Some log -> 
-              log.Info "Reconnecting with new credentials."
-              x.connect(log)
+        match x.creds ?>> fun c -> c.key ?>> CredentialManagement.promptNewCreds with
+        | Some newCreds -> 
+          match logger with
+          | None -> x.connect()
+          | Some log -> 
+            log.Info "Reconnecting with new credentials."
+            x.connect(log)
               
         | _ -> raise ex
 
   
-and internal EnvironmentHelper
-  private() =
+and internal EnvironmentHelper private() =
 
   static let envDict = Dictionary<string, Environment>()
 
-  static member add name env = envDict.Add(name, env)
+  static member add name env = 
+    match envDict.ContainsKey name with
+    | true  -> envDict.Remove(name) |> ignore
+    | false -> ()
+    envDict.Add(name, env)
+    
   static member get name = 
     let found, env = envDict.TryGetValue(name)
     match found with

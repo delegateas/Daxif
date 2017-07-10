@@ -49,8 +49,3 @@ type AsyncJobState =
   | Failed              = 31
   | Canceled            = 32
 
-type PluginIsolationMode =
-  | Sandbox = 2
-  | None    = 1
-
-

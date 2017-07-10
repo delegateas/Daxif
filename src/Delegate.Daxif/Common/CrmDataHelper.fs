@@ -1,4 +1,4 @@
-﻿namespace DG.Daxif.Common
+﻿module DG.Daxif.Common.CrmDataHelper
 
 open System
 open Microsoft.Crm.Sdk
@@ -13,86 +13,157 @@ open DG.Daxif.Common.Utility
 open CrmUtility
 open Microsoft.Crm.Sdk.Messages
 
-type CrmDataHelper = 
-
-  /// Execute a request and expect a response of a certain type
-  static member getResponse<'T when 'T :> OrganizationResponse> (proxy: OrganizationServiceProxy) request =
-    proxy.Timeout <- TimeSpan(1,0,0)
-    (proxy.Execute(request)) :?> 'T
-
-  static member whoAmI proxy =
-    let req = WhoAmIRequest()
-    let resp = CrmDataHelper.getResponse<WhoAmIResponse> proxy req
-    resp.UserId
-
-  /// Perform requests as bulk
-  static member performAsBulk proxy (reqs: OrganizationRequest[]) = 
-    reqs
-    |> FSharpCoreExt.Array.chunk 200
-    |> Array.map (fun splitReqs ->
-      let req = ExecuteMultipleRequest()
-      req.Requests <- OrganizationRequestCollection()
-      req.Requests.AddRange(splitReqs)
-      req.Settings <- ExecuteMultipleSettings()
-      req.Settings.ContinueOnError <- true
-      req.Settings.ReturnResponses <- true
-      (CrmDataHelper.getResponse<ExecuteMultipleResponse> proxy req).Responses
-    ) |> Seq.concat
-    |> Array.ofSeq
+type RetrieveSelect = 
+  | All
+  | OnlyId
+  | Fields of seq<string>
+  with 
+    member x.columnSet =
+      match x with
+      | All      -> ColumnSet(true)
+      | OnlyId   -> ColumnSet(null)
+      | Fields x -> ColumnSet(Array.ofSeq x)
 
 
-  /// Perform requests as bulk. Any faults will cause an exception to be thrown.
-  /// Returns the value returned by the transform of the response
-  static member performAsBulkResultHandling proxy faultHandler resultTransform  =
-    CrmDataHelper.performAsBulk proxy
-    >> Array.map (fun resp -> 
-      faultHandler resp.Fault
-      resultTransform resp)
+/// Makes an update request from an entity object
+let makeUpdateReq e = 
+  let req = UpdateRequest()
+  req.Target <- e
+  req
 
-  /// Publish all
-  static member publishAll proxy = 
-    let (proxy : OrganizationServiceProxy) = proxy
-    let req = Messages.PublishAllXmlRequest()
-    proxy.Timeout <- new TimeSpan(1, 0, 0) // 1 hour timeout for PublishAll
-    CrmDataHelper.getResponse<Messages.PublishAllXmlResponse> proxy req |> ignore
+/// Makes an create request from an entity object
+let makeCreateReq e = 
+  let req = CreateRequest()
+  req.Target <- e
+  req
+
+/// Makes an delete request from an entity reference
+let makeDeleteReq (e: Entity) = 
+  let req = DeleteRequest()
+  req.Target <- e.ToEntityReference()
+  req
 
 
-  /// Retrieve multiple with automatic pagination
-  static member retrieveMultiple proxy (query:QueryExpression) = 
-    query.PageInfo <- PagingInfo()
+/// Makes an delete request from an entity reference
+let makeRetrieve (logicalName: string) (guid: Guid) (select: RetrieveSelect) = 
+  let req = RetrieveRequest()
+  req.Target <- EntityReference(logicalName, guid)
+  req.ColumnSet <- select.columnSet
+  req
 
-    let rec retrieveMultiple' 
-      (proxy:OrganizationServiceProxy) (query:QueryExpression) page cookie =
-      seq {
-          query.PageInfo.PageNumber <- page
-          query.PageInfo.PagingCookie <- cookie
-          let resp = proxy.RetrieveMultiple(query)
-          yield! resp.Entities
+/// Makes an delete request from an entity reference
+let makeRetrieveMultiple (q: QueryExpression) = 
+  let req = RetrieveMultipleRequest()
+  req.Query <- q
+  req
 
-          match resp.MoreRecords with
-          | true -> yield! retrieveMultiple' proxy query (page + 1) resp.PagingCookie
-          | false -> ()
-      }
-    retrieveMultiple' proxy query 1 null
 
-  static member retrieveAndMakeMap proxy keyFunc =
-    CrmDataHelper.retrieveMultiple proxy >> makeMap keyFunc
+/// Execute a request and expect a response of a certain type
+let getResponse<'T when 'T :> OrganizationResponse> (proxy: OrganizationServiceProxy) request =
+  proxy.Timeout <- TimeSpan(1,0,0)
+  (proxy.Execute(request)) :?> 'T
 
-  /// Execute a certain request
-  static member execute (proxy: OrganizationServiceProxy, request: CreateRequest, ?parameters) =
-    match parameters with
-    | Some ps -> ps |> Seq.iter (fun (k,v) -> request.Parameters.Add(k, v))
-    | None -> ()
-    CrmDataHelper.getResponse<CreateResponse> proxy request
 
-  /// Execute a certain request
-  static member execute (proxy: OrganizationServiceProxy, request: UpdateRequest) =
-    CrmDataHelper.getResponse<UpdateResponse> proxy request
+/// Execute a request with given parameters
+let getResponseWithParams<'T when 'T :> OrganizationResponse> proxy (request: OrganizationRequest) parameters : 'T =
+  parameters |> Seq.iter (fun (k,v) -> request.Parameters.Add(k, v))
+  getResponse<'T> proxy request
 
-  /// Execute a certain request
-  static member execute (proxy: OrganizationServiceProxy, request: DeleteRequest) =
-    CrmDataHelper.getResponse<DeleteResponse> proxy request
+/// Execute a request and ignore the response
+let executeRequest proxy request =
+  getResponse proxy request |> ignore
 
-  /// Execute a certain request
-  static member execute (proxy: OrganizationServiceProxy, request: RetrieveMultipleRequest) =
-    CrmDataHelper.getResponse<RetrieveMultipleResponse> proxy request
+
+/// Perform requests as bulk
+let performAsBulk proxy (reqs: OrganizationRequest[]) = 
+  reqs
+  |> FSharpCoreExt.Array.chunk 200
+  |> Array.map (fun splitReqs ->
+    let req = ExecuteMultipleRequest()
+    req.Requests <- OrganizationRequestCollection()
+    req.Requests.AddRange(splitReqs)
+    req.Settings <- ExecuteMultipleSettings()
+    req.Settings.ContinueOnError <- true
+    req.Settings.ReturnResponses <- true
+    (getResponse<ExecuteMultipleResponse> proxy req).Responses
+  ) |> Seq.concat
+  |> Array.ofSeq
+
+
+/// Perform requests as bulk. Any faults will cause an exception to be thrown.
+/// Returns the value returned by the transform of the response
+let performAsBulkResultHandling proxy faultHandler resultTransform  =
+  performAsBulk proxy
+  >> Array.map (fun resp -> 
+    faultHandler resp.Fault
+    resultTransform resp)
+
+
+let bulkRetrieveMultiple proxy =
+  Seq.map (makeRetrieveMultiple >> toOrgReq)
+  >> Array.ofSeq
+  >> performAsBulk proxy
+  >> Array.map (fun resp -> (resp.Response :?> RetrieveMultipleResponse).EntityCollection.Entities)
+  >> Seq.concat
+  >> Array.ofSeq
+
+
+/// Retrieve
+let retrieve (proxy: OrganizationServiceProxy) logicalName guid (select: RetrieveSelect) =
+  proxy.Retrieve(logicalName, guid, select.columnSet)
+
+/// Exists
+let exists (proxy: OrganizationServiceProxy) logicalName guid =
+  try 
+    let e = retrieve proxy logicalName guid RetrieveSelect.OnlyId
+    e.Id <> Guid.Empty
+  with _ -> false
+
+
+/// Retrieve multiple with automatic pagination
+let retrieveMultiple proxy (query:QueryExpression) = 
+  query.PageInfo <- PagingInfo()
+
+  let rec retrieveMultiple' 
+    (proxy:OrganizationServiceProxy) (query: QueryExpression) page cookie =
+    seq {
+        query.PageInfo.PageNumber <- page
+        query.PageInfo.PagingCookie <- cookie
+        let resp = proxy.RetrieveMultiple(query)
+        yield! resp.Entities
+
+        match resp.MoreRecords with
+        | true -> yield! retrieveMultiple' proxy query (page + 1) resp.PagingCookie
+        | false -> ()
+    }
+  retrieveMultiple' proxy query 1 null
+  
+/// Retrieve multiple which returns the first match, or raises an exception if no matches were found
+let retrieveFirstMatch (proxy: OrganizationServiceProxy) (query: QueryExpression) = 
+  query.TopCount <- Nullable(1)
+  proxy.RetrieveMultiple(query).Entities
+  |> Seq.tryHead
+  |> function
+  | Some r -> r
+  | None   -> 
+    failwithf "No entities of type '%s' found with the given query.\n%s" 
+      query.EntityName 
+      (queryExpressionToString query)
+
+/// Retrieve multiple and turns the entities into a map based on the given key function
+let retrieveAndMakeMap proxy keyFunc =
+  retrieveMultiple proxy >> makeMap keyFunc
+
+
+/// Publish all
+let publishAll (proxy: OrganizationServiceProxy) = 
+  let req = Messages.PublishAllXmlRequest()
+  proxy.Timeout <- new TimeSpan(1, 0, 0) // 1 hour timeout for PublishAll
+  getResponse<Messages.PublishAllXmlResponse> proxy req |> ignore
+
+
+/// Retrieve current user id
+let whoAmI proxy =
+  let req = WhoAmIRequest()
+  let resp = getResponse<WhoAmIResponse> proxy req
+  resp.UserId

@@ -8,73 +8,75 @@ open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 
 let createPublisher org name display prefix ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Create publisher: " + display)
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  log'.WriteLine(LogLevel.Verbose, @"Name: " + name)
-  log'.WriteLine(LogLevel.Verbose, @"Display name: " + display)
-  log'.WriteLine(LogLevel.Verbose, @"Prefix: " + prefix)
-  logAuthentication ap usr pwd' domain log'
-  SolutionHelper.createPublisher' org ac name display prefix log'
-  log'.WriteLine(LogLevel.Info, @"The publisher was created successfully.")
+  logVersion log
+  log.Info @"Create publisher: %s" display
+  log.Verbose @"Organization: %O" org
+  log.Verbose @"Name: %s" name
+  log.Verbose @"Display name: %s" display
+  log.Verbose @"Prefix: %s" prefix
+  logAuthentication ap usr pwd' domain log
+  SolutionHelper.createPublisher' org ac name display prefix log
+  log.Info @"The publisher was created successfully."
   
 let create org name display pubPrefix ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Create solution: " + display)
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  log'.WriteLine(LogLevel.Verbose, @"Name: " + name)
-  log'.WriteLine(LogLevel.Verbose, @"Display name: " + display)
-  log'.WriteLine(LogLevel.Verbose, @"Publisher prefix: " + pubPrefix)
-  logAuthentication ap usr pwd' domain log'
-  SolutionHelper.create' org ac name display pubPrefix log'
-  log'.WriteLine(LogLevel.Info, @"The solution was created successfully.")
+  logVersion log
+
+  log.Info @"Create solution: %s" display
+  log.Verbose @"Organization: %O" org
+  log.Verbose @"Name: %s" name
+  log.Verbose @"Display name: %s" display
+  log.Verbose @"Publisher prefix: %s" pubPrefix
+  logAuthentication ap usr pwd' domain log
+  SolutionHelper.create' org ac name display pubPrefix log
+  log.Info @"The solution was created successfully."
   
 let delete org solution ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Delete solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
-  logAuthentication ap usr pwd' domain log'
-  SolutionHelper.delete' org ac solution log'
-  log'.WriteLine(LogLevel.Info, @"The deleted was created successfully.")
+  logVersion log
+
+  log.Info @"Delete solution: %s" solution
+  log.Verbose @"Organization: %O" org
+  log.Verbose @"Solution: %s" solution
+  logAuthentication ap usr pwd' domain log
+  SolutionHelper.delete' org ac solution log
+  log.Info @"The deleted was created successfully."
 
 let merge org sourceSolution targetSolution ap usr pwd domain log =
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, 
-    (sprintf @"Merging %s solution into %s: " targetSolution sourceSolution))
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  logAuthentication ap usr pwd' domain log'
-  SolutionHelper.merge' org ac sourceSolution targetSolution log'
-  log'.WriteLine(LogLevel.Info, @"The solutions was merged successfully.")
+  logVersion log
+
+  log.Info @"Merging %s solution into %s: " targetSolution sourceSolution
+  log.Verbose @"Organization: %O" org
+  logAuthentication ap usr pwd' domain log
+  SolutionHelper.merge' org ac sourceSolution targetSolution log
+  log.Info @"The solutions was merged successfully."
   
 let pluginSteps org solution enable ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"PluginSteps solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
-  logAuthentication ap usr pwd' domain log'
-  SolutionHelper.pluginSteps' org ac solution enable log'
+  logVersion log
+
+  log.Info @"PluginSteps solution: %s" solution
+  log.Verbose @"Organization: %O" org
+  log.Verbose @"Solution: %s" solution
+  logAuthentication ap usr pwd' domain log
+  SolutionHelper.pluginSteps' org ac solution enable log
   let msg' = 
     enable |> function 
     | true -> "enabled"
     | false -> "disabled"
-  log'.WriteLine
-    (LogLevel.Info, @"The solution plugins was successfully " + msg')
+  log.Info @"The solution plugins was successfully %s" msg'
 
 let enablePluginSteps (env: Environment) solutionName enable logLevel =
   let usr, pwd, dmn = env.getCreds()
@@ -84,114 +86,113 @@ let enablePluginSteps (env: Environment) solutionName enable logLevel =
   pluginSteps env.url solutionName enable env.apToUse usr pwd dmn logLevel
 
 let workflow org solution enable ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"WorkflowActivities solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
-  logAuthentication ap usr pwd' domain log'
-  SolutionHelper.workflow' org ac solution enable log'
+  logVersion log
+  log.Info @"WorkflowActivities solution: %s" solution
+  log.Verbose @"Organization: %O" org
+  log.Verbose @"Solution: %s" solution
+  logAuthentication ap usr pwd' domain log
+  SolutionHelper.workflow' org ac solution enable log
   let msg' = 
     enable |> function 
     | true -> "enabled"
     | false -> "disabled"
-  log'.WriteLine
+  log.WriteLine
     (LogLevel.Info, 
       @"The solution workflow activities was successfully " + msg')
   
 let export org solution location managed ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Export solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-  log'.WriteLine(LogLevel.Verbose, @"Managed solution: " + managed.ToString())
-  logAuthentication ap usr pwd' domain log'
-  SolutionHelper.export' org ac solution location managed log'
-  log'.WriteLine(LogLevel.Info, @"The solution was exported successfully")
+  logVersion log
+  log.Info @"Export solution: %s" solution
+  log.Verbose @"Organization: %O" org
+  log.Verbose @"Solution: %s" solution
+  log.Verbose @"Path to folder: %s" location
+  log.Verbose @"Managed solution: %O" managed
+  logAuthentication ap usr pwd' domain log
+  SolutionHelper.export' org ac solution location managed log
+  log.Info @"The solution was exported successfully"
   
 let import org location ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Import solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
-  log'.WriteLine(LogLevel.Verbose, @"Managed solution: " + managed.ToString())
-  logAuthentication ap usr pwd' domain log'
-  SolutionHelper.import' org ac solution location managed log' |> ignore
-  log'.WriteLine(LogLevel.Info, @"The solution was imported successfully")
+  logVersion log
+  log.Info @"Import solution: %s" solution
+  log.Verbose @"Organization: %O" org
+  log.Verbose @"Solution: %s" solution
+  log.Verbose @"Path to file: %s" location
+  log.Verbose @"Managed solution: %O" managed
+  logAuthentication ap usr pwd' domain log
+  SolutionHelper.import' org ac solution location managed log |> ignore
+  log.Info @"The solution was imported successfully"
 
 let exportWithDGSolution org solution location managed ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let ac' = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let ac' = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Export solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-  log'.WriteLine(LogLevel.Verbose, @"Managed solution: " + managed.ToString())
-  logAuthentication ap usr pwd' domain log'
-  SolutionHelper.exportWithDGSolution' org ac ac' solution location managed log'
-  log'.WriteLine(LogLevel.Info, @"The extended solution was exported successfully")
+  logVersion log
+  log.Info @"Export solution: %s" solution
+  log.Verbose @"Organization: %O" org
+  log.Verbose @"Solution: %s" solution
+  log.Verbose @"Path to folder: %s" location
+  log.Verbose @"Managed solution: %O" managed
+  logAuthentication ap usr pwd' domain log
+  SolutionHelper.exportWithDGSolution' org ac ac' solution location managed log
+  log.Info @"The extended solution was exported successfully"
   
 let importWithDGSolution org location ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let ac' = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let ac' = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Import solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  log'.WriteLine(LogLevel.Verbose, @"Solution: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
-  log'.WriteLine(LogLevel.Verbose, @"Managed solution: " + managed.ToString())
-  logAuthentication ap usr pwd' domain log'
-  SolutionHelper.importWithDGSolution' org ac ac' solution location managed log' |> ignore
-  log'.WriteLine(LogLevel.Info, @"The extended solution was imported successfully")
+  logVersion log
+  log.Info @"Import solution: %s" solution
+  log.Verbose @"Organization: %O" org
+  log.Verbose @"Solution: %s" solution
+  log.Verbose @"Path to file: %s" location
+  log.Verbose @"Managed solution: %O" managed
+  logAuthentication ap usr pwd' domain log
+  SolutionHelper.importWithDGSolution' org ac ac' solution location managed log |> ignore
+  log.Info @"The extended solution was imported successfully"
   
 // TODO: 
 let extract location customizations map project log = 
-  let log' = ConsoleLogger log
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
-  SolutionHelper.extract' location customizations map project log' log
-  log'.WriteLine(LogLevel.Info, @"The solution was extracted successfully")
+  let log = ConsoleLogger log
+  logVersion log
+  log.Verbose @"Path to file: %s" location
+  SolutionHelper.extract' location customizations map project log log
+  log.Info @"The solution was extracted successfully"
   
 // TODO: 
 let pack location customizations map managed log = 
-  let log' = ConsoleLogger log
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Verbose, @"Path to file: " + location)
-  SolutionHelper.pack' location customizations map managed log' log
-  log'.WriteLine(LogLevel.Info, @"The solution was packed successfully")
+  let log = ConsoleLogger log
+  logVersion log
+  log.Verbose @"Path to file: %s" location
+  SolutionHelper.pack' location customizations map managed log log
+  log.Info @"The solution was packed successfully"
   
 // TODO: 
 let updateServiceContext org location ap usr pwd domain exe lcid log = 
   let org' : Uri = org
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Update service context:")
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  log'.WriteLine(LogLevel.Verbose, @"Path to folder: " + location)
-  logAuthentication ap usr pwd' domain log'
+  logVersion log
+  log.Info @"Update service context:"
+  log.Verbose @"Organization: %O" org
+  log.Verbose @"Path to folder: %s" location
+  logAuthentication ap usr pwd' domain log
   SolutionHelper.updateServiceContext' org' location ap usr pwd domain exe 
-    lcid log'
-  log'.WriteLine
-    (LogLevel.Info, @"The service context was updated successfully")
+    lcid log
+  log.Info @"The service context was updated successfully"
   
 let updateCustomServiceContext org outputDirectory ap usr (pwd: string) domain pathToExe log 
     solutions entities extraArgs = 
@@ -199,7 +200,7 @@ let updateCustomServiceContext org outputDirectory ap usr (pwd: string) domain p
   let logger = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   logger.Info "%s" daxifVersion
-  logger.Info "Organization: %s" (org.ToString())
+  logger.Info "Organization: %O" org
   logger.Info "Path to output dir: %s" (Path.GetFullPath outputDirectory)
   logAuthentication ap usr pwd' domain logger
   logger.Info "Updating the C# context..."
@@ -215,7 +216,7 @@ let updateTypeScriptContext org outputDirectory ap usr (pwd: string) domain path
   let logger = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   logger.Info "%s" daxifVersion
-  logger.Info "Organization: %s" (org.ToString())
+  logger.Info "Organization: %O" org
   logger.Info "Path to output dir: %s" (Path.GetFullPath outputDirectory)
   logAuthentication ap usr pwd' domain logger
   logger.Info "Updating the TypeScript context..."
@@ -227,15 +228,13 @@ let updateTypeScriptContext org outputDirectory ap usr (pwd: string) domain path
 // Counts all the components in the solution.
 let count org solution ap usr pwd domain log = 
   let org' : Uri = org
-  let ac = Authentication.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+  let ac = CrmAuth.getCredentials ap usr pwd domain
+  let log = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Count components in: " + solution)
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  logAuthentication ap usr pwd' domain log'
+  logVersion log
+  log.Info @"Count components in: %s" solution
+  log.Verbose @"Organization: %O" org
+  logAuthentication ap usr pwd' domain log
   let _count = SolutionHelper.count' org' solution ac
-  log'.WriteLine
-    (LogLevel.Info, @"The solution components were counted successfully")
-  log'.WriteLine
-    (LogLevel.Info, @"The solution contains " + string _count + " components")
+  log.Info @"The solution components were counted successfully"
+  log.Info @"The solution contains %d components" _count

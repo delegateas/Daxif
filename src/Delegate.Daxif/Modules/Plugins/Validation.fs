@@ -1,15 +1,13 @@
 ﻿module internal DG.Daxif.Modules.Plugin.Validation
 
 open System
+open Microsoft.Xrm.Sdk
 open DG.Daxif.Common
+open CrmDataHelper
 
+open CrmUtility
 open Domain
 
-     
-type ImageType =
-  | PreImage = 0
-  | PostImage = 1
-  | Both = 2
 
 /// Helper functions and monads for step based testing
 type Result<'TValid,'TInvalid> = 
@@ -114,10 +112,7 @@ let validUserContext proxyGen plugins =
     |> Seq.filter(fun (_,pl) -> pl.step.userContext <> Guid.Empty)
     |> Seq.filter(fun (_,pl) ->
       use p = proxyGen()
-      try 
-        match CrmData.CRUD.retrieve p "systemuser" pl.step.userContext with
-        | _ -> false
-      with _ -> true 
+      CrmDataHelper.exists p "systemuser" pl.step.userContext
     )
 
   findInvalid plugins invalidPlugins "Plugin %s: Defined user context is not in the system"
@@ -138,5 +133,5 @@ let validate proxyGen =
 
 let validatePlugins proxyGen plugins =
   plugins
-  |> Seq.map (fun pl -> pl.step.messageName, pl)
+  |> Seq.map (fun pl -> pl.step.name, pl)
   |> validate proxyGen

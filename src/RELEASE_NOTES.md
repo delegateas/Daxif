@@ -1,20 +1,22 @@
 # Release Notes
 
-### 3.0.0 - Apr 11 2017
+#### 3.0.0 - Apr 11 2017
 * *New API*
-* New `Environment` record which stores connection information
+* New `Environment` type which stores connection information
 * Completely reworked starting scripts
 * Local credential storage added. Credentials can now be encrypted and stored locally in `.daxif` files.
-* Reworked plugin synchronization
+* Reworked most of the plugin synchronization
+* Now checks if a given plugin assembly is up-to-date before synchronizing
+* Restructured the entire project internally
 
-### 2.4.1 - Mar 14 2017
+#### 2.4.1 - Mar 14 2017
 * Udpated DGSolution to also include WebResources and Workflows (processes)
 * Changed DGSolution to read solution name from solution.xml and use Guid to compare objects to persist between environments where possible
 * Fixed a bug in DGSolution where plugins with same name would cause problems. Changed to use Guid instead of names
 * Fixed a bug in `Solution.Import` where the progression would report 0% for a long time and then jump to ~95%
 * Fixed a bug where multiple call to `Solution.exportWithDGSolution` would cause an error
 
-### 2.4.0 - Feb 19 2017
+#### 2.4.0 - Feb 19 2017
 * Added new functionality `Plugins.syncSolutionWhitelist`
 * Removed a lot of try/catch in main methods to allow exceptions to be caught outside of Daxif
 * Removed Agent usage in ConsoleLogger

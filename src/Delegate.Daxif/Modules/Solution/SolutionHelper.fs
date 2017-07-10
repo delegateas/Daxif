@@ -51,7 +51,7 @@ let delete' org ac solution (log : ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let s = CrmDataInternal.Entities.retrieveSolution p solution
+  let s = CrmDataInternal.Entities.retrieveSolutionId p solution
   CrmData.CRUD.delete p s.LogicalName s.Id |> ignore
   let msg = 
     @"Solution was deleted successfully (Solution ID: " + s.Id.ToString() + @")"
@@ -162,7 +162,7 @@ let pluginSteps' org ac solution enable (log : ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let s = CrmDataInternal.Entities.retrieveSolution p solution
+  let s = CrmDataInternal.Entities.retrieveSolutionId p solution
   CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p s.Id
   |> Seq.toArray
   |> Array.Parallel.iter 
@@ -203,7 +203,7 @@ let workflow' org ac solution enable (log : ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let s = CrmDataInternal.Entities.retrieveSolution p solution
+  let s = CrmDataInternal.Entities.retrieveSolutionId p solution
   CrmDataInternal.Entities.retrieveWorkflowsOfStatus p s.Id retrievedStatus
   |> Seq.toArray
   |> fun w -> 
@@ -473,7 +473,7 @@ let exportWithDGSolution' org ac ac' solution location managed (log : ConsoleLog
 let importWithDGSolution' org ac ac' solution location managed (log : ConsoleLogger) = 
   import' org ac solution location managed log |> ignore
   log.WriteLine(LogLevel.Info, @"Importing DGSolution")
-  DGSolutionHelper.importDGSolution org ac' solution location log
+  DGSolutionHelper.importDGSolution org ac' solution location
 
 //TODO:
 let extract' location (customizations : string) (map : string) project 
@@ -616,5 +616,5 @@ let count' org solutionName ac =
   let m = ServiceManager.createOrgService org
   let tc = m.Authenticate(ac)
   use p = ServiceProxy.getOrganizationServiceProxy m tc
-  let solution = CrmDataInternal.Entities.retrieveSolution p solutionName
+  let solution = CrmDataInternal.Entities.retrieveSolutionId p solutionName
   CrmDataInternal.Entities.countEntities p solution.Id

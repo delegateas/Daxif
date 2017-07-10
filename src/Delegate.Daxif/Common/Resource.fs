@@ -11,8 +11,7 @@ module internal Resource =
     let fileSplit = s.Split([| '.' |])
     let fileExtension = (fileSplit.[fileSplit.Length - 1]).ToUpper()
     try 
-      let resourceType = 
-        Enum.Parse(typeof<WebResourceType>, fileExtension) :?> WebResourceType
+      let resourceType = Enum.Parse(typeof<WebResourceType>, fileExtension) :?> WebResourceType
       match resourceType.GetHashCode() with
       | 1 | 2 | 3 | 9 -> Text
       | 5 | 6 | 7 | 8 | 10 -> Binary
@@ -32,10 +31,7 @@ module internal Resource =
   
   let txtResources = 
     Assembly.GetExecutingAssembly().GetManifestResourceNames()
-    |> Array.filter (fun x -> 
-         match x with
-         | Text -> true
-         | _ -> false)
+    |> Array.filter (function | Text -> true | _ -> false)
     |> Array.toList
     |> List.map (fun x -> 
          use stream = 

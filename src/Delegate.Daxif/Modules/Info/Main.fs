@@ -6,7 +6,7 @@ open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 
 let version org ap usr pwd domain log = 
-  let ac = Authentication.getCredentials ap usr pwd domain
+  let ac = CrmAuth.getCredentials ap usr pwd domain
   let log' = ConsoleLogger log
   let pwd' = String.replicate pwd.Length "*"
   log'.WriteLine(LogLevel.Info, daxifVersion)

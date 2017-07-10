@@ -26,10 +26,10 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>ScriptTemplates</OutputPath>
+    <OutputPath>ScriptTemplates\bin</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>ScriptTemplates\Delegate.Daxif.xml</DocumentationFile>
+    <DocumentationFile>ScriptTemplates\bin\Delegate.Daxif.xml</DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\devenv.exe</StartProgram>
     <StartWorkingDirectory>..\..\..\</StartWorkingDirectory>
@@ -101,16 +101,15 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Daxif.fs" />
     <Compile Include="ConsoleLogger.fs" />
+    <Compile Include="Common\FSharpCoreExt.fs" />
     <Compile Include="Common\Utility.fs" />
     <Compile Include="Common\InternalUtility.fs" />
     <Compile Include="Common\CrmUtility.fs" />
     <Compile Include="Common\CrmAuth.fs" />
+    <Compile Include="Common\CrmDataHelper.fs" />
     <Compile Include="Common\Resource.fs" />
-    <Compile Include="Common\FSharpCoreExt.fs" />
     <Compile Include="Common\ServiceManager__ToDeprecate.fs" />
     <Compile Include="Common\ServiceProxy__ToDeprecate.fs" />
-    <Compile Include="Common\Authentication__ToDeprecate.fs" />
-    <Compile Include="Common\CrmDataHelper.fs" />
     <Compile Include="Common\CrmData.fs" />
     <Compile Include="Common\CrmDataInternal.fs" />
     <Compile Include="Setup\CredentialManagement.fs" />
@@ -133,7 +132,8 @@
     <Compile Include="Modules\Plugins\Compare.fs" />
     <Compile Include="Modules\Plugins\Query.fs" />
     <Compile Include="Modules\Plugins\Retrieval.fs" />
-    <Compile Include="Modules\Plugins\Sync.fs" />
+    <Compile Include="Modules\Plugins\CreateHelper.fs" />
+    <Compile Include="Modules\Plugins\MainHelper.fs" />
     <Compile Include="Modules\Plugins\Main.fs" />
     <Compile Include="Modules\Workflows\WorkflowsHelper.fs" />
     <Compile Include="Modules\Workflows\Main.fs" />
@@ -153,7 +153,7 @@
     <None Include="ScriptTemplates\DataImportTarget.fsx" />
     <None Include="ScriptTemplates\GenerateCSharpContext.fsx" />
     <None Include="ScriptTemplates\GenerateTypeScriptContext.fsx" />
-    <None Include="ScriptTemplates\PluginSyncDev.fsx" />
+    <None Include="ScriptTemplates\Copy of PluginSyncDev.fsx" />
     <None Include="ScriptTemplates\SolutionCreateDev.fsx" />
     <None Include="ScriptTemplates\SolutionExportDev.fsx" />
     <None Include="ScriptTemplates\SolutionExtract.fsx" />
@@ -163,12 +163,10 @@
     <None Include="ScriptTemplates\SolutionPack.fsx" />
     <None Include="ScriptTemplates\WebResourceSyncDev.fsx" />
     <None Include="ScriptTemplates\WorkflowSyncDev.fsx" />
+    <None Include="ScriptTemplates\PluginSyncDev.fsx" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Core">
-      <HintPath>..\packages\FSharp.Core.4.1.2\lib\net45\FSharp.Core.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Crm.Sdk.Proxy">
       <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.2.0.2\lib\net452\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
       <Private>True</Private>
@@ -192,9 +190,6 @@
     <Reference Include="System.Activities.Presentation" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
-    <Reference Include="System.ValueTuple">
-      <HintPath>..\packages\System.ValueTuple.4.3.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
-    </Reference>
     <Reference Include="System.Workflow.Activities" />
     <Reference Include="System.Workflow.ComponentModel" />
     <Reference Include="System.Workflow.Runtime" />
