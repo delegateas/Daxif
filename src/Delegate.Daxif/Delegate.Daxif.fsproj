@@ -98,6 +98,7 @@
     <Content Include="bin\coretools\CrmSvcUtil.xml" />
     <Content Include="bin\coretools\CrmSvcUtil.exe.config" />
     <None Include="bin\coretools\CrmSvcUtil.exe" />
+    <None Include="Resources\Plugin.cs" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Daxif.fs" />
     <Compile Include="ConsoleLogger.fs" />
@@ -121,6 +122,7 @@
     <Compile Include="Modules\Solution\DGSolutionHelper.fs" />
     <Compile Include="Modules\Solution\SolutionHelper.fs" />
     <Compile Include="Modules\Solution\Main.fs" />
+    <Compile Include="Modules\Solution\Versioning.fs" />
     <Compile Include="Modules\Data\DataHelper.fs" />
     <Compile Include="Modules\Data\Main.fs" />
     <Compile Include="Modules\Translations\TranslationsHelper.fs" />
@@ -147,23 +149,22 @@
     <Compile Include="API\Workflow.fs" />
     <Compile Include="API\Info.fs" />
     <None Include="ScriptTemplates\_Config.fsx" />
-    <None Include="ScriptTemplates\_EnsureAssemblies.fsx" />
     <None Include="ScriptTemplates\CountEntities.fsx" />
     <None Include="ScriptTemplates\DataExportSource.fsx" />
     <None Include="ScriptTemplates\DataImportTarget.fsx" />
     <None Include="ScriptTemplates\GenerateCSharpContext.fsx" />
     <None Include="ScriptTemplates\GenerateTypeScriptContext.fsx" />
-    <None Include="ScriptTemplates\Copy of PluginSyncDev.fsx" />
+    <None Include="ScriptTemplates\Playground.fsx" />
+    <None Include="ScriptTemplates\PluginSyncDev.fsx" />
     <None Include="ScriptTemplates\SolutionCreateDev.fsx" />
-    <None Include="ScriptTemplates\SolutionExportDev.fsx" />
     <None Include="ScriptTemplates\SolutionExtract.fsx" />
+    <None Include="ScriptTemplates\SolutionExportDev.fsx" />
     <None Include="ScriptTemplates\SolutionImportDev.fsx" />
     <None Include="ScriptTemplates\SolutionImportTest.fsx" />
     <None Include="ScriptTemplates\SolutionImportArg.fsx" />
     <None Include="ScriptTemplates\SolutionPack.fsx" />
     <None Include="ScriptTemplates\WebResourceSyncDev.fsx" />
     <None Include="ScriptTemplates\WorkflowSyncDev.fsx" />
-    <None Include="ScriptTemplates\PluginSyncDev.fsx" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

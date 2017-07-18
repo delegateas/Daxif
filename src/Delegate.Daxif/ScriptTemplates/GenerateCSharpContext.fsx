@@ -17,4 +17,7 @@ Solution.GenerateCSharpContext(Env.dev, xrmContext, businessDomain,
     ],
   entities = [
     // eg. "systemuser"
+    ],
+  extraArguments = [
+    "deprecatedprefix", "ZZ_"
     ])

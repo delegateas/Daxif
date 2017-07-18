@@ -1,4 +1,4 @@
-﻿module internal DG.Daxif.Common.CrmUtility
+﻿module DG.Daxif.Common.CrmUtility
 
 open System
 open Microsoft.Xrm.Sdk
@@ -39,6 +39,14 @@ let toOrgReq x = x :> OrganizationRequest
 let attachToSolution solutionName (req: #OrganizationRequest) = 
   req.Parameters.Add("SolutionUniqueName", solutionName)
   req
+
+/// Impersonate a user
+let impersonateUser (proxy: OrganizationServiceProxy) userGuid func =
+  let oldCallerId = proxy.CallerId
+  proxy.CallerId <- userGuid
+  let result = func proxy
+  proxy.CallerId <- oldCallerId
+  result
 
 /// Parses a fault to a list of strings
 let rec parseFault (fault: OrganizationServiceFault) =
@@ -111,3 +119,25 @@ let queryExpressionToString (query: QueryExpression) =
   :: sprintf "Filter: "
   :: filter
   |> String.concat "\n"
+
+
+/// Takes an attribute value and parses it to a string
+let attributeValueToString (value: obj) =
+  match value with
+  | :? EntityReference as er          -> sprintf "%A" er.Id
+  | :? OptionSetValue as osv          -> sprintf "%d" osv.Value
+  | :? BooleanManagedProperty as bmp  -> sprintf "%b" bmp.Value
+  | _ -> sprintf "%A" value
+
+/// Takes the attributes in an entity and parses them into a Map<string, string>
+let attributesToMap (e: Entity) =
+  e.Attributes
+  |> Seq.map (fun a ->  a.Key, attributeValueToString a.Value)
+  |> Map.ofSeq
+
+/// Prints attributes in a formatted manner to console
+let attributesPrint (e: Entity) =
+  attributesToMap e
+  |> Map.iter (fun k v ->
+    printfn "%s => %s" k v
+  )

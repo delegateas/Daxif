@@ -13,37 +13,29 @@ type WebResourceAction =
   | Update
   | Delete
   
-// Helpers functions
-let (+/) a b = a + @"/" + b
-let fullpath (a : string) r = a.Replace(@"\", @"/") +/ r
-  
+
 let getMatchingEntitiesByName namesToKeep =
-  Seq.filter (fun (x: Entity) -> 
-    namesToKeep |> Set.contains (x.GetAttributeValue<string>("name"))
-  )
+  Seq.filter (fun (x: Entity) -> namesToKeep |> Set.contains (x.GetAttributeValue<string>("name")))
   
 // Convert a local web resource file to an entity object.
-let localResourceToWebResource file (namePrefix: string) = 
-  let fileName = Path.GetFileName(file)
-  let ext = Path.GetExtension(file).ToUpper().Replace(@".", String.Empty)
-  let rp = file.Substring(file.IndexOf(namePrefix) + namePrefix.Length)
-  let webResourceName = namePrefix + rp.Replace(@"\", @"/")
+let localResourceToWebResource path name = 
+  let ext = Path.GetExtension(path).ToUpper().Replace(@".", String.Empty)
   let webResourceType = Enum.Parse(typeof<WebResourceType>, ext.ToUpper()) :?> WebResourceType
-
+  
   let wr = Entity("webresource")
-  wr.Attributes.Add("content", fileToBase64 (file))
-  wr.Attributes.Add("displayname", Path.GetFileName webResourceName)
-  wr.Attributes.Add("name", webResourceName)
+  wr.Attributes.Add("content", fileToBase64 path)
+  wr.Attributes.Add("displayname", Path.GetFileName name)
+  wr.Attributes.Add("name", name)
   wr.Attributes.Add("webresourcetype", OptionSetValue(int webResourceType))
 
   match webResourceType with
   | WebResourceType.XAP -> wr.Attributes.Add("silverlightversion", "4.0")
   | _ -> ()
 
-  match webResourceName.Contains(@"-") with // TODO: Do more complex HTML check
+  match name.Contains(@"-") with // TODO: Do more complex HTML check
   | false -> Some wr
   | true -> 
-    log.WriteLine(LogLevel.Error, "Webname: " + webResourceName + " is not supported")
+    log.WriteLine(LogLevel.Error, "Webname: " + name + " is not supported")
     None
   
 /// Get all local webresources by enumerating all folders at given location,
@@ -80,10 +72,14 @@ let getPrefixAndUniqueName location =
       @"Incorrect root folder (must only contain 1 folder ex: 'publishPrefix_uniqueSolutionName'"
   
 /// Filter out any files which are labeled with "_nosync"
-let localFiles location = 
+let getLocalWRs location prefix = 
   getLocalResourcesHelper location
   |> Seq.filter (fun name -> not <| name.EndsWith("_nosync"))
-  |> Set.ofSeq
+  |> Seq.map (fun path -> 
+    let name = path.Substring(path.IndexOf(location) + location.Length).Replace(@"\", "/").Trim('/')
+    sprintf @"%s/%s" prefix name, path
+  )
+  |> Map.ofSeq
  
 let getSyncActions proxy webresourceFolder solutionName =
   let (solutionId, prefix) = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy solutionName
@@ -91,32 +87,36 @@ let getSyncActions proxy webresourceFolder solutionName =
   
   let wrPrefix = sprintf "%s_%s" prefix solutionName
 
-  let localWRs = localFiles webresourceFolder  
+  let localWrPathMap = getLocalWRs webresourceFolder wrPrefix
+  let localWrs = localWrPathMap |> Seq.map (fun kv -> kv.Key) |> Set.ofSeq
+
   let crmWRs = 
     webResources
     |> Seq.map (fun x -> x.GetAttributeValue<string>("name"))
     |> Set.ofSeq
-    
+
   let create = 
-    localWRs - crmWRs
+    localWrs - crmWRs
     |> Set.toArray
-    |> Array.Parallel.map (fun x -> 
-      localResourceToWebResource (fullpath webresourceFolder x) wrPrefix
+    |> Array.Parallel.map (fun name -> 
+      let localWrPath = localWrPathMap.[name]
+      localResourceToWebResource localWrPath name
     )
     |> Array.choose (fun x -> id x)
     |> Array.Parallel.map (fun x -> WebResourceAction.Create, x)
     
   let delete = 
-    getMatchingEntitiesByName (crmWRs - localWRs) webResources
+    getMatchingEntitiesByName (crmWRs - localWrs) webResources
     |> Seq.toArray
     |> Array.Parallel.map (fun x -> WebResourceAction.Delete, x)
     
   let update = 
-    getMatchingEntitiesByName (Set.intersect localWRs crmWRs) webResources
+    getMatchingEntitiesByName (Set.intersect localWrs crmWRs) webResources
     |> Seq.toArray
     |> Array.Parallel.map (fun currentWr -> 
       let name = currentWr.GetAttributeValue<string>("name")
-      let localWr = localResourceToWebResource (fullpath webresourceFolder name) wrPrefix
+      let localWrPath = localWrPathMap.[name]
+      let localWr = localResourceToWebResource localWrPath name
       currentWr, localWr
     )
     |> Array.choose (function 

@@ -3,6 +3,7 @@
 open DG.Daxif.Common
 open DG.Daxif.Modules.Solution
 open Utility
+open InternalUtility
 
 type Solution private () =
 
@@ -107,3 +108,20 @@ type Solution private () =
     let managed = managed ?| false
 
     Main.pack outputFile customizationsFolder xmlMappingFile managed
+
+  /// <summary>Updates the version number of a solution by the given increment, defaults to revision number</summary>
+  static member UpdateVersionNumber(env: Environment, solutionName, ?increment, ?logLevel) =
+    let logLevel = logLevel ?| LogLevel.Verbose
+    let increment = increment ?| Revision
+    
+    let proxy = env.connect(log).GetProxy()
+    
+    log.Info "Updating version number of CRM solution (%A)." increment
+    let solId, version = Versioning.getSolutionVersionNumber proxy solutionName
+    log.Info "Current version: %A" version
+
+    let newVersion = Versioning.incrementVersionNumber version increment
+    log.Info "New version: %A" newVersion
+
+    Versioning.updateSolutionVersionTo proxy solId newVersion
+    log.Info "Version number was succesfully updated in CRM."

@@ -167,3 +167,13 @@ let whoAmI proxy =
   let req = WhoAmIRequest()
   let resp = getResponse<WhoAmIResponse> proxy req
   resp.UserId
+
+
+/// Retrieves the solution with the given name
+let retrieveSolution proxy (solutionName: string) (retrieveSelect: RetrieveSelect) =
+  let f = FilterExpression()
+  f.AddCondition(ConditionExpression(@"uniquename", ConditionOperator.Equal, solutionName))
+  let q = QueryExpression("solution")
+  q.ColumnSet <- retrieveSelect.columnSet
+  q.Criteria <- f
+  retrieveFirstMatch proxy q

@@ -1,13 +1,18 @@
 # Release Notes
 
-#### 3.0.0 - Apr 11 2017
+#### 3.0.1 - July 18 2017
+* A few bugfixes
+
+#### 3.0.0 - July 18 2017
 * *New API*
 * New `Environment` type which stores connection information
-* Completely reworked starting scripts
 * Local credential storage added. Credentials can now be encrypted and stored locally in `.daxif` files.
+* Completely reworked starting scripts
+* Restructured the entire project internally
 * Reworked most of the plugin synchronization
 * Now checks if a given plugin assembly is up-to-date before synchronizing
-* Restructured the entire project internally
+* WebresourceSync does not expect a folder named <prefix>_<solutionName> anymore, but instead synchronizes the specified folder and prefixes the files automatically
+* Added solution version increment function
 
 #### 2.4.1 - Mar 14 2017
 * Udpated DGSolution to also include WebResources and Workflows (processes)

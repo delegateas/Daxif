@@ -177,10 +177,7 @@ Target "NuGet" (fun _ ->
              NoDefaultExcludes = true
              AccessKey = getBuildParamOrDefault "delegateas-nugetkey" ""
              Dependencies = 
-               [ "FSharp.Core", "[4.0.0.1]"
-                 "Microsoft.CrmSdk.CoreAssemblies", "[8.1.0.2]"
-                 "Microsoft.CrmSdk.CoreTools", "[8.1.0.2]"
-               ]
+               [ ]
              References = [] }) (@"nuget/" + project + ".nuspec"))
 
 
@@ -202,10 +199,7 @@ Target "PublishNuGet" (fun _ ->
              AccessKey = getBuildParamOrDefault "delegateas-nugetkey" ""
              Publish = hasBuildParam "delegateas-nugetkey"
              Dependencies = 
-               [ "FSharp.Core", "[4.0.0.1]"
-                 "Microsoft.CrmSdk.CoreAssemblies", "[8.1.0.2]"
-                 "Microsoft.CrmSdk.CoreTools", "[8.1.0.2]"
-               ]
+               [ ]
              References = [] }) (@"nuget/" + project + ".nuspec"))
 
 // --------------------------------------------------------------------------------------

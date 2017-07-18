@@ -49,3 +49,12 @@ type AsyncJobState =
   | Failed              = 31
   | Canceled            = 32
 
+type Version = int * int * int * int
+type VersionCriteria = Version option * Version option
+
+
+type VersionIncrement =
+  | Revision
+  | Build
+  | Minor
+  | Major

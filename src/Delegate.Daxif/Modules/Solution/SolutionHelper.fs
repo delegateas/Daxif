@@ -261,7 +261,7 @@ let export' org ac solution location managed (log : ConsoleLogger) =
       | false -> ""
     sprintf "%s%s.zip" solution managed'
 
-  File.WriteAllBytes(location + filename, zipFile)
+  File.WriteAllBytes(location ++ filename, zipFile)
 
   log.WriteLine(LogLevel.Verbose, @"Solution saved to local disk")
 

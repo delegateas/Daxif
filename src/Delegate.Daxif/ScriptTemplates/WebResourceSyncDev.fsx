@@ -8,4 +8,4 @@ open _Config
 open DG.Daxif
 open DG.Daxif.Common.Utility
 
-WebResource.Sync(Env.dev, Path.webResourceSrcFolder, SolutionInfo.name)
+WebResource.Sync(Env.dev, Path.webResourceFolder, SolutionInfo.name)

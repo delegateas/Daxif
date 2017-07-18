@@ -55,8 +55,8 @@ CRM Solution Setup
 ------------------
 **)
 module SolutionInfo =
-  let name = @"SolutionName"
-  let displayName = @"Solution Name"
+  let name = @"XrmSolution"
+  let displayName = @"XrmSolution"
 
 module PublisherInfo =
   let prefix = @"dg"
@@ -75,8 +75,8 @@ module Path =
   let solutionRoot = daxifRoot ++ @"..\.."
   let toolsFolder = daxifRoot ++ @".."
   
-  let webResourceFolder = solutionRoot ++ @"WebResources"
-  let webResourceSrcFolder = webResourceFolder ++ @"src"
+  let webResourceProject = solutionRoot ++ @"WebResources"
+  let webResourceFolder = webResourceProject ++ @"src" ++ (sprintf "%s_%s" PublisherInfo.prefix SolutionInfo.name)
 
 
   /// Path information used by the SolutionPackager scripts

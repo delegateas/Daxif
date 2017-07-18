@@ -323,8 +323,11 @@ module CrmDataInternal =
       ColumnSet(null) |> retrieveSolution proxy uniqueName
 
     let retrieveSolutionIdAndPrefix proxy uniqueName = 
-      ColumnSet("uniquename") |> retrieveSolution proxy uniqueName
-      |> fun e -> e.Id, "test"
+      ColumnSet("uniquename", "publisherid") |> retrieveSolution proxy uniqueName
+      |> fun sol -> 
+        let pubId = sol.GetAttributeValue<EntityReference>("publisherid").Id
+        let publisher = retrieve proxy "publisher" pubId (RetrieveSelect.Fields ["customizationprefix"])
+        sol.Id, publisher.GetAttributeValue<string>("customizationprefix")
 
     let retrieveSolutionAllAttributes proxy uniqueName = 
       ColumnSet(true) |> retrieveSolution proxy uniqueName 
