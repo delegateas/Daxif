@@ -468,7 +468,7 @@ let exportWithDGSolution' org ac ac' solution location managed (log : ConsoleLog
       | false -> ""
     sprintf "%s%s.zip" solution managed'
   log.WriteLine(LogLevel.Info, @"Exporting DGSolution")
-  DGSolutionHelper.exportDGSolution org ac' solution (location + filename) log
+  DGSolutionHelper.exportDGSolution org ac' solution (location ++ filename) log
 
 let importWithDGSolution' org ac ac' solution location managed (log : ConsoleLogger) = 
   import' org ac solution location managed log |> ignore

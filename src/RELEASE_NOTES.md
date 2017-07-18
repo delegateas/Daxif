@@ -1,17 +1,18 @@
 # Release Notes
 
-#### 3.0.1 - July 18 2017
-* A few bugfixes
+#### 3.0.2 - July 18 2017
+* Updated some of the solution import/export scripts
+* Fixed extended solution export using an invalid path in certain cases
 
-#### 3.0.0 - July 18 2017
-* *New API*
+#### 3.0.1 - July 18 2017
+* ***New API***
 * New `Environment` type which stores connection information
 * Local credential storage added. Credentials can now be encrypted and stored locally in `.daxif` files.
 * Completely reworked starting scripts
 * Restructured the entire project internally
 * Reworked most of the plugin synchronization
 * Now checks if a given plugin assembly is up-to-date before synchronizing
-* WebresourceSync does not expect a folder named <prefix>_<solutionName> anymore, but instead synchronizes the specified folder and prefixes the files automatically
+* WebresourceSync does not expect a folder named `<prefix>_<solutionName>` anymore, but instead synchronizes the specified folder and prefixes the files automatically
 * Added solution version increment function
 
 #### 2.4.1 - Mar 14 2017

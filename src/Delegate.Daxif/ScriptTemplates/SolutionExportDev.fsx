@@ -7,13 +7,17 @@ SolutionExportDev
 open _Config
 
 open System
+open System.IO
 open DG.Daxif
 open DG.Daxif.Common.Utility
 
+// Get version increment from CLI if provided, default to Revision
 let versionIncrement = 
   if fsi.CommandLineArgs.Length > 1 then getVersionIncrement fsi.CommandLineArgs.[1]
   else VersionIncrement.Revision
 
+// Ensure solution directory exists
+Directory.CreateDirectory(Path.Daxif.crmSolutionsFolder)
 
 // Update solution version
 Solution.UpdateVersionNumber(Env.dev, SolutionInfo.name, versionIncrement)
