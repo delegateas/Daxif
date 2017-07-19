@@ -14,11 +14,14 @@ open DG.Daxif.Common.Utility
 (** 
 CRM Environment Setup 
 ---------------------
-**)
+*)
    
+// Prompts the developer for a username and password the first time a script is run.
+// It then stores these credentials in a local .daxif-file.
 let creds = Credentials.FromKey("UserCreds")
 
-// If you want to store login credentials directly in code, instead of in a local file, replace the above line with the following
+// If you want to store login credentials directly in code, instead of in a local file, 
+// replace the above line with the following
 //let creds = Credentials.Create("usr", "pwd")
 
 module Env =
@@ -53,7 +56,7 @@ module Env =
 (** 
 CRM Solution Setup 
 ------------------
-**)
+*)
 module SolutionInfo =
   let name = @"XrmSolution"
   let displayName = @"XrmSolution"
@@ -67,7 +70,7 @@ module PublisherInfo =
 (** 
 Path and project setup 
 ----------------------
-**)
+*)
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
 module Path =
@@ -76,7 +79,8 @@ module Path =
   let toolsFolder = daxifRoot ++ @".."
   
   let webResourceProject = solutionRoot ++ @"WebResources"
-  let webResourceFolder = webResourceProject ++ @"src" ++ (sprintf "%s_%s" PublisherInfo.prefix SolutionInfo.name)
+  let webResourceFolder = 
+    webResourceProject ++ @"src" ++ (sprintf "%s_%s" PublisherInfo.prefix SolutionInfo.name)
 
 
   /// Path information used by the SolutionPackager scripts
