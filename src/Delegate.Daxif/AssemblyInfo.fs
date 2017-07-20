@@ -6,11 +6,16 @@ open System.Reflection
 [<assembly: AssemblyProductAttribute("Delegate.Daxif")>]
 [<assembly: AssemblyDescriptionAttribute("Delegate Automated xRM Installation Framework")>]
 [<assembly: AssemblyCompanyAttribute("Delegate")>]
-[<assembly: AssemblyCopyrightAttribute("Copyright (c) Delegate A/S 2014")>]
-[<assembly: AssemblyVersionAttribute("2.4.1")>]
-[<assembly: AssemblyFileVersionAttribute("2.4.1")>]
+[<assembly: AssemblyCopyrightAttribute("Copyright (c) Delegate A/S 2017")>]
+[<assembly: AssemblyVersionAttribute("3.0.2")>]
+[<assembly: AssemblyFileVersionAttribute("3.0.2")>]
 do ()
 
 module internal AssemblyVersionInformation =
-    let [<Literal>] Version = "2.4.1"
-    let [<Literal>] InformationalVersion = "2.4.1"
+    let [<Literal>] AssemblyTitle = "Delegate.Daxif"
+    let [<Literal>] AssemblyProduct = "Delegate.Daxif"
+    let [<Literal>] AssemblyDescription = "Delegate Automated xRM Installation Framework"
+    let [<Literal>] AssemblyCompany = "Delegate"
+    let [<Literal>] AssemblyCopyright = "Copyright (c) Delegate A/S 2017"
+    let [<Literal>] AssemblyVersion = "3.0.2"
+    let [<Literal>] AssemblyFileVersion = "3.0.2"

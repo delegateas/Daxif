@@ -11,7 +11,7 @@ let output = source ++ @"output\"
 
 let toFetch = 
     [ source ++ @"..\src\Delegate.Daxif\Signatures", [@"*.fsi"]
-      source ++ @"..\src\Delegate.Daxif", [@"*.fsx"]
+      source ++ @"..\src\Delegate.Daxif\ScriptTemplates", [@"*.fsx"]
       source ++ @"..\src\Delegate.Daxif\bin\Release", 
         [   @"Delegate.Daxif.dll"; @"Delegate.Daxif.xml"; 
             @"Microsoft.Xrm.Sdk.dll"; @"Microsoft.Xrm.Sdk.xml"]
