@@ -64,6 +64,7 @@ let layoutRoots =
 let examples = 
     Directory.EnumerateFiles(content, @"*.fsx")
     |> Seq.map Path.GetFileNameWithoutExtension
+    |> Seq.sortWith (fun a b -> System.String.Compare(a, b, System.StringComparison.InvariantCulture))
     |> String.concat ";"
 
 // Additional strings to be replaced in the HTML template

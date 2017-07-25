@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.10
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{F456FA03-61C5-4086-B1C5-76EEAE961134}"
 	ProjectSection(SolutionItems) = preProject
@@ -17,9 +17,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "project", "project", "{91D2
 		build.cmd = build.cmd
 		build.fsx = build.fsx
 		nuget\Delegate.Daxif.nuspec = nuget\Delegate.Daxif.nuspec
-		install.ps1 = install.ps1
 		RELEASE_NOTES.md = RELEASE_NOTES.md
-		uninstall.ps1 = uninstall.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Targets", "Targets", "{E79877B3-7533-48D9-BE36-0874A19D68DD}"
+	ProjectSection(SolutionItems) = preProject
+		Targets\fake.targets = Targets\fake.targets
 	EndProjectSection
 EndProject
 Global

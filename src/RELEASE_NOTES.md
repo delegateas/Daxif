@@ -1,13 +1,28 @@
 # Release Notes
 
-### 2.4.1 - Mar 14 2017
+#### 3.0.2 - July 18 2017
+* Updated some of the solution import/export scripts
+* Fixed extended solution export using an invalid path in certain cases
+
+#### 3.0.1 - July 18 2017
+* ***New API***
+* New `Environment` type which stores connection information
+* Local credential storage added. Credentials can now be encrypted and stored locally in `.daxif` files.
+* Completely reworked starting scripts
+* Restructured the entire project internally
+* Reworked most of the plugin synchronization
+* Now checks if a given plugin assembly is up-to-date before synchronizing
+* WebresourceSync does not expect a folder named `<prefix>_<solutionName>` anymore, but instead synchronizes the specified folder and prefixes the files automatically
+* Added solution version increment function
+
+#### 2.4.1 - Mar 14 2017
 * Udpated DGSolution to also include WebResources and Workflows (processes)
 * Changed DGSolution to read solution name from solution.xml and use Guid to compare objects to persist between environments where possible
 * Fixed a bug in DGSolution where plugins with same name would cause problems. Changed to use Guid instead of names
 * Fixed a bug in `Solution.Import` where the progression would report 0% for a long time and then jump to ~95%
 * Fixed a bug where multiple call to `Solution.exportWithDGSolution` would cause an error
 
-### 2.4.0 - Feb 19 2017
+#### 2.4.0 - Feb 19 2017
 * Added new functionality `Plugins.syncSolutionWhitelist`
 * Removed a lot of try/catch in main methods to allow exceptions to be caught outside of Daxif
 * Removed Agent usage in ConsoleLogger
@@ -248,7 +263,7 @@
 * Added more explicit error messages
 
 #### 1.3.0.28 - Mar 03 2015
-* Updated DG.XrmOrg.XrmSolution.SolutionExtract script file to comply with TFS/Git
+* Updated SolutionExtract script file to comply with TFS/Git
 
 #### 1.3.0.27 - Feb 26 2015
 * Added order for import of data based on alphabetical order
@@ -353,7 +368,7 @@
 * Added support for enabling/disabling all the plug-in related to a given solution
 
 #### 1.1.0.18 - Jun 30 2014
-* Updated DG.XrmOrg.XrmSolution.SolutionUpdateContext.fsx script example
+* Updated SolutionUpdateContext.fsx script example
 
 #### 1.1.0.17 - Jun 30 2014
 * Added support for Danish (LCID 1030) OptionSets labels
