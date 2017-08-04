@@ -14,10 +14,13 @@ type Connection = {
   serviceManagement: IServiceManagement<IOrganizationService>
   authCreds: AuthenticationCredentials 
 } with
+
+  /// Creates a connection with the given credentials
   static member Connect(org, ap, usr, pwd, dmn) =
     let m, at = CrmAuth.authenticate org ap usr pwd dmn
     { serviceManagement = m; authCreds = at }
-
+  
+  /// Connects to the environment and returns an OrganizationServiceProxy
   member x.GetProxy() = CrmAuth.getOrganizationServiceProxy x.serviceManagement x.authCreds
 
 
@@ -29,6 +32,8 @@ type Credentials = {
   domain: string option
 } with
   static member None = Credentials.Create()
+
+  /// Gets credentials from a given identification key
   static member FromKey(key) =
     { 
       key = Some key
@@ -36,7 +41,8 @@ type Credentials = {
       password = None
       domain = None
     }
-
+  
+  /// Constructs credential with the given username, password, and domain
   static member Create(?username, ?password, ?domain) =
     { 
       key = None
@@ -45,16 +51,17 @@ type Credentials = {
       domain = domain 
     }
 
+  /// Gets the raw credential values from this credential key
   member x.getValues() =
     match x.key with
-    | Some k -> CredentialManagement.getCredentials k
+    | Some k -> CredentialManagement.getCredentialsFromKey k
     | None ->
       x.username ?| "",
       x.password ?| "",
       x.domain ?| ""
 
 
-/// Describes a connection to a Dynamics CRM/365 environment
+/// Describes a connection to a Dynamics 365/CRM environment
 type Environment = {
   name: string
   url: Uri
@@ -63,7 +70,10 @@ type Environment = {
 } with 
   override x.ToString() = sprintf "%A (%A)" x.name x.url
  
+  /// Gets the environment with the given name, if one exists
   static member Get(name) = EnvironmentHelper.get name
+
+  /// Creates a new environment using the credentials and arguments given
   static member Create(name, url, ?ap, ?creds, ?args) =
     let credsToUse = 
       match args ?|> parseArgs with
@@ -88,12 +98,14 @@ type Environment = {
   
   member x.apToUse = x.ap ?| AuthenticationProviderType.OnlineFederation
 
+  /// Gets credentials for the given environment
   member x.getCreds() = 
     match x.creds with
-    | None   -> CredentialManagement.getCredentials x.name
+    | None   -> CredentialManagement.getCredentialsFromKey x.name
     | Some c -> c.getValues()
     
 
+  /// Connects to the given environment
   member x.connect(?logger: ConsoleLogger) =
     let usr, pwd, dmn = x.getCreds()
 
@@ -118,6 +130,26 @@ type Environment = {
             x.connect(log)
               
         | _ -> raise ex
+
+
+  /// Runs an executable with the given arguments and also passes on necessary login details for CRM if specified
+  member x.executeProcess(exeLocation, ?args, ?urlParam, ?usrParam, ?pwdParam, ?apParam, ?dmnParam, ?paramToString) =
+    let usr, pwd, dmn = x.getCreds()
+    let givenArgs = args ?|> List.ofSeq ?| List.empty
+    let envArgs = 
+      [ urlParam ?|> fun k -> k, x.url.ToString()
+        usrParam ?|> fun k -> k, usr
+        pwdParam ?|> fun k -> k, pwd
+        dmnParam ?|> fun k -> k, dmn
+        apParam ?|> fun k -> k, x.apToUse.ToString()
+      ] |> List.choose id
+    
+    let paramStringFunc = paramToString ?| Utility.toArg
+    let argString = List.append envArgs givenArgs |> Utility.toArgString paramStringFunc
+
+    let exeName = System.IO.Path.GetFileName exeLocation
+    Utility.postProcess (Utility.executeProcess(exeLocation, argString)) log exeName
+
 
   
 and internal EnvironmentHelper private() =

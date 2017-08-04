@@ -26,12 +26,14 @@ module internal HelperMethods =
   let getCredsFilePathFromKey key =
     Path.Combine(Directory.GetCurrentDirectory(), sprintf "%s.daxif" key)
 
-  let loadCredsFromFile key =
-    let pathToFile = getCredsFilePathFromKey key
+
+  let loadCredsFromPath pathToFile =
     match File.Exists pathToFile with
     | true  -> Some (File.ReadAllText pathToFile |> unprotect)
     | false -> None
 
+  let loadCredsFromKeyFile key =
+    getCredsFilePathFromKey key |> loadCredsFromPath 
 
   let saveCredsToFile (key: string) creds =
     let pathToFile = getCredsFilePathFromKey key
@@ -60,11 +62,18 @@ module internal HelperMethods =
     creds
 
 
-let getCredentials key =
-  match HelperMethods.loadCredsFromFile key with
+let getCredentialsFromKey key =
+  match HelperMethods.loadCredsFromKeyFile key with
   | Some creds -> creds
   | None -> HelperMethods.getCredsFromInputAndStore key
   
+
+let getCredentialsFromFile path =
+  match HelperMethods.loadCredsFromPath path with
+  | Some creds -> creds
+  | None -> HelperMethods.getCredsFromInput()
+  
+
 
 let promptNewCreds key =
   let path = HelperMethods.getCredsFilePathFromKey key
@@ -76,7 +85,7 @@ let promptNewCreds key =
     match response with
     | ParseRegex "(y|yes)" x ->
       File.Delete path
-      Some (getCredentials key)
+      Some (getCredentialsFromKey key)
     | _ ->
       None
     

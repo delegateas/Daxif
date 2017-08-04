@@ -523,14 +523,6 @@ let pack' location customizations map managed (log : ConsoleLogger) logl =
   with ex -> log.WriteLine(LogLevel.Error, ex.Message)
   log.WriteLine(LogLevel.Info, "End output from SolutionPackager")
 
-// Prints the output and throws an exception if the process failed
-let postProcess (code, es, os) log proc = 
-  (code, es, os)
-  |> Some
-  |> printProcess proc log
-  match code with
-  | 0 -> ()
-  | _ -> failwith (sprintf "%s failed" proc)
 
 let updateServiceContext' (org:Uri) location ap usr pwd domain exe lcid (log:ConsoleLogger) =
   let lcid : int option = lcid
@@ -573,8 +565,6 @@ let updateServiceContext' (org:Uri) location ap usr pwd domain exe lcid (log:Con
   postProcess (csu()) log "MS CrmSvcUtil SDK"
   postProcess (csu'()) log "MS CrmSvcUtil SDK (Option Sets)"
 
-let toArgString = 
-  Seq.map (fun (k, v) -> sprintf "/%s:\"%s\"" k v) >> String.concat " "
 
 let updateCustomServiceContext' org location ap usr pwd domain exe log 
     (solutions : string list) (entities : string list) extraArgs = 
@@ -592,7 +582,7 @@ let updateCustomServiceContext' org location ap usr pwd domain exe log
         "namespace", "DG.XrmFramework.BusinessDomain.ServiceContext" ]
       
     let args = args @ extraArgs
-    Utility.executeProcess (exe, args |> toArgString)
+    Utility.executeProcess (exe, args |> toArgStringDefault)
   postProcess (ccs()) log "DG XrmContext"
     
 let updateTypeScriptContext' org location ap usr pwd domain exe log 
@@ -609,7 +599,7 @@ let updateTypeScriptContext' org location ap usr pwd domain exe log
         "entities", (entities |> fun es -> String.Join(",", es)) ]
       
     let args = args @ extraArgs
-    Utility.executeProcess (exe, args |> toArgString)
+    Utility.executeProcess (exe, args |> toArgStringDefault)
   postProcess (dts()) log "Delegate XrmDefinitelyTyped"
 
 let count' org solutionName ac = 

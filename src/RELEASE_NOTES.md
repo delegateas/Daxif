@@ -1,5 +1,9 @@
 # Release Notes
 
+#### 3.1.0 - August 4 2017
+* Added `Environment.executeProcess`, which can pass on credential information to an external process
+* Added `getCredentialsFromPath` function to CredentialManagement
+
 #### 3.0.2 - July 18 2017
 * Updated some of the solution import/export scripts
 * Fixed extended solution export using an invalid path in certain cases

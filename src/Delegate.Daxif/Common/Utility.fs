@@ -13,7 +13,7 @@ let (?|>) m f = Option.map f m
 /// Option binder
 let (?>>) m f = Option.bind f m
 /// Option checker
-let (?>>!) m c = Option.bind (fun x -> match c x with | true -> Some x | false -> None) m
+let (?>>?) m c = Option.bind (fun x -> match c x with | true -> Some x | false -> None) m
 /// Option default argument
 let (?|) = defaultArg
 
@@ -115,7 +115,16 @@ let getFullException (ex : exn) =
           (getFullException' ie (level + 1))
   getFullException' ex 0
   
-  
+ 
+// Converts a sequence of key-value pairs to an argument string
+let toArg (k,v) = 
+  sprintf "/%s:\"%s\"" k v
+
+let toArgString argFunc (args: seq<string * string>) = 
+  args |> Seq.map argFunc |> String.concat " "
+
+let toArgStringDefault args = toArgString toArg args
+
 
 let executeProcessWithDir (exe, args, dir) = 
   let psi = new ProcessStartInfo(exe, args)
@@ -138,7 +147,8 @@ let executeProcess (exe, args) =
   let fn = Path.GetFileName(exe)
   let dir = DirectoryInfo(exe).FullName.Replace(fn, "")
   (exe, args, dir) |> executeProcessWithDir
-  
+
+
 let printProcessHelper (ss: string) (log: ConsoleLogger) logl = 
   ss.Split('\n')
   |> Array.filter (fun x -> not (String.IsNullOrWhiteSpace x))
@@ -151,6 +161,15 @@ let printProcess proc (log : ConsoleLogger) =
     printProcessHelper os log LogLevel.Info
     printProcessHelper es log LogLevel.Error
   | ex -> failwith (sprintf "%s threw an unexpected error: %A" proc ex)
+
+// Prints the output and throws an exception if the process failed
+let postProcess (code, es, os) log proc = 
+  (code, es, os)
+  |> Some
+  |> printProcess proc log
+  match code with
+  | 0 -> ()
+  | _ -> failwith (sprintf "%s failed" proc)
 
 /// Active pattern to match regular expressions
 let (|ParseRegex|_|) regex str = 
