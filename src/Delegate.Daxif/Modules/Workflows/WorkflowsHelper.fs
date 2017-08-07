@@ -123,7 +123,7 @@ let updateAssembly (log:ConsoleLogger) (dllName:string)
 // Checks if an existing assembly exist
 // If there is one then return the id of the assembly
 // If not then create a new and return the id of the newly created assembly
-let instantiateAssembly (solution:Entity) dllName dllPath asm p 
+let instantiateAssembly (solutionId:Guid) (solutionName:string) dllName dllPath asm p 
   (log:ConsoleLogger) =
     log.WriteLine(LogLevel.Verbose, "Retrieving assemblies from CRM")
     let dlls = CrmDataInternal.Entities.retrievePluginAssembly p dllName
@@ -135,7 +135,7 @@ let instantiateAssembly (solution:Entity) dllName dllPath asm p
       let pa = createAssembly dllName dllPath asm
       let pc = ParameterCollection()
 
-      pc.Add("SolutionUniqueName", getAttribute "uniquename" solution)
+      pc.Add("SolutionUniqueName", solutionName)
       let guid = CrmData.CRUD.create p pa pc
 
       log.WriteLine(LogLevel.Verbose,
@@ -150,7 +150,7 @@ let instantiateAssembly (solution:Entity) dllName dllPath asm p
             x
             |> fun x -> getAttribute "solutioncomponent1.solutionid" x :?> AliasedValue
             |> fun x -> x.Value :?> EntityReference
-          asmSolution.Id = solution.Id)
+          asmSolution.Id = solutionId)
         |> fun x -> if Seq.isEmpty x then None else x |> Seq.head |> Some
 
       match matchingAssembly with
@@ -204,7 +204,7 @@ let syncSolution' org ac solutionName dll (log:ConsoleLogger) =
   let dllName = Path.GetFileNameWithoutExtension(dll'); 
   let solution = CrmDataInternal.Entities.retrieveSolutionId p solutionName
 
-  let asmId = instantiateAssembly solution dllName dllPath asm p log
+  let asmId = instantiateAssembly solution.Id solutionName dllName dllPath asm p log
 
   let newActivities, oldActivities, targetActivities = 
     solutionDiff asm asmId p log

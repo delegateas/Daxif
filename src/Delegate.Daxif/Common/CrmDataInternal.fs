@@ -318,7 +318,7 @@ module CrmDataInternal =
       q.ColumnSet <- columnSet
       q.Criteria <- f
       CrmDataHelper.retrieveFirstMatch proxy q
-
+    
     let retrieveSolutionId proxy uniqueName =
       ColumnSet(null) |> retrieveSolution proxy uniqueName
 
