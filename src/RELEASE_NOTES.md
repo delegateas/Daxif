@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 3.1.1 - August 7 2017
+* Fixed `Workflow.Sync`, when adding dll for the first time
+
 #### 3.1.0 - August 4 2017
 * Added `Environment.executeProcess`, which can pass on credential information to an external process
 * Added `getCredentialsFromPath` function to CredentialManagement
