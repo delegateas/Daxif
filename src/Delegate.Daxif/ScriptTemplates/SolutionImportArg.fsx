@@ -40,5 +40,4 @@ let solutionZipPath =
   |> (++) solutionFolder
 
 
-Solution.Import(env, solutionZipPath, activatePluginSteps = true (*, extended = true *))
-Seq.sortWith (fun a b -> System.String.Compare(a, b, System.StringComparison.InvariantCulture))
+Solution.Import(env, solutionZipPath, activatePluginSteps = true, extended = true)
