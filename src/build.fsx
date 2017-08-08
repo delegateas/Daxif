@@ -243,5 +243,5 @@ Target "All" DoNothing
 "Clean" ==> "RestorePackages" ==> "AssemblyInfo" ==> "Rebuild" ==> "All"
 "All" ==> "CleanDocs" ==> "GenerateDocsLocal"
 "All" ==> "CleanDocs" ==> "GenerateDocs" ==> "ReleaseDocs" ==> "Release"
-"All" ==> "NuGet" ==> "Release"
+"All" ==> "NuGet" ==> "PublishNuGet" ==> "Release"
 RunTargetOrDefault "All"
