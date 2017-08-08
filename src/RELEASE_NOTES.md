@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 3.1.2 - August 8 2017
+* Removed invalid line in `SolutionImportArg.fsx` script
+
 #### 3.1.1 - August 7 2017
 * Fixed `Workflow.Sync`, when adding dll for the first time
 
