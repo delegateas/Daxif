@@ -7,8 +7,8 @@ open System.Reflection
 [<assembly: AssemblyDescriptionAttribute("Delegate Automated xRM Installation Framework")>]
 [<assembly: AssemblyCompanyAttribute("Delegate")>]
 [<assembly: AssemblyCopyrightAttribute("Copyright (c) Delegate A/S 2017")>]
-[<assembly: AssemblyVersionAttribute("3.1.2")>]
-[<assembly: AssemblyFileVersionAttribute("3.1.2")>]
+[<assembly: AssemblyVersionAttribute("3.1.3")>]
+[<assembly: AssemblyFileVersionAttribute("3.1.3")>]
 do ()
 
 module internal AssemblyVersionInformation =
@@ -17,5 +17,5 @@ module internal AssemblyVersionInformation =
     let [<Literal>] AssemblyDescription = "Delegate Automated xRM Installation Framework"
     let [<Literal>] AssemblyCompany = "Delegate"
     let [<Literal>] AssemblyCopyright = "Copyright (c) Delegate A/S 2017"
-    let [<Literal>] AssemblyVersion = "3.1.2"
-    let [<Literal>] AssemblyFileVersion = "3.1.2"
+    let [<Literal>] AssemblyVersion = "3.1.3"
+    let [<Literal>] AssemblyFileVersion = "3.1.3"

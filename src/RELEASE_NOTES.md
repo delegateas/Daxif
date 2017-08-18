@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 3.1.3 - August 18 2017
+* Added ViewExtender to Daxif
+
 #### 3.1.2 - August 8 2017
 * Removed invalid line in `SolutionImportArg.fsx` script
 
