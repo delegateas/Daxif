@@ -11,7 +11,7 @@ open Microsoft.Xrm.Sdk.Query
 open System.Xml.Linq
 open TypeDeclarations
 
-let generate org ap usr pwd domain daxifRoot entities solutions log = 
+let generateFiles org ap usr pwd domain daxifRoot entities solutions log = 
   let ac = CrmAuth.getCredentials ap usr pwd domain
   ensureDirectory (daxifRoot ++ generationFolder)
   Generator.generateFiles org ac daxifRoot entities solutions
@@ -39,11 +39,11 @@ let setFilter = ViewHelper.setFilter
 let andFilters = ViewHelper.andFilters 
 let orFilters = ViewHelper.orFilters
 let removeFilter = ViewHelper.removeFilter
-let addLink = ViewHelper.addLink
-let addLinkFirst = ViewHelper.addLinkFirst
-let addLinkLast = ViewHelper.addLinkLast
+let addRelatedColumn = ViewHelper.addLink
+let addRelatedColumnFirst = ViewHelper.addLinkFirst
+let addRelatedColumnLast = ViewHelper.addLinkLast
 let removeLink = ViewHelper.removeLink
-let extend = ViewHelper.extend
+let changeId = ViewHelper.changeId
 let initFilter = ViewHelper.initFilter
 let addCondition = ViewHelper.addCondition
 let addCondition2 = ViewHelper.addCondition2

@@ -21,10 +21,12 @@ type View =
     filter : Filter
     links : Map<string, Link> }
 
-type IEntityAttribute = interface end
+type IEntityAttribute = 
+  abstract member Name: string
 type EntityAttribute<'a, 'b>(name : string) =
-  interface IEntityAttribute
-  member this.Name = name
+  member this.Name = (this :> IEntityAttribute).Name
+  interface IEntityAttribute with
+    member this.Name = name
 
 type EntityRelationship = Rel of string * string * string * string
 

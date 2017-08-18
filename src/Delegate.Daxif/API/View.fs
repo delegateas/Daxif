@@ -10,10 +10,10 @@ type View private () =
 
   /// <summary>Generates the files needed for View Extender</summary>
   /// <param name="env">Environment the action should be performed against.</param>
-  static member Generate(env: Environment, daxifRoot: string, ?entities: string[], ?solutions: string[], ?logLevel: LogLevel) =
+  static member GenerateFiles(env: Environment, daxifRoot: string, ?entities: string[], ?solutions: string[], ?logLevel: LogLevel) =
     let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
-    Main.generate env.url env.apToUse usr pwd dmn daxifRoot entities solutions logLevel
+    Main.generateFiles env.url env.apToUse usr pwd dmn daxifRoot entities solutions logLevel
   
 
   static member UpdateView (env: Environment) (view: TypeDeclarations.View) =
@@ -28,19 +28,19 @@ type View private () =
    let usr, pwd, dmn = env.getCreds()
    Main.parse env.url env.apToUse usr pwd dmn guid
 
-  static member AddColumn (column : EntityAttribute<_,_>, width) index (view : TypeDeclarations.View) = 
+  static member AddColumn (column : IEntityAttribute) width index (view : TypeDeclarations.View) = 
     Main.addColumn column width index view
-  static member AddColumnFirst (column : EntityAttribute<_,_>) width (view : TypeDeclarations.View) =
+  static member AddColumnFirst (column : IEntityAttribute) width (view : TypeDeclarations.View) =
     Main.addColumnFirst column width view
-  static member AddColumnLast (column : EntityAttribute<_,_>) width (view : TypeDeclarations.View) =
+  static member AddColumnLast (column : IEntityAttribute) width (view : TypeDeclarations.View) =
     Main.addColumnLast column width view
-  static member RemoveColumn (column : EntityAttribute<_,_>) (view : TypeDeclarations.View) =
+  static member RemoveColumn (column : IEntityAttribute) (view : TypeDeclarations.View) =
     Main.removeColumn column view
-  static member AddOrdering (column : EntityAttribute<_,_>) (ordering : OrderType) (view : TypeDeclarations.View) = 
+  static member AddOrdering (column : IEntityAttribute) (ordering : OrderType) (view : TypeDeclarations.View) = 
     Main.addOrdering column ordering view
-  static member RemoveOrdering (column : EntityAttribute<_,_>) (view : TypeDeclarations.View) = 
+  static member RemoveOrdering (column : IEntityAttribute) (view : TypeDeclarations.View) = 
     Main.removeOrdering column view
-  static member ChangeWidth (column : EntityAttribute<_,_>) width (view : TypeDeclarations.View) = 
+  static member ChangeWidth (column : IEntityAttribute) width (view : TypeDeclarations.View) = 
     Main.changeWidth column width view
   static member SetFilter (filter : FilterExpression) (view : TypeDeclarations.View) = 
     Main.setFilter filter view
@@ -50,16 +50,16 @@ type View private () =
     Main.orFilters filter view
   static member RemoveFilter (view : TypeDeclarations.View) = 
     Main.removeFilter view
-  static member AddLink (rel : EntityRelationship) (columns : IEntityAttribute list) (columnWidths : int list) (indexes : int list) (view : TypeDeclarations.View) =
-    Main.addLink rel columns columnWidths indexes view
-  static member AddLinkFirst (rel : EntityRelationship) (columns : IEntityAttribute list) (columnWidths : int list) (view : TypeDeclarations.View) =
-    Main.addLinkFirst rel columns columnWidths view
-  static member AddLinkLast (rel : EntityRelationship) (columns : IEntityAttribute list) (columnWidths : int list) (view : TypeDeclarations.View) =
-    Main.addLinkLast rel columns columnWidths view
+  static member AddRelatedColumn (rel : EntityRelationship) (columns : IEntityAttribute list) (columnWidths : int list) (indexes : int list) (view : TypeDeclarations.View) =
+    Main.addRelatedColumn rel columns columnWidths indexes view
+  static member AddRelatedColumnFirst (rel : EntityRelationship) (columns : IEntityAttribute list) (columnWidths : int list) (view : TypeDeclarations.View) =
+    Main.addRelatedColumnFirst rel columns columnWidths view
+  static member AddRelatedColumnLast (rel : EntityRelationship) (columns : IEntityAttribute list) (columnWidths : int list) (view : TypeDeclarations.View) =
+    Main.addRelatedColumnLast rel columns columnWidths view
   static member RemoveLink (rel: EntityRelationship) (view : TypeDeclarations.View) =
     Main.removeLink rel view
-  static member Extend guid (view : TypeDeclarations.View) =
-    Main.extend guid view
+  static member ChangeId guid (view : TypeDeclarations.View) =
+    Main.changeId guid view
   static member initFilter (operator: LogicalOperator) = 
     Main.initFilter operator
   static member AddCondition (attributeEntity : EntityAttribute<'a,'b>) (operator : 'b) (arg : 'a) (filter : FilterExpression) =

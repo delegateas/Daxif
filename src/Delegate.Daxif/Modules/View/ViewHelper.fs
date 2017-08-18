@@ -28,7 +28,6 @@ let getNewXml p (view : View) layout fetch =
     |> XmlManipulator.setOrder view.order
     |> XmlManipulator.setFilter p view.filter
     |> XmlManipulator.setLinks p view.links
-
   newLayout, newFetch
   
 let getLayoutAndFetch p guid = 
@@ -54,7 +53,7 @@ let hasSameNameAndTo entityName attributeName = function
     xml.Attribute(XmlManipulator.xn "name").Value = entityName && 
     xml.Attribute(XmlManipulator.xn "to").Value = attributeName
   
-let getEntityAttributeName (column : IEntityAttribute) = (column :?> EntityAttribute<_,_>).Name
+let getEntityAttributeName (column : IEntityAttribute) = column.Name
 
 let getLinkFromRel (EntityRelationship.Rel(refedEnt, refedAttr, refingEnt, refingAttr)) 
   (columns : IEntityAttribute list) =
@@ -109,32 +108,32 @@ let parse org ac guid =
     filter = filter
     links = links }
 
-let addColumn (column : EntityAttribute<_,_>) width index (view : View) = 
+let addColumn (column : IEntityAttribute) width index (view : View) = 
   if Set.contains column.Name view.attributes then 
     failwith "Already have a column with that logicalname, choose another or remove the existing one"
   if index > view.columns.Length then failwith "index out of bounds for columns"
   { view with attributes = Set.add column.Name view.attributes
               columns =  insertList (column.Name, width) index view.columns }
 
-let addColumnFirst (column : EntityAttribute<_,_>) width (view : View) =
+let addColumnFirst (column : IEntityAttribute) width (view : View) =
   addColumn column width 0 view
 
-let addColumnLast (column : EntityAttribute<_,_>) width (view : View) =
+let addColumnLast (column : IEntityAttribute) width (view : View) =
   addColumn column width (view.columns.Length ) view
   
-let removeColumn (column : EntityAttribute<_,_>) (view : View) =
+let removeColumn (column : IEntityAttribute) (view : View) =
   { view with attributes = Set.remove column.Name view.attributes
               columns = removeByKey column.Name view.columns
               order = removeByKey column.Name view.order }
   
-let addOrdering (column : EntityAttribute<_,_>) (ordering : OrderType) (view : View) = 
+let addOrdering (column : IEntityAttribute) (ordering : OrderType) (view : View) = 
   if view.order.Length = 2 then failwith "Already have 2 sortings, remove an existing one to add another"
   else { view with order = (column.Name, getOrdering ordering) :: view.order }
   
-let removeOrdering (column : EntityAttribute<_,_>) (view : View) = 
+let removeOrdering (column : IEntityAttribute) (view : View) = 
   { view with order = removeByKey column.Name view.order }
   
-let changeWidth (column : EntityAttribute<_,_>) width (view : View) = 
+let changeWidth (column : IEntityAttribute) width (view : View) = 
   if not (Set.contains column.Name view.attributes) then failwith "No column exists with such logicalname"
   else { view with columns = updateByKey column.Name width view.columns }
   
@@ -174,7 +173,7 @@ let addLink (rel : EntityRelationship) (columns : IEntityAttribute list) (column
     links = Map.add alias (Link.Entity link) view.links
     columns = List.zip columns columnWidths
               |> List.map (fun (column : IEntityAttribute, width) -> 
-                let name = (column :?> EntityAttribute<_,_>).Name
+                let name = column.Name
                 (link.EntityAlias + "." + name, width))
               |> List.fold2 (fun columns index column -> insertList column index columns) view.columns indexes
               }
@@ -194,7 +193,7 @@ let removeLink (EntityRelationship.Rel(refedEnt, refedAttr, refingEnt, refingAtt
     columns = List.filter (fun (name,_) ->
       (name.Split([|'.'|]).[0] <> alias)) view.columns}
 
-let extend guid (view : View) =
+let changeId guid (view : View) =
   {view with id = guid}
 
     

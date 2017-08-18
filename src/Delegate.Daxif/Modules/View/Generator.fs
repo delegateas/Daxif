@@ -49,7 +49,7 @@ let generateGuidFile proxy (daxifRoot: string) (entityLogicalNames : string list
 
 let writeRelationFile proxy (sw : StreamWriter) (entityLogicalName : string) = 
   let upCase s = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s)
-  let relations = CrmData.Metadata.entityOneToManyRelationships proxy entityLogicalName
+  let relations = CrmData.Metadata.entityManyToOneRelationships proxy entityLogicalName
   if relations |> Array.isEmpty |> not then
     sw.WriteLine("module " + upCase entityLogicalName + " =")
     sw.WriteLine("  module Relations =")
@@ -59,8 +59,10 @@ let writeRelationFile proxy (sw : StreamWriter) (entityLogicalName : string) =
     |> Array.iter (fun (refedEnt, refedAttr, refingEnt, refingAttr) ->
       sw.WriteLine(
         ["    let ";
-        upCase refingEnt;
         upCase refingAttr;
+        "_";
+        upCase refedEnt;
+        upCase refedAttr;
         " = EntityRelationship.Rel(\"";
         refedEnt;
         "\", \"";
