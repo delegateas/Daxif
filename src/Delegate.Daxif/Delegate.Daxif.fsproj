@@ -115,6 +115,13 @@
     <Compile Include="Common\CrmDataInternal.fs" />
     <Compile Include="Setup\CredentialManagement.fs" />
     <Compile Include="Setup\EnvironmentSetup.fs" />
+    <Compile Include="Modules\View\TypeDeclarations.fs" />
+    <Compile Include="Modules\View\AllowedConditions.fs" />
+    <Compile Include="Modules\View\XmlManipulator.fs" />
+    <Compile Include="Modules\View\AttributeTypes.fs" />
+    <Compile Include="Modules\View\ViewHelper.fs" />
+    <Compile Include="Modules\View\Generator.fs" />
+    <Compile Include="Modules\View\Main.fs" />
     <Compile Include="Modules\Info\InfoHelper.fs" />
     <Compile Include="Modules\Info\Main.fs" />
     <Compile Include="Modules\Serialization\SerializationHelper.fs" />
@@ -147,6 +154,7 @@
     <Compile Include="API\Translations.fs" />
     <Compile Include="API\WebResource.fs" />
     <Compile Include="API\Workflow.fs" />
+    <Compile Include="API\View.fs" />
     <Compile Include="API\Info.fs" />
     <None Include="ScriptTemplates\_Config.fsx" />
     <None Include="ScriptTemplates\CountEntities.fsx" />
@@ -165,6 +173,7 @@
     <None Include="ScriptTemplates\SolutionPack.fsx" />
     <None Include="ScriptTemplates\WebResourceSyncDev.fsx" />
     <None Include="ScriptTemplates\WorkflowSyncDev.fsx" />
+    <None Include="ScriptTemplates\ViewExtender.fsx" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

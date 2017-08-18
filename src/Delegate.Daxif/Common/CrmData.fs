@@ -47,6 +47,16 @@ module CrmData =
       proxy.Timeout <- new TimeSpan(0, 10, 0) // 10 minutes timeout
       let resp = proxy.Execute(req)
       (Seq.head resp.Results).Value :?> seq<EntityMetadata>
+    
+    let getEntityLogicalNameFromId (proxy:OrganizationServiceProxy) metadataId =
+      let request = RetrieveEntityRequest()
+      request.MetadataId <- metadataId
+      request.EntityFilters <- Microsoft.Xrm.Sdk.Metadata.EntityFilters.Entity
+      request.RetrieveAsIfPublished <- true
+
+      proxy.Timeout <- TimeSpan(1,0,0)
+      let resp = proxy.Execute(request) :?> RetrieveEntityResponse
+      resp.EntityMetadata.LogicalName
   
   module CRUD = 
   

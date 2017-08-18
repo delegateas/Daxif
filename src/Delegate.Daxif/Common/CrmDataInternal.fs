@@ -122,6 +122,21 @@ module CrmDataInternal =
       q.ColumnSet <- ColumnSet(an)
       CrmDataHelper.retrieveFirstMatch proxy q
     
+    // Get all entities with a filter
+    let internal getEntitiesFilter 
+      proxy (logicalName:string)
+      (cols:string list) (filter:Map<string,obj>) =
+    
+      let f = FilterExpression()
+      filter |> Map.iter(fun k v -> f.AddCondition(k, ConditionOperator.Equal, v))
+
+      let q = QueryExpression(logicalName)
+      if cols.Length = 0 then q.ColumnSet <- ColumnSet(true)
+      else q.ColumnSet <- ColumnSet(Array.ofList cols)
+      q.Criteria <- f
+    
+      CrmData.CRUD.retrieveMultiple proxy logicalName q
+
     let existCrm proxy logicalName guid primaryattribute = 
       let (proxy : OrganizationServiceProxy) = proxy
       let (guid : Guid) = guid
@@ -331,6 +346,26 @@ module CrmDataInternal =
 
     let retrieveSolutionAllAttributes proxy uniqueName = 
       ColumnSet(true) |> retrieveSolution proxy uniqueName 
+    
+    let retrieveSolutionEntities proxy solutionName =
+      let solutionFilter = [("uniquename", solutionName)] |> Map.ofList
+      let solutions = 
+        getEntitiesFilter proxy "solution" 
+          ["solutionid"; "uniquename"] solutionFilter
+    
+      solutions
+      |> Seq.map (fun sol ->
+        let solutionComponentFilter = 
+          [ ("solutionid", sol.Attributes.["solutionid"]) 
+            ("componenttype", 1 :> obj) // 1 = Entity
+          ] |> Map.ofList
+
+        getEntitiesFilter proxy "solutioncomponent" 
+          ["solutionid"; "objectid"; "componenttype"] solutionComponentFilter
+        |> Seq.map (fun sc -> 
+          CrmData.Metadata.getEntityLogicalNameFromId proxy (sc.Attributes.["objectid"] :?> Guid))
+      )
+      |> Seq.concat
     
     let retrieveImportJobHelper proxy importJobId includeXML = 
       let (importJobId : Guid) = importJobId
