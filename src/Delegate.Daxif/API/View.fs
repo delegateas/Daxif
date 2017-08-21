@@ -56,11 +56,11 @@ type View private () =
     Main.addRelatedColumnFirst rel columns columnWidths view
   static member AddRelatedColumnLast (rel: EntityRelationship) (columns: IEntityAttribute list) (columnWidths: int list) (view: TypeDeclarations.View) =
     Main.addRelatedColumnLast rel columns columnWidths view
-  static member RemoveLink (rel: EntityRelationship) (view: TypeDeclarations.View) =
+  static member RemoveRelatedColumn (rel: EntityRelationship) (view: TypeDeclarations.View) =
     Main.removeLink rel view
   static member ChangeId guid (view: TypeDeclarations.View) =
     Main.changeId guid view
-  static member initFilter (operator: LogicalOperator) = 
+  static member InitFilter (operator: LogicalOperator) = 
     Main.initFilter operator
   static member AddCondition (attributeEntity: EntityAttribute<'a,'b>) (operator: 'b) (arg: 'a) (filter: FilterExpression) =
     Main.addCondition attributeEntity operator arg filter
