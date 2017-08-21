@@ -9,64 +9,63 @@ open TypeDeclarations
 
 let xn s = XName.Get(s)
   
-let getColumns (xml : XDocument) =
+let getColumns (xml: XDocument) =
   xml.Element(xn "grid").Element(xn "row").Elements(xn "cell")
-  |> Seq.map (fun (e : XElement) -> (e.Attribute(xn "name").Value, (int (e.Attribute(xn "width").Value))))
+  |> Seq.map (fun (e: XElement) -> e.Attribute(xn "name").Value, e.Attribute(xn "width").Value |> int)
   |> List.ofSeq
   
-let getAttr (xml : XDocument) =
+let getAttr (xml: XDocument) =
   xml.Element(xn "fetch").Element(xn "entity").Elements(xn "attribute")
-  |> Seq.map (fun (e : XElement) -> e.Attribute(xn "name").Value)
+  |> Seq.map (fun (e: XElement) -> e.Attribute(xn "name").Value)
   |> Set.ofSeq
   
-let getOrder (xml : XDocument) =
+let getOrder (xml: XDocument) =
   xml.Element(xn "fetch").Element(xn "entity").Elements(xn "order")
-  |> Seq.map 
-        (fun (e : XElement) -> 
-        (e.Attribute(xn "attribute").Value, (Boolean.Parse(e.Attribute(xn "descending").Value))))
+  |> Seq.map (fun (e: XElement) -> 
+    e.Attribute(xn "attribute").Value, Boolean.Parse(e.Attribute(xn "descending").Value))
   |> List.ofSeq
   
-let getFilter (xml : XDocument) =
+let getFilter (xml: XDocument) =
   let filter = (xml.Element(xn "fetch").Element(xn "entity").Element(xn "filter"))
   if filter = null || filter.IsEmpty then Filter.Empty else Filter.Xml(filter)
 
   
-let getLinks (xml : XDocument) =
+let getLinks (xml: XDocument) =
   xml.Element(xn "fetch").Element(xn "entity").Elements(xn "link-entity")
-  |> Seq.map (fun e -> string (e.Attribute(xn "alias").Value), Link.Xml e)
+  |> Seq.map (fun e -> e.Attribute(xn "alias").Value, Link.Xml e)
   |> Map.ofSeq
   
-let addColumns columns (xml : XDocument) =
-  List.fold (fun (doc : XDocument) (name: string, width: int) -> 
+let addColumns columns (xml: XDocument) =
+  List.fold (fun (doc: XDocument) (name: string, width: int) -> 
     let root = new XElement(xn "cell")
     root.Add(new XAttribute(xn "name", name))
     root.Add(new XAttribute(xn "width", width))
     doc.Element(xn "grid").Element(xn "row").Add(root)
     doc) xml columns
   
-let setColumns columns (xml : XDocument) =
+let setColumns columns (xml: XDocument) =
   xml.Element(xn "grid").Element(xn "row").Elements(xn "cell").Remove()
   addColumns columns xml
 
   
-let setAttr attr (xml : XDocument) =
+let setAttr attr (xml: XDocument) =
   xml.Element(xn "fetch").Element(xn "entity").Elements(xn "attribute").Remove()
-  Set.fold (fun (xml : XDocument) name -> 
+  Set.fold (fun (xml: XDocument) name -> 
     let root = new XElement(xn "attribute")
     root.Add(new XAttribute(xn "name", name))
     xml.Element(xn "fetch").Element(xn "entity").Add(root)
     xml) xml attr
   
-let setOrder order (xml : XDocument) =
+let setOrder order (xml: XDocument) =
   xml.Element(xn "fetch").Element(xn "entity").Elements(xn "order").Remove()
-  List.fold (fun (xml : XDocument) (attribute, descending) -> 
+  List.fold (fun (xml: XDocument) (attribute, descending) -> 
     let root = new XElement(xn "order")
     root.Add(new XAttribute(xn "attribute", attribute))
     root.Add(new XAttribute(xn "descending", descending))
     xml.Element(xn "fetch").Element(xn "entity").Add(root)
     xml) xml order
 
-let getXmlFromFilterExp (proxy : Client.OrganizationServiceProxy) (filter : FilterExpression) = 
+let getXmlFromFilterExp (proxy: Client.OrganizationServiceProxy) (filter: FilterExpression) = 
   let query = QueryExpression(ViewLogicalName)
   query.Criteria <- filter
   let req = QueryExpressionToFetchXmlRequest()
@@ -82,11 +81,11 @@ let rec getXmlFromFilterStructure proxy = function
   | Filter.Nested(wrap, filters) -> 
     let wrapper = new XElement(xn "filter")
     wrapper.Add(new XAttribute(xn "type", wrap.FilterOperator.ToString().ToLower()))
-    List.fold (fun (wrapper : XElement) (filter : Filter) -> 
+    List.fold (fun (wrapper: XElement) (filter: Filter) -> 
       wrapper.Add(getXmlFromFilterStructure proxy filter)
       wrapper) wrapper filters
   
-let getXmlFromLinkEntityExp (proxy : Client.OrganizationServiceProxy) (link : LinkEntity) = 
+let getXmlFromLinkEntityExp (proxy: Client.OrganizationServiceProxy) (link: LinkEntity) = 
   let query = QueryExpression(link.LinkFromEntityName)
   query.LinkEntities.Add(link)
   let req = QueryExpressionToFetchXmlRequest()
@@ -95,7 +94,7 @@ let getXmlFromLinkEntityExp (proxy : Client.OrganizationServiceProxy) (link : Li
   let doc = XDocument.Parse(resp.FetchXml)
   doc.Element(xn "fetch").Element(xn "entity").Element(xn "link-entity")
   
-let setFilter proxy (filterStruct : Filter) (xml : XDocument) =
+let setFilter proxy (filterStruct: Filter) (xml: XDocument) =
   if xml.Element(xn "fetch").Element(xn "entity").Element(xn "filter") <> null then 
     xml.Element(xn "fetch").Element(xn "entity").Element(xn "filter").Remove()
   let filter = getXmlFromFilterStructure proxy filterStruct
@@ -103,16 +102,16 @@ let setFilter proxy (filterStruct : Filter) (xml : XDocument) =
     xml.Element(xn "fetch").Element(xn "entity").Add(filter)
   xml
   
-let setLinks proxy links (xml : XDocument)  =
+let setLinks proxy links (xml: XDocument)  =
   if xml.Element(xn "fetch").Element(xn "entity").Elements(xn "link-entity") <> null then 
     xml.Element(xn "fetch").Element(xn "entity").Elements(xn "link-entity").Remove()
-  Map.fold (fun (xml : XDocument) _ (link : Link) ->
+  Map.fold (fun (xml: XDocument) _ (link: Link) ->
     match link with
     | Link.Xml xml' ->
       xml.Element(xn "fetch").Element(xn "entity").Add(xml')
       xml                
     | Link.Entity entity ->
-      let link = getXmlFromLinkEntityExp proxy entity
-      xml.Element(xn "fetch").Element(xn "entity").Add(link)
+      let linkXml = getXmlFromLinkEntityExp proxy entity
+      xml.Element(xn "fetch").Element(xn "entity").Add(linkXml)
       xml
     ) xml links

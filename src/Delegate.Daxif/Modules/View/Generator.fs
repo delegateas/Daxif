@@ -4,16 +4,13 @@ open System
 open System.IO
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Query
-open Microsoft.Xrm.Sdk.Messages
-open System.Linq
-open System.Linq.Expressions
 open System.Text.RegularExpressions
 open System.Globalization
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
-open ViewHelper
 open Microsoft.Xrm.Sdk.Metadata
 open TypeDeclarations
+open DG.Daxif
 
 let writeViewGuidFile proxy (sw : StreamWriter) (entityLogicalName : string) = 
   let uppercaseLogicalName = entityLogicalName.Substring(0, 1).ToUpper() + entityLogicalName.Substring(1)
@@ -175,12 +172,20 @@ let getFullEntityList entities solutions proxy =
   
   finalEntities |> Set.toList
 
-let generateFiles org ac daxifRoot entities solutions =
+let generateFiles org ac daxifRoot entities solutions (log: ConsoleLogger) =
   let m = ServiceManager.createOrgService org
+  log.WriteLine(LogLevel.Verbose, @"Authenticating")
   let tc = m.Authenticate(ac)
   use p = ServiceProxy.getOrganizationServiceProxy m tc
+  log.WriteLine(LogLevel.Verbose, @"Authenticated")
 
+  log.WriteLine(LogLevel.Verbose, @"Getting entities from solution and config")
   let allEntities = getFullEntityList entities solutions p
+  log.WriteLine(LogLevel.Verbose, @"Generating files for '" + string allEntities.Length + "' entities")
+  log.WriteLine(LogLevel.Verbose, @"Generating entity relationship file")
   generateEntRelFile p daxifRoot allEntities
+  log.WriteLine(LogLevel.Verbose, @"Generating entity attribute file")
   generateEntAttrFile p daxifRoot allEntities
+  log.WriteLine(LogLevel.Verbose, @"Generating view guid file")
   generateGuidFile p daxifRoot allEntities
+  log.WriteLine(LogLevel.Verbose, @"Generation done")

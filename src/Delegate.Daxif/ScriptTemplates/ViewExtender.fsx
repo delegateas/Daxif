@@ -7,7 +7,7 @@ View Extender
 open _Config
 open DG.Daxif
 
-View.Generate(Env.dev, Path.daxifRoot,
+View.GenerateFiles(Env.dev, Path.daxifRoot,
   solutions = [|
     SolutionInfo.name
     |],
@@ -25,9 +25,8 @@ open EntityAttributes
 open EntityRelationships
 
 // define extensions e.g.:
-// Views.Appointment.MyAppointments
+// Views.Account.MyParentView
 // |> View.Parse Env.dev
-// |> View.Extend Views.Appointment.MyAppointments1
-// |> View.AddColumnFirst Appointment.Fields.Actualstart 123
-// |> View.AddColumnFirst Appointment.Fields.Actualend 37
+// |> View.ChangeId Views.Account.FirstChildView
+// |> View.AddRelatedColumnFirst Account.Relations.AccountPrimarycontactid_ContactContactid [Contact.Fields.Address1_City] [400]
 // |> View.UpdateView Env.dev

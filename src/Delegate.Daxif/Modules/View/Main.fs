@@ -1,22 +1,27 @@
 ﻿module DG.Daxif.Modules.View.Main
 
-open DG.Daxif
-open DG.Daxif.Common
-open DG.Daxif.Modules
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
-open System
-open Microsoft.Xrm.Sdk.Query
-open System.Xml.Linq
 open TypeDeclarations
+open DG.Daxif
 
-let generateFiles org ap usr pwd domain daxifRoot entities solutions log = 
+let generateFiles org ap usr (pwd: string) domain daxifRoot entities solutions log =
+  let log' = ConsoleLogger log
+  let pwd' = String.replicate pwd.Length "*"
+  log'.WriteLine(LogLevel.Info, daxifVersion)
+  log'.WriteLine(LogLevel.Info, @"Generate view extender files:")
+  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
+  logAuthentication ap usr pwd' domain log'
   let ac = CrmAuth.getCredentials ap usr pwd domain
-  ensureDirectory (daxifRoot ++ generationFolder)
-  Generator.generateFiles org ac daxifRoot entities solutions
+  let dir = daxifRoot ++ generationFolder
+  log'.WriteLine(LogLevel.Verbose, @"Generating to folder: " + dir)
+  ensureDirectory (dir)
+  Generator.generateFiles org ac daxifRoot entities solutions log'
+  log'.WriteLine
+    (LogLevel.Info, @"The ViewExtender files were generated successfully")
 
-let updateView org ap usr pwd domain view = 
+let updateView org ap usr (pwd: string) domain view =
   let ac = CrmAuth.getCredentials ap usr pwd domain
   ViewHelper.updateView org ac view
 
