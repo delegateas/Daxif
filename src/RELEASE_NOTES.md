@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 3.1.6 - August 21 2017
+* Changed RemoveLink to RemoveRelatedColumn and initFilter to InitFilter
+
 #### 3.1.5 - August 21 2017
 * Fixed error with standard ViewExtender script
 
