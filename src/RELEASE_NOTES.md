@@ -1,5 +1,9 @@
 # Release Notes
 
+#### 3.1.4 - August 18 2017
+* Fixed error with View.addLink, View.addLinkFirst and View.addLinkLast
+* Renamed several end points to give a more logical name
+
 #### 3.1.3 - August 18 2017
 * Added ViewExtender to Daxif
 
