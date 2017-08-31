@@ -4,59 +4,44 @@ open System.IO
 open Microsoft.Crm.Sdk
 open DG.Daxif
 open DG.Daxif.Common
+open InternalUtility
+open Microsoft.Xrm.Sdk.Client
+open Microsoft.Crm.Sdk.Messages
 
-let export' org ac solution location (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  let req = new Messages.ExportTranslationRequest()
-
-  log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
-  log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
-
+let export' (proxyGen: unit -> OrganizationServiceProxy) solution location =
+  let req = ExportTranslationRequest()
   req.SolutionName <- solution
 
-  log.WriteLine(LogLevel.Verbose, @"Proxy timeout set to 1 hour")
-  log.WriteLine(LogLevel.Verbose, @"Export translations")
+  log.Verbose "Proxy timeout set to 1 hour"
+  log.Verbose "Export translations"
 
-  let resp = p.Execute(req) :?> Messages.ExportTranslationResponse
+  let resp = proxyGen().Execute(req) :?> ExportTranslationResponse
 
-  log.WriteLine(LogLevel.Verbose, @"Translations were exported successfully")
+  log.Verbose "Translations were exported successfully"
 
   let zipFile = resp.ExportTranslationFile
   let filename = solution + "_Translations.zip"
   File.WriteAllBytes(location + filename, zipFile)
 
-  log.WriteLine
-    (LogLevel.Verbose, @"Solution translations saved to local disk")
+  log.Verbose "Solution translations saved to local disk"
   
-let import' org ac solution location (log : ConsoleLogger) = 
-  let (solution_ : string) = solution
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-
-  log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
-  log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
-
+let import' (proxyGen: unit -> OrganizationServiceProxy) solution location =
+  use p = proxyGen()
+  
   let zipFile = File.ReadAllBytes(location)
 
-  log.WriteLine(LogLevel.Verbose, @"Translation file loaded successfully")
+  log.Verbose "Translation file loaded successfully"
 
-  let req = new Messages.ImportTranslationRequest()
-
+  let req = new ImportTranslationRequest()
   req.TranslationFile <- zipFile
-  log.WriteLine(LogLevel.Verbose, @"Proxy timeout set to 1 hour")
-  log.WriteLine(LogLevel.Verbose, @"Import solution")
 
-  let resp = p.Execute(req) :?> Messages.ImportTranslationResponse // TODO: Add the % async query thingy
+  log.Verbose "Import solution"
 
-  log.WriteLine
-    (LogLevel.Verbose, @"Solution translations were imported successfully")
-  log.WriteLine(LogLevel.Verbose, @"Publishing solution translations")
+  let resp = p.Execute(req) :?> ImportTranslationResponse // TODO: Add the % async query thingy
+
+  log.Verbose "Solution translations were imported successfully"
+  log.Verbose "Publishing solution translations"
 
   CrmDataHelper.publishAll p
 
-  log.WriteLine
-    (LogLevel.Verbose, 
-      @"The solution translations were successfully published")
+  log.Verbose "The solution translations were successfully published"

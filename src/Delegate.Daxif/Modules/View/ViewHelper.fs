@@ -64,10 +64,8 @@ let rec insertList value index list =
   | i, x::xs -> x::insertList value (i - 1) xs
   | i, [] -> failwith "index out of range"
 
-let updateView org ac (view: View) =
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
+let updateView proxyGen (view: View) =
+  use p = proxyGen()
 
   let entity = CrmData.CRUD.retrieve p ViewLogicalName view.id
   let attr = entity.Attributes
@@ -79,12 +77,10 @@ let updateView org ac (view: View) =
   CrmData.CRUD.update p entity |> ignore
   CrmDataHelper.publishAll p
 
-let updateViewList org ac (views: View list) = List.iter (updateView org ac) views
+let updateViewList proxyGen (views: View list) = List.iter (updateView proxyGen) views
 
-let parse org ac guid =
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
+let parse proxyGen guid =
+  use p = proxyGen()
 
   let (layout, fetch) = getLayoutAndFetch p guid
   { id = guid

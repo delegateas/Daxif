@@ -8,6 +8,7 @@ open System.Text.RegularExpressions
 open System.Globalization
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
+open DG.Daxif.Common.InternalUtility
 open Microsoft.Xrm.Sdk.Metadata
 open TypeDeclarations
 open DG.Daxif
@@ -156,7 +157,7 @@ let generateEntAttrFile proxy (daxifRoot: string) (entityLogicalNames : string l
   |> ignore
 
 let getFullEntityList entities solutions proxy =
-  printf "Figuring out which entities should be included.."
+  log.Verbose "Figuring out which entities should be included.."
   let solutionEntities = 
     match solutions with
     | Some sols -> 
@@ -172,20 +173,15 @@ let getFullEntityList entities solutions proxy =
   
   finalEntities |> Set.toList
 
-let generateFiles org ac daxifRoot entities solutions (log: ConsoleLogger) =
-  let m = ServiceManager.createOrgService org
-  log.WriteLine(LogLevel.Verbose, @"Authenticating")
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  log.WriteLine(LogLevel.Verbose, @"Authenticated")
-
-  log.WriteLine(LogLevel.Verbose, @"Getting entities from solution and config")
+let generateFiles proxyGen daxifRoot entities solutions =
+  use p = proxyGen()
+  log.Verbose "Getting entities from solution and config"
   let allEntities = getFullEntityList entities solutions p
-  log.WriteLine(LogLevel.Verbose, @"Generating files for '" + string allEntities.Length + "' entities")
-  log.WriteLine(LogLevel.Verbose, @"Generating entity relationship file")
+  log.Verbose "Generating files for '%s' entities" (string allEntities.Length)
+  log.Verbose "Generating entity relationship file"
   generateEntRelFile p daxifRoot allEntities
-  log.WriteLine(LogLevel.Verbose, @"Generating entity attribute file")
+  log.Verbose "Generating entity attribute file"
   generateEntAttrFile p daxifRoot allEntities
-  log.WriteLine(LogLevel.Verbose, @"Generating view guid file")
+  log.Verbose "Generating view guid file"
   generateGuidFile p daxifRoot allEntities
-  log.WriteLine(LogLevel.Verbose, @"Generation done")
+  log.Verbose "Generation done"

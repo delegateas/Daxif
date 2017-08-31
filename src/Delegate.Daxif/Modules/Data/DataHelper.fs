@@ -38,19 +38,14 @@ let exists' org ac entityName filter (log : ConsoleLogger) =
   use p = ServiceProxy.getOrganizationServiceProxy m tc
   CrmDataInternal.Entities.existCrmGuid p entityName filter
     
-let count' org ac entityNames (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
+let count' proxyGen entityNames =
   entityNames 
   |> Array.Parallel.iter (fun en -> 
-        use p = ServiceProxy.getOrganizationServiceProxy m tc
         try 
-          log.WriteLine
-            (LogLevel.Verbose, 
-            sprintf "%s: %i record(s)" en (CrmDataInternal.Entities.count p en))
+          log.Verbose "%s: %i record(s)" en (CrmDataInternal.Entities.count (proxyGen()) en)
         with ex -> 
-          log.WriteLine(LogLevel.Warning, sprintf "%s: %s" en ex.Message))
-
+          log.Warn "%s: %s" en ex.Message
+    )
 // @deprecated
 let updateState' org ac entityName filter (state, status) 
     (log : ConsoleLogger) = 

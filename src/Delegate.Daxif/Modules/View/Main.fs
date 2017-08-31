@@ -6,32 +6,16 @@ open DG.Daxif.Common.InternalUtility
 open TypeDeclarations
 open DG.Daxif
 
-let generateFiles org ap usr (pwd: string) domain daxifRoot entities solutions log =
-  let log' = ConsoleLogger log
-  let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Generate view extender files:")
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  logAuthentication ap usr pwd' domain log'
-  let ac = CrmAuth.getCredentials ap usr pwd domain
+let generateFiles proxyGen daxifRoot entities solutions =
   let dir = daxifRoot ++ generationFolder
-  log'.WriteLine(LogLevel.Verbose, @"Generating to folder: " + dir)
-  ensureDirectory (dir)
-  Generator.generateFiles org ac daxifRoot entities solutions log'
-  log'.WriteLine
-    (LogLevel.Info, @"The ViewExtender files were generated successfully")
+  log.Verbose "Generating to folder: %s" dir
+  ensureDirectory dir
+  Generator.generateFiles proxyGen daxifRoot entities solutions
+  log.Info "The ViewExtender files were generated successfully"
 
-let updateView org ap usr (pwd: string) domain view =
-  let ac = CrmAuth.getCredentials ap usr pwd domain
-  ViewHelper.updateView org ac view
-
-let updateViewList org ap usr pwd domain views =
-  let ac = CrmAuth.getCredentials ap usr pwd domain
-  ViewHelper.updateViewList org ac views
-
-let parse org ap usr pwd domain guid =
-  let ac = CrmAuth.getCredentials ap usr pwd domain
-  ViewHelper.parse org ac guid
+let updateView proxyGen view = ViewHelper.updateView proxyGen view
+let updateViewList proxyGen views = ViewHelper.updateViewList proxyGen views
+let parse proxyGen guid = ViewHelper.parse proxyGen guid
 
 let addColumn = ViewHelper.addColumn
 let addColumnFirst = ViewHelper.addColumnFirst

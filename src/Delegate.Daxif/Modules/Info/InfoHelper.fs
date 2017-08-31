@@ -3,8 +3,6 @@
 open DG.Daxif
 open DG.Daxif.Common
 
-let version' org ac (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
+let version' proxyGen = 
+  use p = proxyGen()
   CrmDataInternal.Info.version p

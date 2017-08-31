@@ -22,18 +22,12 @@ let exists org entityName filter ap usr pwd domain log =
       @"The data was retrieved successfully " + guid.ToString())
   guid  
 
-let count org entityNames ap usr pwd domain log = 
-  let ac = CrmAuth.getCredentials ap usr pwd domain
-  let log' = ConsoleLogger log
+let count proxyGen entityNames =
   let entityNames' = entityNames |> Array.reduce (fun x y -> x + "," + y)
-  let pwd' = String.replicate pwd.Length "*"
-  log'.WriteLine(LogLevel.Info, daxifVersion)
-  log'.WriteLine(LogLevel.Info, @"Data count: " + entityNames')
-  log'.WriteLine(LogLevel.Verbose, @"Organization: " + org.ToString())
-  logAuthentication ap usr pwd' domain log'
-  DataHelper.count' org ac entityNames log'
-  log'.WriteLine
-    (LogLevel.Info, @"The data count was retrieved successfully")
+  log.Info "%s" daxifVersion
+  log.Info "Data count: %s" entityNames'
+  DataHelper.count' proxyGen entityNames
+  log.Info "The data count was retrieved successfully"
 
 let updateState org entityName filter state ap usr pwd domain log = 
   let ac = CrmAuth.getCredentials ap usr pwd domain

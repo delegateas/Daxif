@@ -143,10 +143,8 @@ let getSyncActions proxy webresourceFolder solutionName =
     yield! update
   }
 
-let syncSolution org ac location solutionName = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
+let syncSolution proxyGen location solutionName = 
+  use p = proxyGen()
   
   let syncActions = getSyncActions p location solutionName
   
@@ -154,7 +152,7 @@ let syncSolution org ac location solutionName =
     syncActions
     |> Seq.toArray
     |> Array.Parallel.map (fun (x, y) -> 
-          use p' = ServiceProxy.getOrganizationServiceProxy m tc
+          use p' = proxyGen()
           let yrn = y.GetAttributeValue<string>("name")
           try 
             match x with

@@ -1,6 +1,7 @@
 ﻿namespace DG.Daxif
 
 open DG.Daxif.Common
+open DG.Daxif.Common.InternalUtility
 open DG.Daxif.Modules.View
 open Utility
 open DG.Daxif.Modules.View.TypeDeclarations
@@ -11,22 +12,21 @@ type View private () =
   /// <summary>Generates the files needed for View Extender</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member GenerateFiles(env: Environment, daxifRoot: string, ?entities: string[], ?solutions: string[], ?logLevel: LogLevel) =
-    let usr, pwd, dmn = env.getCreds()
-    let logLevel = logLevel ?| LogLevel.Verbose
-    Main.generateFiles env.url env.apToUse usr pwd dmn daxifRoot entities solutions logLevel
+    let proxyGen = env.connect(log).GetProxy
+    log.setLevelOption logLevel
+    Main.generateFiles proxyGen daxifRoot entities solutions
   
-
   static member UpdateView (env: Environment) (view: TypeDeclarations.View) =
-    let usr, pwd, dmn = env.getCreds()
-    Main.updateView env.url env.apToUse usr pwd dmn view
+    let proxyGen = env.connect(log).GetProxy
+    Main.updateView proxyGen view
 
   static member UpdateViewList (env: Environment) (views: TypeDeclarations.View list) = 
-    let usr, pwd, dmn = env.getCreds()
-    Main.updateViewList env.url env.apToUse usr pwd dmn views
+    let proxyGen = env.connect(log).GetProxy
+    Main.updateViewList proxyGen views
 
   static member Parse (env: Environment) (guid: System.Guid) =
-   let usr, pwd, dmn = env.getCreds()
-   Main.parse env.url env.apToUse usr pwd dmn guid
+   let proxyGen = env.connect(log).GetProxy
+   Main.parse proxyGen guid
 
   static member AddColumn (column: IEntityAttribute) width index (view: TypeDeclarations.View) = 
     Main.addColumn column width index view
