@@ -1,5 +1,9 @@
 # Release Notes
 
+### 3.1.7 - September 14 2017
+* Added better character handling to the ViewGuid generator in ViewExtender
+* State and Status is no longer send along when updating a view in ViewExtender
+
 #### 3.1.6 - August 21 2017
 * Changed RemoveLink to RemoveRelatedColumn and initFilter to InitFilter
 
