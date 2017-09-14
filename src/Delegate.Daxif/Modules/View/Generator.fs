@@ -27,13 +27,16 @@ let writeViewGuidFile proxy (sw : StreamWriter) (entityLogicalName : string) =
   CrmData.CRUD.retrieveMultiple proxy ViewLogicalName query
   |> Seq.map (fun (e : Entity) -> ((string) e.Attributes.["name"], (string) e.Id))
   |> Seq.fold (fun previousNames (name, guid) ->
+    let regex = new Regex(@"[^a-zA-Z0-9_]")
+    let trimmedName = 
+      regex.Replace(name, "")
+      |> fun s -> if Char.IsNumber(s, 0) then "_" + s else s
+
     let duplicates, nextMap = 
-      match Map.tryFind name previousNames with
-      | Some i -> i, Map.add name (i + 1) previousNames
-      | None -> 0, Map.add name 1 previousNames
+      match Map.tryFind trimmedName previousNames with
+      | Some i -> i, Map.add trimmedName (i + 1) previousNames
+      | None -> 0, Map.add trimmedName 1 previousNames
     
-    let regex = new Regex(@"[\s|:|,|\d-]")
-    let trimmedName = regex.Replace(name, "")
     let safeName = if duplicates > 0 then trimmedName + duplicates.ToString() else trimmedName
     sw.WriteLine("    let " + safeName + " = Guid(\"" + guid + "\")")
     nextMap) Map.empty
