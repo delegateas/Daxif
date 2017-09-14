@@ -72,9 +72,11 @@ let updateView proxyGen (view: View) =
   let newLayout, newFetch = 
     getNewXml p view (XDocument.Parse(string attr.["layoutxml"])) 
       (XDocument.Parse(string attr.["fetchxml"]))
-  attr.["layoutxml"] <- (string newLayout)
-  attr.["fetchxml"] <- (string newFetch)
-  CrmData.CRUD.update p entity |> ignore
+  let toUpdate = new Entity(entity.LogicalName)
+  toUpdate.Id <- entity.Id
+  toUpdate.Attributes.Add("layoutxml", string newLayout)
+  toUpdate.Attributes.Add("fetchxml", string newFetch)
+  CrmData.CRUD.update p toUpdate |> ignore
   CrmDataHelper.publishAll p
 
 let updateViewList proxyGen (views: View list) = List.iter (updateView proxyGen) views
