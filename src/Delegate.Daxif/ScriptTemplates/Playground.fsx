@@ -4,6 +4,7 @@ Playground
 *)
 
 #load @"_Config.fsx"
+#r @"System.ServiceModel"
 open _Config
 open System
 open System.IO

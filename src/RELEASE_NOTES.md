@@ -1,5 +1,8 @@
 # Release Notes
 
+### 3.1.8 (unreleased)
+* Fixed error when using proxy in Playground.fsx
+
 ### 3.1.7 - September 14 2017
 * Added better character handling to the ViewGuid generator in ViewExtender
 * State and Status is no longer send along when updating a view in ViewExtender
