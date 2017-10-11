@@ -23,7 +23,9 @@ module CrmDataInternal =
       | '6' -> CrmReleases.CRM2013
       | '7' -> CrmReleases.CRM2015
       | '8' -> CrmReleases.CRM2016
-      | _ -> failwith "Version not supported."
+      | '9' -> CrmReleases.CRM2016
+      | x when x < '5' -> failwith "Version not supported."
+      | _ -> CrmReleases.D365
     
     let version (proxy : OrganizationServiceProxy) = 
       let req = Messages.RetrieveVersionRequest()

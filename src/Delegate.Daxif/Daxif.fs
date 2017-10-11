@@ -37,6 +37,7 @@ type CrmReleases =
   | CRM2013 = 2013
   | CRM2015 = 2015
   | CRM2016 = 2016
+  | D365 = 365
 
 /// State of asynchronous job
 type AsyncJobState =
