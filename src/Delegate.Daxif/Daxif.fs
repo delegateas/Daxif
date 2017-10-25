@@ -30,6 +30,7 @@ type WebResourceType =
   | XSL  =  9
   | XSLT =  9
   | ICO  = 10
+  | SVG  = 11 // Added in 9.0, enum number unconfirmed
 
 /// CRM Releases
 type CrmReleases = 

@@ -3,6 +3,7 @@
 ### 3.1.8 (unreleased)
 * Fixed error when using proxy in Playground.fsx
 * Fixed versioning to support Dynamics365 9.0 and future releases
+* Added support for SVG files in Dynamics365 9.0 and newer
 
 ### 3.1.7 - September 14 2017
 * Added better character handling to the ViewGuid generator in ViewExtender

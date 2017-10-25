@@ -256,18 +256,16 @@ let (.>=) v1 v2 =
   ?| true
 
 /// Version less than or equal to
-let (.<=) v1 v2 =
-  versionCompare v1 v2
-  ?|> fun x -> x < 0
-  ?| true
-
-/// Version less than
-let (.<) v1 v2 = 
-  v1 .>= v2 |> not
+let (.<=) v1 v2 = 
+  v2 .>= v1
 
 /// Version greater than
 let (.>) v1 v2 = 
   v1 .<= v2 |> not
+
+/// Version less than
+let (.<) v1 v2 = 
+  v1 .>= v2 |> not
 
 /// Check if the version matches the version criteria
 let matchesVersionCriteria (versionToCheck: Version) (criteria: VersionCriteria) =
