@@ -40,12 +40,13 @@ let localResourceToWebResource path name =
   
 /// Get all local webresources by enumerating all folders at given location,
 /// while looking for supported file types.
-let getLocalResourcesHelper location = 
+let getLocalResourcesHelper location crmRelease = 
   seq { 
     let exts = 
       Enum.GetNames(typeof<DG.Daxif.WebResourceType>)
       |> Array.map (fun x -> @"." + x.ToLower())
       |> Array.toList
+      |> List.filter (fun x -> x <> ".svg" || crmRelease >= CrmReleases.D365)
       
     let rec getLocalResources' exts' = 
       seq { 
@@ -72,8 +73,8 @@ let getPrefixAndUniqueName location =
       @"Incorrect root folder (must only contain 1 folder ex: 'publishPrefix_uniqueSolutionName'"
   
 /// Filter out any files which are labeled with "_nosync"
-let getLocalWRs location prefix = 
-  getLocalResourcesHelper location
+let getLocalWRs location prefix crmRelease = 
+  getLocalResourcesHelper location crmRelease
   |> Seq.filter (fun name -> not <| name.EndsWith("_nosync"))
   |> Seq.map (fun path -> 
     let name = path.Substring(path.IndexOf(location) + location.Length).Replace(@"\", "/").Trim('/')
@@ -87,7 +88,10 @@ let getSyncActions proxy webresourceFolder solutionName =
   
   let wrPrefix = sprintf "%s_%s" prefix solutionName
 
-  let localWrPathMap = getLocalWRs webresourceFolder wrPrefix
+  let localWrPathMap = 
+    CrmDataInternal.Info.version proxy
+    |> snd
+    |> getLocalWRs webresourceFolder wrPrefix
   let localWrs = localWrPathMap |> Seq.map (fun kv -> kv.Key) |> Set.ofSeq
 
   let crmWRs = 

@@ -33,12 +33,13 @@ type WebResourceType =
   | SVG  = 11 // Added in 9.0, enum number unconfirmed
 
 /// CRM Releases
+/// Newer versions have higher values
 type CrmReleases = 
   | CRM2011 = 2011
   | CRM2013 = 2013
   | CRM2015 = 2015
   | CRM2016 = 2016
-  | D365 = 365
+  | D365    = 2017
 
 /// State of asynchronous job
 type AsyncJobState =
