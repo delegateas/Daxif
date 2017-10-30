@@ -1,13 +1,10 @@
 ﻿#load @"..\src\Delegate.Daxif\Daxif.fs"
-#load @"..\src\Delegate.Daxif\HelperModules\Common\ConsoleLogger.fs"
-#load @"..\src\Delegate.Daxif\HelperModules\Common\Utility.fs"
 
 open System
 open System.Diagnostics
 open System.IO
 open System.Text
 open DG.Daxif
-open DG.Daxif.HelperModules.Common.Utility
 
 let rootFolder = __SOURCE_DIRECTORY__
 
