@@ -1,9 +1,9 @@
 # Release Notes
 
-### 3.1.9
+### 3.1.9 (unreleased)
 * Added support for SVG files in Dynamics365 9.0 and newer
 
-### 3.1.8
+### 3.1.8 - October 13 2017
 * Fixed error when using proxy in Playground.fsx
 * Fixed versioning to support Dynamics365 9.0 and future releases
 
