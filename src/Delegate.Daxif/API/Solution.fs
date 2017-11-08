@@ -100,18 +100,17 @@ type Solution private () =
   static member Extract(solutionFile, customizationsFolder, xmlMappingFile, projectFile, ?logLevel) =
     let logLevel = logLevel ?| LogLevel.Verbose
 
-    Main.extract solutionFile customizationsFolder xmlMappingFile projectFile
+    Main.extract solutionFile customizationsFolder xmlMappingFile projectFile logLevel
 
   /// <summary>Packs a solution package using the SolutionPackager</summary>
   static member Pack(outputFile, customizationsFolder, xmlMappingFile, ?managed, ?logLevel) =
     let logLevel = logLevel ?| LogLevel.Verbose
     let managed = managed ?| false
 
-    Main.pack outputFile customizationsFolder xmlMappingFile managed
+    Main.pack outputFile customizationsFolder xmlMappingFile managed logLevel
 
   /// <summary>Updates the version number of a solution by the given increment, defaults to revision number</summary>
-  static member UpdateVersionNumber(env: Environment, solutionName, ?increment, ?logLevel) =
-    let logLevel = logLevel ?| LogLevel.Verbose
+  static member UpdateVersionNumber(env: Environment, solutionName, ?increment) =
     let increment = increment ?| Revision
     
     let proxy = env.connect(log).GetProxy()

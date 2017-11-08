@@ -477,7 +477,7 @@ let importWithDGSolution' org ac ac' solution location managed (log : ConsoleLog
 
 //TODO:
 let extract' location (customizations : string) (map : string) project 
-    (log : ConsoleLogger) logl = 
+    (log : ConsoleLogger) (logl : LogLevel) = 
   let logl' = Enum.GetName(typeof<LogLevel>, logl)
   let pa = new PackagerArguments()
   log.WriteLine(LogLevel.Info, "Start output from SolutionPackager")
@@ -503,7 +503,7 @@ let extract' location (customizations : string) (map : string) project
   ()
       
 //TODO:
-let pack' location customizations map managed (log : ConsoleLogger) logl = 
+let pack' location customizations map managed (log : ConsoleLogger) (logl : LogLevel) = 
   let logl' = Enum.GetName(typeof<LogLevel>, logl)
   let pa = new PackagerArguments()
   let managed' = match managed with | true -> "Managed" | false -> "Unmanaged"

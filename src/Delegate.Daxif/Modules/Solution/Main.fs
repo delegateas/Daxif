@@ -164,19 +164,19 @@ let importWithDGSolution org location ap usr pwd domain log =
   log.Info @"The extended solution was imported successfully"
   
 // TODO: 
-let extract location customizations map project log = 
-  let log = ConsoleLogger log
+let extract location customizations map project logLevel = 
+  let log = ConsoleLogger logLevel
   logVersion log
   log.Verbose @"Path to file: %s" location
-  SolutionHelper.extract' location customizations map project log log
+  SolutionHelper.extract' location customizations map project log logLevel
   log.Info @"The solution was extracted successfully"
   
 // TODO: 
-let pack location customizations map managed log = 
-  let log = ConsoleLogger log
+let pack location customizations map managed logLevel = 
+  let log = ConsoleLogger logLevel
   logVersion log
   log.Verbose @"Path to file: %s" location
-  SolutionHelper.pack' location customizations map managed log log
+  SolutionHelper.pack' location customizations map managed log logLevel
   log.Info @"The solution was packed successfully"
   
 // TODO: 
