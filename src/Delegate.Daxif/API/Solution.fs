@@ -124,3 +124,11 @@ type Solution private () =
 
     Versioning.updateSolutionVersionTo proxy solId newVersion
     log.Info "Version number was succesfully updated in CRM."
+
+  /// <summary>
+  /// Merges target solution into source solution, leaving the target solution unaffected.
+  /// </summary>
+  static member Merge(env: Environment, sourceName, targetName, ?logLevel) = 
+    let logLevel = logLevel ?| LogLevel.Verbose
+    let usr, pwd, dmn = env.getCreds()
+    Main.merge env.url sourceName targetName env.apToUse usr pwd dmn logLevel

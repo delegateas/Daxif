@@ -67,8 +67,8 @@ let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
 
   let isManaged (solution: Entity) = solution.Attributes.["ismanaged"] :?> bool
 
-  let getSolutionComponents proxy (solution:Entity) =
-    CrmDataInternal.Entities.retrieveAllSolutionComponenets proxy solution.Id
+  let getSolutionComponents proxy (solution:Entity) fullEntities =
+    CrmDataInternal.Entities.retrieveAllSolutionComponenets proxy solution.Id fullEntities
     |> Seq.map(fun x -> 
       let uid = x.Attributes.["objectid"] :?> Guid
       let ct = x.Attributes.["componenttype"] :?> OptionSetValue
@@ -79,72 +79,81 @@ let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
   let tc = m.Authenticate(ac)
   use p = ServiceProxy.getOrganizationServiceProxy m tc
 
-  log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
-  log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")    
+  log.Verbose @"Service Manager instantiated"
+  log.Verbose @"Service Proxy instantiated"
 
-  // fail if 2016 service pack 1 is used
-  let v, _ = CrmDataInternal.Info.version p 
-  match v.[0], v.[2] with
-  | '8','2' -> failwith "Not supported in CRM 2016 Service Pack 1" 
-  | _, _ ->
+  // Retrieve solutions
+  let source =
+    CrmDataInternal.Entities.retrieveSolutionAllAttributes p sourceSolution
+  let target =
+    CrmDataInternal.Entities.retrieveSolutionAllAttributes p targetSolution
+  let sourceName = getName source
+  let targetName = getName target
 
-    // Retrieve solutions
-    let source =
-      CrmDataInternal.Entities.retrieveSolutionAllAttributes p sourceSolution
-    let target =
-      CrmDataInternal.Entities.retrieveSolutionAllAttributes p targetSolution
-    let sourceName = getName source
-    let targetName = getName target
+  // Ensure both solution are unmanaged
+  match isManaged source, isManaged target with
+  | true,_ ->
+    failwith (sprintf "Unable to merge %s as it is a managed solution"
+      sourceName)
+  | _,true ->
+    failwith (sprintf "Unable to merge %s as it is a managed solution"
+      targetName)
+  | _,_ -> ()
 
-    // Ensure both solution are unmanaged
-    match isManaged source, isManaged target with
-    | true,_ ->
-      failwith (sprintf "Unable to merge %s as it is a managed solution"
-        sourceName)
-    | _,true ->
-      failwith (sprintf "Unable to merge %s as it is a managed solution"
-        targetName)
-    | _,_ ->
+  // Prior to CRM 2016 service pack 1, only full entities could be included in solutions
+  let fullEntities =
+    match CrmDataInternal.Info.version p with
+    | _, CrmReleases.CRM2011
+    | _, CrmReleases.CRM2013
+    | _, CrmReleases.CRM2015 -> true
+    | x, CrmReleases.CRM2016 when x.[2] < '2' -> true
+    | _ -> false
 
-      // Retrieve entities in target and source
-      let guidSource = getSolutionComponents p source
-      let guidTarget = getSolutionComponents p target
+  // Retrieve entities in target and source
+  let guidSource = getSolutionComponents p source fullEntities
+  let guidTarget = getSolutionComponents p target fullEntities
 
-      // Creating a mapping from objectid to the entity logicname
-      let uidToLogicNameMap = 
-        CrmData.Metadata.allEntities p
-        |> Seq.map(fun x -> x.MetadataId, x.LogicalName)
-        |> Seq.filter(fun (mid,_) -> mid.HasValue)
-        |> Seq.map(fun (mid,ln) -> mid.Value, ln)
-        |> Map.ofSeq
+  // Create a mapping from objectid to entity logicalname
+  let uidToLogicNameMap = 
+    match fullEntities with
+    | true  -> 
+      CrmData.Metadata.allEntities p
+      |> Seq.map(fun x -> x.MetadataId, x.LogicalName)
+      |> Seq.filter(fun (mid,_) -> mid.HasValue)
+      |> Seq.map(fun (mid,ln) -> mid.Value, ln)
+      |> Map.ofSeq
+    | false -> Map.empty
 
-      // Find entities in target which does not exist in source
-      let diff = guidTarget - guidSource
+//  uidToLogicNameMap
+//  |> Map.iter (fun key value -> log.Verbose "%s - %s" (key.ToString()) value)
 
-      // Make new solutioncomponent for source solution with entities in diff
-      match diff.Count with
-      | 0 -> 
-        log.WriteLine(LogLevel.Info,
-          sprintf @"Nothing to merge, components in %s already exist in %s"
-            targetName sourceName)
-      | x -> 
-        log.WriteLine(LogLevel.Verbose,
-          sprintf @"Adding %d component(s) from %s to the %s" x targetName sourceName)
-        diff
-        |> Seq.map(fun (uid,cType) ->
-            
-          log.WriteLine(LogLevel.Verbose,
-            sprintf "Adding %s, %s to %s" 
-              uidToLogicNameMap.[uid] (uid.ToString()) sourceName)
+  // Find entities in target which does not exist in source
+  let diff = guidTarget - guidSource
 
-          let req = Messages.AddSolutionComponentRequest()
-          req.ComponentId <- uid
-          req.ComponentType <- cType
-          req.SolutionUniqueName <- getName source
-          req :> OrganizationRequest
-          )
-        |> Seq.toArray
-        |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
+  // Make new solutioncomponent for source solution with entities in diff
+  match diff.Count with
+  | 0 -> 
+    log.WriteLine(LogLevel.Info,
+      sprintf @"Nothing to merge, components in %s already exist in %s"
+        targetName sourceName)
+  | x -> 
+    log.WriteLine(LogLevel.Verbose,
+      sprintf @"Adding %d component(s) from %s to %s" x targetName sourceName)
+    diff
+    |> Seq.map(fun (uid, cType) ->
+
+      match Map.tryFind uid uidToLogicNameMap with
+      | Some s -> log.Verbose "Adding %s (%s)" s (uid.ToString())
+      | None -> log.Verbose "Adding 'ComponentType %i' (%s)" cType (uid.ToString())
+
+      let req = Messages.AddSolutionComponentRequest()
+      req.ComponentId <- uid
+      req.ComponentType <- cType
+      req.SolutionUniqueName <- getName source
+      req :> OrganizationRequest
+      )
+    |> Seq.toArray
+    |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
 
 let pluginSteps' org ac solution enable (log : ConsoleLogger) = 
   // Plugin: stateCode = 1 and statusCode = 2 (inactive), 

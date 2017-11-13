@@ -40,7 +40,7 @@ module CrmData =
     let allEntities (proxy : OrganizationServiceProxy) = 
       let req = OrganizationRequest()
       let param = ParameterCollection()
-      param.Add(@"EntityFilters", EntityFilters.Entity)
+      param.Add(@"EntityFilters", EntityFilters.All)
       param.Add(@"RetrieveAsIfPublished", true)
       req.RequestName <- @"RetrieveAllEntities"
       req.Parameters.AddRange(param)

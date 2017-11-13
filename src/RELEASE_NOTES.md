@@ -1,5 +1,9 @@
 # Release Notes
 
+
+#### 3.2.0 - Novemeber 9 2017
+* Added merge function for unmanaged solutions, which adds all solution components from a target solution, to a source solution.
+
 #### 3.1.9 - October 30 2017
 * Added support for SVG files in Dynamics365 9.0 and newer
 

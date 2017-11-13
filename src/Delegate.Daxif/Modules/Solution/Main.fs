@@ -59,7 +59,7 @@ let merge org sourceSolution targetSolution ap usr pwd domain log =
   log.Verbose @"Organization: %O" org
   logAuthentication ap usr pwd' domain log
   SolutionHelper.merge' org ac sourceSolution targetSolution log
-  log.Info @"The solutions was merged successfully."
+  log.Info @"The solutions were merged successfully."
   
 let pluginSteps org solution enable ap usr pwd domain log = 
   let ac = CrmAuth.getCredentials ap usr pwd domain
