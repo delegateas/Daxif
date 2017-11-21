@@ -60,17 +60,10 @@ let getLocalResourcesHelper location crmRelease =
     yield! getLocalResources' exts
   }
   
-// Check for only one folder of the type: publishPrefix_uniqueSolutionName
-let getPrefixAndUniqueName location = 
-  Directory.GetDirectories(location)
-  |> Array.toList
-  |> function 
-  | x :: [] -> 
-    x.Substring(x.LastIndexOf(@"\") + 1).Split('_') 
-    |> fun xs -> xs.[0], xs.[1]
-  | _ -> 
-    failwith 
-      @"Incorrect root folder (must only contain 1 folder ex: 'publishPrefix_uniqueSolutionName'"
+// Retrieve publishPrefix_uniqueSolutionName from the web resource folder
+let getPrefixAndUniqueName (location:string) = 
+  location.Substring(location.LastIndexOf(@"\") + 1).Split('_') 
+  |> fun xs -> xs.[0], xs.[1]
   
 /// Filter out any files which are labeled with "_nosync"
 let getLocalWRs location prefix crmRelease = 
@@ -86,7 +79,8 @@ let getSyncActions proxy webresourceFolder solutionName =
   let (solutionId, prefix) = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy solutionName
   let webResources = CrmDataInternal.Entities.retrieveWebResources proxy solutionId
   
-  let wrPrefix = sprintf "%s_%s" prefix solutionName
+  let _, uniqueName = getPrefixAndUniqueName webresourceFolder
+  let wrPrefix = sprintf "%s_%s" prefix uniqueName
 
   let localWrPathMap = 
     CrmDataInternal.Info.version proxy
