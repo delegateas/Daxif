@@ -5,6 +5,7 @@ open System.IO
 open Microsoft.Xrm.Sdk
 open DG.Daxif
 open DG.Daxif.Common
+open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 
 // Types of webresource actions
@@ -75,12 +76,11 @@ let getLocalWRs location prefix crmRelease =
   )
   |> Map.ofSeq
  
-let getSyncActions proxy webresourceFolder solutionName =
+let getSyncActions proxy webresourceFolder solutionName webResourcePrefix =
   let (solutionId, prefix) = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy solutionName
   let webResources = CrmDataInternal.Entities.retrieveWebResources proxy solutionId
   
-  let _, uniqueName = getPrefixAndUniqueName webresourceFolder
-  let wrPrefix = sprintf "%s_%s" prefix uniqueName
+  let wrPrefix = webResourcePrefix ?| (sprintf "%s_%s" prefix solutionName)
 
   let localWrPathMap = 
     CrmDataInternal.Info.version proxy
@@ -141,10 +141,10 @@ let getSyncActions proxy webresourceFolder solutionName =
     yield! update
   }
 
-let syncSolution proxyGen location solutionName = 
+let syncSolution proxyGen location solutionName wrPrefix = 
   use p = proxyGen()
   
-  let syncActions = getSyncActions p location solutionName
+  let syncActions = getSyncActions p location solutionName wrPrefix
   
   let actionSuccess =
     syncActions
