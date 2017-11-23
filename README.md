@@ -8,7 +8,7 @@ and effort during this process by using Delegate's DAXIF# library.
 
 ## Getting started
 
-Check out [F# Setup](bla) if you have not used F# before. This
+Check out [F# Setup](https://github.com/delegateas/Daxif/wiki/F%23-Setup) if you have not used F# before. This
 will instruct you on how you can setup your computer for running these F# scripts.
 
 Afterwards check out the example scripts in the sidebar to review what
