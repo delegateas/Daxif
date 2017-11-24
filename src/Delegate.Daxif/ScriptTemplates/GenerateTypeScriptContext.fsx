@@ -20,6 +20,6 @@ Solution.GenerateTypeScriptContext(Env.dev, xrmDefinitelyTyped, xrmTypings,
     // eg. "systemuser"
     ],
   extraArguments = [
-    "web", ""
+    "web", "XDT"
     "jsLib", jsLib
     ])
