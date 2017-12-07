@@ -28,5 +28,5 @@ open EntityRelationships
 // Views.Account.MyParentView
 // |> View.Parse Env.dev
 // |> View.ChangeId Views.Account.FirstChildView
-// |> View.AddRelatedColumnFirst Account.Relations.AccountPrimarycontactid_ContactContactid [Contact.Fields.Address1_City] [400]
+// |> View.AddRelatedColumnFirst Account.Relations.Primarycontactid_ContactContactid [Contact.Fields.Address1_City] [400]
 // |> View.UpdateView Env.dev

@@ -1,5 +1,11 @@
 # Release Notes
 
+#### 3.2.0 - (unreleased)
+* Fixed error in solution extract https://github.com/delegateas/Daxif/issues/8
+* Improved performance of ViewExtender https://github.com/delegateas/Daxif/issues/12
+* Fixed error with filtering in ViewExtender where attributes not on savedquery were invalid
+
+
 #### 3.1.9 - October 30 2017
 * Added support for SVG files in Dynamics365 9.0 and newer
 

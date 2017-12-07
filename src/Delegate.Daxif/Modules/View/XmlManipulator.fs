@@ -65,8 +65,8 @@ let setOrder order (xml: XDocument) =
     xml.Element(xn "fetch").Element(xn "entity").Add(root)
     xml) xml order
 
-let getXmlFromFilterExp (proxy: Client.OrganizationServiceProxy) (filter: FilterExpression) = 
-  let query = QueryExpression(ViewLogicalName)
+let getXmlFromFilterExp (proxy: Client.OrganizationServiceProxy) logicalname (filter: FilterExpression) = 
+  let query = QueryExpression(logicalname)
   query.Criteria <- filter
   let req = QueryExpressionToFetchXmlRequest()
   req.Query <- query
@@ -74,15 +74,15 @@ let getXmlFromFilterExp (proxy: Client.OrganizationServiceProxy) (filter: Filter
   let doc = XDocument.Parse(resp.FetchXml)
   doc.Element(xn "fetch").Element(xn "entity").Element(xn "filter")
 
-let rec getXmlFromFilterStructure proxy = function
+let rec getXmlFromFilterStructure proxy logicalname = function
   | Filter.Empty -> XElement(xn "filter")
-  | Filter.Expr fe -> getXmlFromFilterExp proxy fe
+  | Filter.Expr fe -> getXmlFromFilterExp proxy logicalname fe
   | Filter.Xml xml -> xml
   | Filter.Nested(wrap, filters) -> 
     let wrapper = new XElement(xn "filter")
     wrapper.Add(new XAttribute(xn "type", wrap.FilterOperator.ToString().ToLower()))
     List.fold (fun (wrapper: XElement) (filter: Filter) -> 
-      wrapper.Add(getXmlFromFilterStructure proxy filter)
+      wrapper.Add(getXmlFromFilterStructure proxy logicalname filter)
       wrapper) wrapper filters
   
 let getXmlFromLinkEntityExp (proxy: Client.OrganizationServiceProxy) (link: LinkEntity) = 
@@ -97,7 +97,8 @@ let getXmlFromLinkEntityExp (proxy: Client.OrganizationServiceProxy) (link: Link
 let setFilter proxy (filterStruct: Filter) (xml: XDocument) =
   if xml.Element(xn "fetch").Element(xn "entity").Element(xn "filter") <> null then 
     xml.Element(xn "fetch").Element(xn "entity").Element(xn "filter").Remove()
-  let filter = getXmlFromFilterStructure proxy filterStruct
+  let primaryEntity = xml.Element(xn "fetch").Element(xn "entity").Attribute(xn "name").Value
+  let filter = getXmlFromFilterStructure proxy primaryEntity filterStruct
   if not filter.IsEmpty then
     xml.Element(xn "fetch").Element(xn "entity").Add(filter)
   xml

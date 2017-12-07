@@ -62,8 +62,10 @@ type View private () =
     Main.changeId guid view
   static member InitFilter (operator: LogicalOperator) = 
     Main.initFilter operator
-  static member AddCondition (attributeEntity: EntityAttribute<'a,'b>) (operator: 'b) (arg: 'a) (filter: FilterExpression) =
-    Main.addCondition attributeEntity operator arg filter
+  static member AddCondition0 (attributeEntity: EntityAttribute<'a,'b>) (operator: 'b) (filter: FilterExpression) =
+    Main.addCondition0 attributeEntity operator filter
+  static member AddCondition1 (attributeEntity: EntityAttribute<'a,'b>) (operator: 'b) (arg: 'a) (filter: FilterExpression) =
+    Main.addCondition1 attributeEntity operator arg filter
   static member AddCondition2 (attributeEntity: EntityAttribute<'a,'b>) (operator: 'b) (arg1: 'a) (arg2: 'a) (filter: FilterExpression) =
     Main.addCondition2 attributeEntity operator arg1 arg2 filter
   static member AddConditionMany (attributeEntity: EntityAttribute<'a,'b>) (operator: 'b) (arg: 'a list) (filter: FilterExpression) =

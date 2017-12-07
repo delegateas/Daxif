@@ -7,6 +7,7 @@ open Microsoft.Xrm.Sdk.Query
 open System.Xml.Linq
 open AllowedConditions
 open TypeDeclarations
+open Microsoft.Xrm.Sdk.Client
 
 let getOrdering = 
   function 
@@ -15,7 +16,7 @@ let getOrdering =
   | _ -> failwith "Unknown ordering"
 
 let getNewXml p (view: View) layout fetch =
-  let newLayout = XmlManipulator.setColumns view.columns layout  
+  let newLayout = XmlManipulator.setColumns view.columns layout
   let newFetch =
     XmlManipulator.setAttr view.attributes fetch
     |> XmlManipulator.setOrder view.order
@@ -64,9 +65,7 @@ let rec insertList value index list =
   | i, x::xs -> x::insertList value (i - 1) xs
   | i, [] -> failwith "index out of range"
 
-let updateView proxyGen (view: View) =
-  use p = proxyGen()
-
+let updateView (p: OrganizationServiceProxy) (view: View) =
   let entity = CrmData.CRUD.retrieve p ViewLogicalName view.id
   let attr = entity.Attributes
   let newLayout, newFetch = 
@@ -77,9 +76,16 @@ let updateView proxyGen (view: View) =
   toUpdate.Attributes.Add("layoutxml", string newLayout)
   toUpdate.Attributes.Add("fetchxml", string newFetch)
   CrmData.CRUD.update p toUpdate |> ignore
+
+let updateViewAndPublish proxyGen (view: View) =
+  use p = proxyGen()
+  updateView p view  
   CrmDataHelper.publishAll p
 
-let updateViewList proxyGen (views: View list) = List.iter (updateView proxyGen) views
+let updateViewList proxyGen (views: View list) = 
+  use p = proxyGen()
+  List.iter (updateView p) views
+  CrmDataHelper.publishAll p
 
 let parse proxyGen guid =
   use p = proxyGen()
@@ -178,7 +184,12 @@ let changeId guid (view: View) = {view with id = guid}
 
 let initFilter operator = FilterExpression(operator)
 
-let addCondition (attributeEntity: EntityAttribute<'a,'b>) (operator: 'b)
+let addCondition0 (attributeEntity: EntityAttribute<_,'b>) (operator: 'b)
+  (filter: FilterExpression) =
+  filter.AddCondition(attributeEntity.Name, parseCondition operator)
+  filter
+
+let addCondition1 (attributeEntity: EntityAttribute<'a,'b>) (operator: 'b)
     (arg: 'a) (filter: FilterExpression) =
   let operator = parseCondition operator 
   match (box arg) with

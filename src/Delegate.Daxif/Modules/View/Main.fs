@@ -13,7 +13,7 @@ let generateFiles proxyGen daxifRoot entities solutions =
   Generator.generateFiles proxyGen daxifRoot entities solutions
   log.Info "The ViewExtender files were generated successfully"
 
-let updateView proxyGen view = ViewHelper.updateView proxyGen view
+let updateView proxyGen view = ViewHelper.updateViewAndPublish proxyGen view
 let updateViewList proxyGen views = ViewHelper.updateViewList proxyGen views
 let parse proxyGen guid = ViewHelper.parse proxyGen guid
 
@@ -34,7 +34,8 @@ let addRelatedColumnLast = ViewHelper.addLinkLast
 let removeLink = ViewHelper.removeLink
 let changeId = ViewHelper.changeId
 let initFilter = ViewHelper.initFilter
-let addCondition = ViewHelper.addCondition
+let addCondition0 = ViewHelper.addCondition0
+let addCondition1 = ViewHelper.addCondition1
 let addCondition2 = ViewHelper.addCondition2
 let addConditionMany = ViewHelper.addConditionMany
 let addFilter = ViewHelper.addFilter
