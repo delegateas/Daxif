@@ -1,9 +1,10 @@
 # Release Notes
 
-#### 3.2.0 - (unreleased)
+#### 4.0.0 - December 07 2017
 * Fixed error in solution extract https://github.com/delegateas/Daxif/issues/8
 * Improved performance of ViewExtender https://github.com/delegateas/Daxif/issues/12
 * Fixed error with filtering in ViewExtender where attributes not on savedquery were invalid
+* Added condition with no arguments to ViewExtender and renamed AddCondition to AddCondition1
 
 
 #### 3.1.9 - October 30 2017
