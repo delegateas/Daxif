@@ -11,6 +11,9 @@ open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.CrmDataInternal
 open DG.Daxif.Modules.Serialization
+open DG.Daxif.Common.SolutionOptionSets
+open DG.Daxif.Modules.Solution.DGSolutionHelper
+open Microsoft.Xrm.Sdk.Query
 
 let createPublisher' org ac name display prefix 
     (log : ConsoleLogger) = 
@@ -67,12 +70,19 @@ let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
 
   let isManaged (solution: Entity) = solution.Attributes.["ismanaged"] :?> bool
 
-  let getSolutionComponents proxy (solution:Entity) fullEntities =
-    CrmDataInternal.Entities.retrieveAllSolutionComponenets proxy solution.Id fullEntities
+  let getComponentOrDefault (ent: Entity) name =
+    if ent.Attributes.ContainsKey name
+    then ent.Attributes.[name] |> Some
+    else None
+
+  let getSolutionComponents proxy (solution:Entity) =
+    CrmDataInternal.Entities.retrieveAllSolutionComponenets proxy solution.Id
     |> Seq.map(fun x -> 
       let uid = x.Attributes.["objectid"] :?> Guid
-      let ct = x.Attributes.["componenttype"] :?> OptionSetValue
-      (uid, ct.Value))
+      let ct = x.Attributes.["componenttype"] :?> OptionSetValue |> (fun x -> x.Value |> enum<SolutionComponentType>)
+      let rcb = if x.Attributes.ContainsKey "rootcomponentbehavior" then x.Attributes.["rootcomponentbehavior"] :?> OptionSetValue |> (fun x -> x.Value) |> enum<SolutionComponentBehavior> |> Some else None
+      let rsc = x.Attributes.ContainsKey "rootsolutioncomponentid"
+      uid, ct, rcb, rsc)
     |> Set.ofSeq
 
   let m = ServiceManager.createOrgService org
@@ -100,56 +110,74 @@ let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
       targetName)
   | _,_ -> ()
 
-  // Prior to CRM 2016 service pack 1, only full entities could be included in solutions
-  let fullEntities =
-    match CrmDataInternal.Info.version p with
-    | _, CrmReleases.CRM2011
-    | _, CrmReleases.CRM2013
-    | _, CrmReleases.CRM2015 -> true
-    | x, CrmReleases.CRM2016 when x.[2] < '2' -> true
-    | _ -> false
-
   // Retrieve entities in target and source
-  let guidSource = getSolutionComponents p source fullEntities
-  let guidTarget = getSolutionComponents p target fullEntities
+  let guidSource = getSolutionComponents p source
+  let guidTarget = getSolutionComponents p target
 
-  // Create a mapping from objectid to entity logicalname
-  let uidToLogicNameMap = 
-    match fullEntities with
-    | true  -> 
+  log.Verbose "Source solution components: %i" (Set.count guidSource)
+  log.Verbose "Target solution components: %i" (Set.count guidTarget)
+
+  // Create a mapping from solution component id to name
+  // Used only for logging
+  // Todo: Expand with more solution component types
+  let solutionComponentIdToName = 
+    let entities =
       CrmData.Metadata.allEntities p
       |> Seq.map(fun x -> x.MetadataId, x.LogicalName)
       |> Seq.filter(fun (mid,_) -> mid.HasValue)
       |> Seq.map(fun (mid,ln) -> mid.Value, ln)
-      |> Map.ofSeq
-    | false -> Map.empty
-
-//  uidToLogicNameMap
-//  |> Map.iter (fun key value -> log.Verbose "%s - %s" (key.ToString()) value)
-
+    let wrs = 
+      getWebresources p target.Id
+      |> Seq.map (fun x -> x.Id , string x.["displayname"])
+    let wfs = 
+      getWorkflows p target.Id
+      |> Seq.map (fun x -> x.Id , string x.["name"])
+    let apps = 
+      let q = QueryExpression("appmodule")
+      q.ColumnSet <- ColumnSet([|"name"|])
+      CrmData.CRUD.retrieveMultiple p "App Modules" q
+      |> Seq.map (fun x -> x.Id , string x.["name"])
+    let roles =
+      let q = QueryExpression("role")
+      q.ColumnSet <- ColumnSet([|"name"|])
+      CrmData.CRUD.retrieveMultiple p "Security Roles" q
+      |> Seq.map (fun x -> x.Id , string x.["name"])
+    Seq.collect id [entities; wrs; wfs; apps; roles]
+    |> Map.ofSeq
+    
   // Find entities in target which does not exist in source
-  let diff = guidTarget - guidSource
+  // TODO: Implement option for merging full entities (already implemented) or subcomponent (todo)
+  let diffTotal = guidTarget - guidSource
+  let diff = diffTotal |> Set.filter (fun (_,_,_,rootId) -> not rootId) // Ignores subcomponents
+
+  log.Verbose "Components in Target not in Source: %i" (Set.count diffTotal)
 
   // Make new solutioncomponent for source solution with entities in diff
   match diff.Count with
   | 0 -> 
-    log.WriteLine(LogLevel.Info,
-      sprintf @"Nothing to merge, components in %s already exist in %s"
-        targetName sourceName)
+    log.WriteLine(LogLevel.Info, sprintf @"Nothing to merge, components in %s already exist in %s" targetName sourceName)
   | x -> 
-    log.WriteLine(LogLevel.Verbose,
-      sprintf @"Adding %d component(s) from %s to %s" x targetName sourceName)
+    log.WriteLine(LogLevel.Verbose, sprintf @"Adding %d component(s) from %s to %s" x targetName sourceName)
     diff
-    |> Seq.map(fun (uid, cType) ->
+    |> Seq.sortBy (fun (_, cType, _, _) -> cType) // Entities first. Full order at: https://msdn.microsoft.com/en-us/library/mt608054.aspx#Properties
+    |> Seq.map(fun (uid, cType, behavior, _) ->
 
-      match Map.tryFind uid uidToLogicNameMap with
-      | Some s -> log.Verbose "Adding %s (%s)" s (uid.ToString())
-      | None -> log.Verbose "Adding 'ComponentType %i' (%s)" cType (uid.ToString())
+      let name =
+        match Map.tryFind uid solutionComponentIdToName with
+        | Some name -> sprintf "%s '%s'" (cType.ToString()) name
+        | None -> sprintf "%s {%s}" (cType.ToString()) (uid.ToString())
+
+      match behavior, cType with 
+      | Some behavior', SolutionComponentType.Entity -> log.Verbose "Adding %s original behavior (%s)" name (behavior'.ToString())
+      | Some _, _ -> log.Verbose "Adding %s" name
+      | None, _ -> log.Error "Adding %s without behavior" name
 
       let req = Messages.AddSolutionComponentRequest()
       req.ComponentId <- uid
-      req.ComponentType <- cType
+      req.ComponentType <- cType |> int
       req.SolutionUniqueName <- getName source
+      req.DoNotIncludeSubcomponents <- false // Sets behavior to (IncludeAllSubcomponents = 0)
+
       req :> OrganizationRequest
       )
     |> Seq.toArray

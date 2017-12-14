@@ -648,7 +648,7 @@ module CrmDataInternal =
       q.Criteria <- f
       CrmDataHelper.retrieveMultiple proxy q
     
-    let retrieveAllSolutionComponenets proxy solutionId fullEntities =
+    let retrieveAllSolutionComponenets proxy solutionId =
       let (solutionId : Guid) = solutionId
       let ln = @"solutioncomponent"
       let an = @"solutionid"
@@ -661,8 +661,8 @@ module CrmDataInternal =
       le.LinkCriteria.Conditions.Add
         (ConditionExpression(an, ConditionOperator.Equal, solutionId))
       let f = FilterExpression()
-      if not fullEntities then
-        f.AddCondition(ConditionExpression("componenttype", ConditionOperator.NotEqual, 1))
+      //if not fullEntities then
+      //  f.AddCondition(ConditionExpression("componenttype", ConditionOperator.NotEqual, 1))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.LinkEntities.Add(le)
