@@ -91,12 +91,18 @@ let writeOptionSet (sw : StreamWriter) (optionSet : OptionSetMetadata) logicalna
   if optionSet.Options.Count <> 0 then
     sw.WriteLine("  type " + upCase logicalname + "Opt = ")
     optionSet.Options
-    |> Seq.map (fun e ->
-      let label = e.Label.UserLocalizedLabel.Label
-      let safeLabel = if label = "" then "__EMPTYLABEL__" else label
-      "``" + safeLabel + "``", e.Value.Value)
-    |> Seq.iter (fun (label, value) ->
-      sw.WriteLine("    | " + label + " = " + string value))
+    |> Seq.fold (fun previousNames e ->
+    let label = e.Label.UserLocalizedLabel.Label
+    let safeLabel = if label = "" then "__EMPTYLABEL__" else label
+    let duplicates, nextMap = 
+      match Map.tryFind safeLabel previousNames with
+      | Some i -> i, Map.add safeLabel (i + 1) previousNames
+      | None -> 0, Map.add safeLabel 1 previousNames
+    
+    let safeName = if duplicates > 0 then label + duplicates.ToString() else label
+    sw.WriteLine("    | " + "``" + safeName + "``" + " = " + string e.Value.Value)
+    nextMap) Map.empty
+  |> ignore
 
 let fitMetadata (sw : StreamWriter) (metadata : AttributeMetadata[]) options =
   metadata
