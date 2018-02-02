@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 4.1.0 - February 02 2017
+* Added support for duplicate naming for option's label in ViewExtender
+
 #### 4.0.0 - December 07 2017
 * Fixed error in solution extract https://github.com/delegateas/Daxif/issues/8
 * Improved performance of ViewExtender https://github.com/delegateas/Daxif/issues/12
