@@ -19,8 +19,8 @@ let convertionMap =
     "Picklist", ("OptionSetValue", "OptionCondition")
     "Uniqueidentifier", ("System.Guid", "GuidCondition")
     "String", ("string", "StringCondition")
-    "State", ("OptionSetValue", "OptionCondition")
-    "Status", ("OptionSetValue", "OptionCondition")
+    "State", ("int", "OptionCondition")
+    "Status", ("int", "OptionCondition")
     "Uniqueidentifier", ("System.Guid", "GuidCondition")
     "Virtual", ("string", "StringCondition")
   ]
