@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 4.1.1 - February 02 2017
+* Fixed the expected type of statecode and statuscode for attributes in ViewExtender
+
 #### 4.1.0 - February 02 2017
 * Added support for duplicate naming for option's label in ViewExtender
 
