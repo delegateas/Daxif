@@ -230,7 +230,7 @@ let export' org ac location entityNames (log : ConsoleLogger)
   entityNames 
   |> Array.Parallel.iter (fun en -> 
         use p = ServiceProxy.getOrganizationServiceProxy m tc
-        let eLoc = location + en
+        let eLoc = location + Path.DirectorySeparatorChar.ToString() + en
         ensureDirectory eLoc
         CrmDataInternal.Entities.retrieveAllEntities p en
         |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
