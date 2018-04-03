@@ -36,9 +36,11 @@ let ensureAssembly proxy solutionName asmLocal maybeAsm =
     | Some asmReg ->
       asmEntity.Id <- asmReg.id
       CrmDataHelper.getResponse<UpdateResponse> proxy (makeUpdateReq asmEntity) |> ignore
+      log.Info "Updating %s: %s" asmEntity.LogicalName asmLocal.dllName
       asmReg.id
 
     | None        -> 
+      log.Info "Creating %s: %s" asmEntity.LogicalName asmLocal.dllName
       CrmDataHelper.getResponseWithParams<CreateResponse> proxy (makeCreateReq asmEntity) [ "SolutionUniqueName", solutionName ]
       |> fun r -> r.id
 
