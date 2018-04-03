@@ -1,4 +1,4 @@
-﻿module internal DG.Daxif.Modules.Solution.DGSolutionHelper
+﻿module internal DG.Daxif.Modules.Solution.ExtendedSolutionHelper
 
 open System
 open System.IO
@@ -13,26 +13,7 @@ open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 open DG.Daxif.Common.CrmUtility
 open DG.Daxif.Modules.Serialization
-
-// Record for holding the state of an entity
-type EntityState =
-  { id: Guid
-    logicalName: string
-    stateCode: int
-    statusCode: int }
-
-// Recording holding the states of entities and which plugins and webresources to keep
-// Note: the different plugin guids are not sure to be equal across environments
-// so the name is used to identify the different parts of the plugins
-type DelegateSolution =
-  { states: Map<string, EntityState> 
-    keepAssemblies: seq<Guid*string>
-    keepPluginTypes: seq<Guid*string>
-    keepPluginSteps: seq<Guid*string>
-    keepPluginImages: seq<Guid*string>
-    keepWorkflows: seq<Guid*string>
-    keepWebresources: seq<Guid*string>
-  }
+open Domain
 
 let asmLogicName = @"pluginassembly"
 let typeLogicName = @"plugintype"
@@ -165,7 +146,7 @@ let deactivateWorkflows p ln target (diff: Set<string>) log =
 
 // Stores entities statecode and statuscode in a seperate file to be
 // implemented on import
-let exportDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
+let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
 
   let m = ServiceManager.createOrgService org
   let tc = m.Authenticate(ac)
@@ -240,15 +221,15 @@ let exportDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
       keepWorkflows = workflowsIds
       keepWebresources = webResIds}
     
-  log.WriteLine(LogLevel.Verbose, @"Creating solution file")
+  log.WriteLine(LogLevel.Verbose, @"Creating extended solution file")
 
-  // Serialize the record to an xml file called dgSolution.xml and add it to the
+  // Serialize the record to an xml file called ExtendedSolution.xml and add it to the
   // packaged solution 
   let arr = 
-    SerializationHelper.serializeXML<DelegateSolution> delegateSolution
+    SerializationHelper.serializeXML<ExtendedSolution> delegateSolution
     |> SerializationHelper.xmlPrettyPrinterHelper'
 
-  let solEntry = archive.CreateEntry("dgSolution.xml")
+  let solEntry = archive.CreateEntry("ExtendedSolution.xml")
   use writer = new StreamWriter(solEntry.Open())
   writer.BaseStream.Write(arr,0,arr.Length)
 
@@ -256,20 +237,20 @@ let exportDGSolution org ac solutionName zipPath (log:ConsoleLogger) =
 
   Directory.Delete(tempFolder,true)
 
-  log.WriteLine(LogLevel.Info, @"DGSolution exported successfully")
+  log.WriteLine(LogLevel.Info, @"Extended solution exported successfully")
 
 
 /// Import solution
-let importDGSolution org ac solutionName zipPath =
+let importExtendedSolution org ac solutionName zipPath =
   use zipToOpen = new FileStream(zipPath, FileMode.Open)
   use archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update)
 
   let zipSolName = getSolutionNameFromSolution solutionName archive log
 
-  log.Verbose @"Attempting to retrieve dgSolution.xml file from solution package"
-  match archive.Entries |> Seq.exists(fun e -> e.Name = "dgSolution.xml") with                                        
+  log.Verbose @"Attempting to retrieve ExtendedSolution.xml file from solution package"
+  match archive.Entries |> Seq.exists(fun e -> e.Name = "ExtendedSolution.xml") with                                        
   | false -> 
-    failwith @"DGSolution import failed. No dgSolution.xml file found in solution package"
+    failwith @"ExtendedSolution import failed. No ExtendedSolution.xml file found in solution package"
 
   | true -> 
     let m = ServiceManager.createOrgService org
@@ -277,20 +258,20 @@ let importDGSolution org ac solutionName zipPath =
     use p = ServiceProxy.getOrganizationServiceProxy m tc
     let solution = CrmDataInternal.Entities.retrieveSolutionId p zipSolName
 
-    // Fetch the dgSolution.xml file and unserialize it
-    let entry = archive.GetEntry("dgSolution.xml")
+    // Fetch the ExtendedSolution.xml file and unserialize it
+    let entry = archive.GetEntry("ExtendedSolution.xml")
     use writer = new StreamReader(entry.Open())
 
     let xmlContent = writer.ReadToEnd()
       
-    let dgSol = SerializationHelper.deserializeXML<DelegateSolution> xmlContent
+    let extSol = SerializationHelper.deserializeXML<ExtendedSolution> xmlContent
       
     // Read the status and statecode of the entities and update them in crm
     log.Verbose @"Finding states of entities to be updated"
 
     // Find the source entities that have different code values than target
-    let diffdgSol =
-      dgSol.states
+    let diffExtSol =
+      extSol.states
       |> Map.toArray
       |> Array.Parallel.map(fun (_,guidState) -> 
           CrmData.CRUD.retrieveReq guidState.logicalName guidState.id 
@@ -300,21 +281,21 @@ let importDGSolution org ac solutionName zipPath =
         let resp' = resp.Response :?> Messages.RetrieveResponse 
         resp'.Entity)
       |> Array.filter(fun target -> 
-        let source = dgSol.states.[target.Id.ToString()]
+        let source = extSol.states.[target.Id.ToString()]
         getCodeValue "statecode" target <> source.stateCode ||
         getCodeValue "statuscode" target <> source.statusCode)
 
       
-    log.Verbose @"Found %d entity states to be updated" diffdgSol.Length
+    log.Verbose @"Found %d entity states to be updated" diffExtSol.Length
 
     // Update the entities states
-    match diffdgSol |> Seq.length with
+    match diffExtSol |> Seq.length with
     | 0 -> ()
     | _ ->
       log.WriteLine(LogLevel.Verbose, @"Updating entity states")
-      diffdgSol
+      diffExtSol
       |> Array.map(fun x -> 
-        let x' = dgSol.states.[x.Id.ToString()]
+        let x' = extSol.states.[x.Id.ToString()]
         CrmDataInternal.Entities.updateStateReq x'.logicalName x'.id
           x'.stateCode x'.statusCode :> OrganizationRequest )
       |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
@@ -326,12 +307,12 @@ let importDGSolution org ac solutionName zipPath =
     let targetWorkflows = getWorkflows p solution.Id |> getEntityIds
     let targetWebRes = getWebresources p solution.Id |> getEntityIds
 
-    [|(imgLogicName, dgSol.keepPluginImages, targetImgs, takeGuid, None)
-      (stepLogicName, dgSol.keepPluginSteps, targetSteps, takeGuid, None)
-      (typeLogicName, dgSol.keepPluginTypes, targetTypes, takeName, None)
-      (asmLogicName, dgSol.keepAssemblies, targetAsms, takeGuid, None)
-      (webResLogicalName, dgSol.keepWebresources, targetWebRes, takeGuid, None)
-      (workflowLogicalName, dgSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
+    [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
+      (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
+      (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)
+      (asmLogicName, extSol.keepAssemblies, targetAsms, takeGuid, None)
+      (webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, None)
+      (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
     |> Array.iter(fun (ln, source, target, fieldCompFunc, preDeleteAction) ->   
         
       let s = source |> Seq.map fieldCompFunc |> Set.ofSeq

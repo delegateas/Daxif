@@ -459,7 +459,7 @@ let import' org ac solution location managed (log : ConsoleLogger) =
   | Choice2Of2 exn -> raise exn
   | _ -> excel
 
-let exportWithDGSolution' org ac ac' solution location managed (log : ConsoleLogger) = 
+let exportWithExtendedSolution' org ac ac' solution location managed (log : ConsoleLogger) = 
   export' org ac solution location managed log
   let filename =
     let managed' =
@@ -467,13 +467,13 @@ let exportWithDGSolution' org ac ac' solution location managed (log : ConsoleLog
       | true -> "_managed"
       | false -> ""
     sprintf "%s%s.zip" solution managed'
-  log.WriteLine(LogLevel.Info, @"Exporting DGSolution")
-  DGSolutionHelper.exportDGSolution org ac' solution (location ++ filename) log
+  log.WriteLine(LogLevel.Info, @"Exporting extended solution")
+  ExtendedSolutionHelper.exportExtendedSolution org ac' solution (location ++ filename) log
 
-let importWithDGSolution' org ac ac' solution location managed (log : ConsoleLogger) = 
+let importWithExtendedSolution' org ac ac' solution location managed (log : ConsoleLogger) = 
   import' org ac solution location managed log |> ignore
-  log.WriteLine(LogLevel.Info, @"Importing DGSolution")
-  DGSolutionHelper.importDGSolution org ac' solution location
+  log.WriteLine(LogLevel.Info, @"Importing extended solution")
+  ExtendedSolutionHelper.importExtendedSolution org ac' solution location
 
 //TODO:
 let extract' location (customizations : string) (map : string) project 

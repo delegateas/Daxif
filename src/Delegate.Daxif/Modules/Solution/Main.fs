@@ -132,7 +132,7 @@ let import org location ap usr pwd domain log =
   SolutionHelper.import' org ac solution location managed log |> ignore
   log.Info @"The solution was imported successfully"
 
-let exportWithDGSolution org solution location managed ap usr pwd domain log = 
+let exportWithExtendedSolution org solution location managed ap usr pwd domain log = 
   let ac = CrmAuth.getCredentials ap usr pwd domain
   let ac' = CrmAuth.getCredentials ap usr pwd domain
   let log = ConsoleLogger log
@@ -144,10 +144,10 @@ let exportWithDGSolution org solution location managed ap usr pwd domain log =
   log.Verbose @"Path to folder: %s" location
   log.Verbose @"Managed solution: %O" managed
   logAuthentication ap usr pwd' domain log
-  SolutionHelper.exportWithDGSolution' org ac ac' solution location managed log
+  SolutionHelper.exportWithExtendedSolution' org ac ac' solution location managed log
   log.Info @"The extended solution was exported successfully"
   
-let importWithDGSolution org location ap usr pwd domain log = 
+let importWithExtendedSolution org location ap usr pwd domain log = 
   let ac = CrmAuth.getCredentials ap usr pwd domain
   let ac' = CrmAuth.getCredentials ap usr pwd domain
   let log = ConsoleLogger log
@@ -160,7 +160,7 @@ let importWithDGSolution org location ap usr pwd domain log =
   log.Verbose @"Path to file: %s" location
   log.Verbose @"Managed solution: %O" managed
   logAuthentication ap usr pwd' domain log
-  SolutionHelper.importWithDGSolution' org ac ac' solution location managed log |> ignore
+  SolutionHelper.importWithExtendedSolution' org ac ac' solution location managed log |> ignore
   log.Info @"The extended solution was imported successfully"
   
 // TODO: 

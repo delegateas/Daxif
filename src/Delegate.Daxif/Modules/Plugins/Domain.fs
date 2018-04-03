@@ -2,7 +2,6 @@
 
 open System
 open System.Reflection
-open DG.Daxif
 open Microsoft.Xrm.Sdk
 
 type PluginIsolationMode =

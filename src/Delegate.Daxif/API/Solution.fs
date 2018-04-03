@@ -15,7 +15,7 @@ type Solution private () =
     let extended = extended ?| false
 
     match extended with
-    | true  -> Main.importWithDGSolution
+    | true  -> Main.importWithExtendedSolution
     | false -> Main.import
     |> fun f -> f env.url pathToSolutionZip env.apToUse usr pwd dmn logLevel
     
@@ -34,7 +34,7 @@ type Solution private () =
     let extended = extended ?| false
 
     match extended with
-    | true  -> Main.exportWithDGSolution 
+    | true  -> Main.exportWithExtendedSolution 
     | false -> Main.export
     |> fun f -> f env.url solutionName outputDirectory managed env.apToUse usr pwd dmn logLevel
 
