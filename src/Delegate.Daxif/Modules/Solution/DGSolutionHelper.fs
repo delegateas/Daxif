@@ -57,17 +57,18 @@ let getCodeValue key (x:Entity) =
   getAttribute key x :?> OptionSetValue
   |> fun e -> e.Value
 
-// Returns a subset of the sequence based on the comparison on the a strings
-let subset (b:seq<Guid*String>) a = 
-  b |> Seq.filter(fun (_,z) -> 
-    ((fun y -> y = z),a) ||> Seq.exists)
+let takeName = snd
+let takeGuid (inp: (Guid*string)) = inp |> fst |> fun x -> x.ToString()
 
+// Returns the solutionComponents in a sequence based on the a list of component names
+let lookup (solutionComponents:seq<Guid*String>) take solutionComponentNames= 
+  solutionComponentNames 
+  |> Seq.map(fun name -> 
+    Seq.find(fun comp -> take comp = name) solutionComponents)
+  
 let getEntityIds (entities: seq<Entity>) =
   entities
   |> Seq.map(fun r -> r.Id, getName r)
-
-let takeName = snd
-let takeGuid (inp: (Guid*string)) = inp |> fst |> fun x -> x.ToString()
 
 let getSolutionNameFromSolution solutionName (archive: ZipArchive) (log:ConsoleLogger) =
   log.Verbose "Retrieving solution.xml from solution package"
@@ -79,8 +80,6 @@ let getSolutionNameFromSolution solutionName (archive: ZipArchive) (log:ConsoleL
     log.Verbose "Solution name '%s' from solution.xml differs from solutionName argument: '%s'" zipSolutionName solutionName
     log.Verbose "Using '%s'" zipSolutionName
     zipSolutionName
-    
-      
 
 // Fetches the entity of views in a packaged solution file from an exported 
 // solution
@@ -157,7 +156,7 @@ let deactivateWorkflows p ln target (diff: Set<string>) log =
   | _ -> 
     diff
     |> Set.toSeq
-    |> subset target
+    |> lookup target takeGuid
     |> Seq.map( fun (x,_) ->
       CrmDataInternal.Entities.updateStateReq ln x 0 1 :> OrganizationRequest )
     |> Seq.toArray
@@ -333,15 +332,15 @@ let importDGSolution org ac solutionName zipPath =
       (asmLogicName, dgSol.keepAssemblies, targetAsms, takeGuid, None)
       (webResLogicalName, dgSol.keepWebresources, targetWebRes, takeGuid, None)
       (workflowLogicalName, dgSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
-    |> Array.iter(fun (ln, source, target, fieldCompFunc, func) ->   
+    |> Array.iter(fun (ln, source, target, fieldCompFunc, preDeleteAction) ->   
         
       let s = source |> Seq.map fieldCompFunc |> Set.ofSeq
       let t = target |> Seq.map fieldCompFunc |> Set.ofSeq
       let diff = t - s
 
-      match func with
+      match preDeleteAction with
       | None   -> ()
-      | Some f -> f p ln target diff log
+      | Some action -> action p ln target diff log
         
       log.Verbose "Found %d '%s' entities to be deleted " diff.Count ln
       match diff.Count with
@@ -349,7 +348,7 @@ let importDGSolution org ac solutionName zipPath =
       | _ -> 
         diff
         |> Set.toSeq
-        |> subset target
+        |> lookup target fieldCompFunc
         |> Seq.map (fun (x, _) ->
           CrmData.CRUD.deleteReq ln x :> OrganizationRequest)
         |> Seq.toArray
