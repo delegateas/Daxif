@@ -1,5 +1,11 @@
 # Release Notes
 
+#### 4.2.0 - April 03 2017
+* Renamed DGSolution to ExtendedSolution
+* Renamed dgSolution.xml to ExtendSolution.xml
+* Readded logging for when assembly is created or updated in plugin synchronization
+* Fix bug in Extended Solution where records was not deleted or status of records was not updated on import
+
 #### 4.1.1 - February 02 2017
 * Fixed the expected type of statecode and statuscode for attributes in ViewExtender
 
