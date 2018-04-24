@@ -30,7 +30,7 @@ let subset oldActivities (targetActivities : Entity[]) =
 // Fetches the name of the workflows by finding all classes in the assembly
 // that extends CodeActivity
 let getActivities (asm : Assembly) = 
-  asm.GetTypes() 
+  getLoadableTypes asm log
   |> Array.filter (fun x -> x.BaseType <> null && x.BaseType.Name = @"CodeActivity" && x.FullName <> null)
   |> Array.map (fun x -> x.FullName)
 

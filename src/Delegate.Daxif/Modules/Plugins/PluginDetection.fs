@@ -101,7 +101,7 @@ let tupleToRecord
 /// tuple contaning the plugin informations
 let getPluginsFromAssembly (asm: Assembly) =
   try
-    asm.GetTypes() |> fun xs -> 
+    getLoadableTypes asm log |> fun xs -> 
       let y = xs |> Array.filter (fun x -> x.Name = @"Plugin") |> Array.toList
                   |> List.head
       xs

@@ -7,6 +7,7 @@ open System.Text
 open System.Text.RegularExpressions
 open Microsoft.FSharp.Reflection
 open DG.Daxif
+open System.Reflection
 
 /// Option mapper
 let (?|>) m f = Option.map f m
@@ -283,4 +284,14 @@ let getVersionIncrement (str: string) =
   | "minor" -> Minor
   | "build" -> Build
   | _       -> Revision
-  
+
+/// Gets the loadable types from the given assembly 
+/// (skipping types that cannot be loaded and would otherwise throw exceptions)
+let getLoadableTypes (asm: Assembly) (log: ConsoleLogger) =
+  try
+    asm.GetTypes()
+  with
+  | :? ReflectionTypeLoadException as ex -> 
+          log.Info "Error when loading the following assemblies (they will be skipped):"
+          ex.LoaderExceptions |> Array.iter (fun a -> log.Info "%s" a.Message)
+          ex.Types |> Array.filter (fun a -> not (isNull a))
