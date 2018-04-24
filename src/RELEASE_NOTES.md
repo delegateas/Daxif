@@ -1,5 +1,9 @@
 # Release Notes
 
+#### 4.2.1 - ToBeReleased
+* Added default reference to bin\Microsoft.Crm.Sdk.Proxy.dll in _Config.fsx
+* Skip trying to load types returned from Assembly.GetTypes() that cannot be loaded
+
 #### 4.2.0 - April 03 2017
 * Renamed DGSolution to ExtendedSolution
 * Renamed dgSolution.xml to ExtendSolution.xml
