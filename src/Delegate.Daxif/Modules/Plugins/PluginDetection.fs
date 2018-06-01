@@ -98,14 +98,14 @@ let tupleToRecord
   }  
 
 /// Calls "PluginProcessingStepConfigs" in the plugin assembly that returns a
-/// tuple contaning the plugin informations
+/// tuple containing the plugin informations
 let getPluginsFromAssembly (asm: Assembly) =
   try
     getLoadableTypes asm log |> fun xs -> 
       let y = xs |> Array.filter (fun x -> x.Name = @"Plugin") |> Array.toList
                   |> List.head
       xs
-      |> Array.filter (fun (x:Type) -> x.IsSubclassOf(y))
+      |> Array.filter (fun (x:Type) -> x.IsSubclassOf(y) && not x.IsAbstract && x.GetConstructor(Type.EmptyTypes) <> null)
       |> Array.Parallel.map (fun (x:Type) -> 
         Activator.CreateInstance(x), x.GetMethod(@"PluginProcessingStepConfigs"))
       |> Array.Parallel.map (fun (x, (y:MethodInfo)) -> 
