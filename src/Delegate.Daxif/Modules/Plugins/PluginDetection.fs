@@ -97,15 +97,36 @@ let tupleToRecord
     images = images 
   }  
 
+let getValidPlugins (types:Type[]) = 
+  let pluginType = 
+    types 
+    |> Array.filter (fun x -> x.Name = @"Plugin") 
+    |> Array.head
+
+  let validTypes, invalidTypes  = 
+      types
+      |> Array.filter (fun (x:Type) -> x.IsSubclassOf(pluginType))
+      |> Array.partition (fun (x:Type) -> not x.IsAbstract && x.GetConstructor(Type.EmptyTypes) <> null)
+  
+  invalidTypes
+  |> Array.iter (fun (x:Type) -> 
+    if x.IsAbstract 
+    then log.Warn "The plugin '%s' is an abstract type and is therefore not valid. The plugin will not be synchronized" (x.Name)
+    if x.GetConstructor(Type.EmptyTypes) = null 
+    then log.Warn "The plugin '%s' does not contain an empty contructor and is therefore not valid. The plugin will not be synchronized" (x.Name)
+  )
+
+  validTypes
+
 /// Calls "PluginProcessingStepConfigs" in the plugin assembly that returns a
-/// tuple contaning the plugin informations
+/// tuple containing the plugin informations
 let getPluginsFromAssembly (asm: Assembly) =
   try
-    getLoadableTypes asm log |> fun xs -> 
-      let y = xs |> Array.filter (fun x -> x.Name = @"Plugin") |> Array.toList
-                  |> List.head
-      xs
-      |> Array.filter (fun (x:Type) -> x.IsSubclassOf(y))
+    getLoadableTypes asm log 
+    |> getValidPlugins
+    |> fun validPlugins ->
+
+      validPlugins
       |> Array.Parallel.map (fun (x:Type) -> 
         Activator.CreateInstance(x), x.GetMethod(@"PluginProcessingStepConfigs"))
       |> Array.Parallel.map (fun (x, (y:MethodInfo)) -> 
