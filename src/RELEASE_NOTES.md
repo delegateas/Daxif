@@ -1,8 +1,10 @@
 # Release Notes
 
-#### 4.2.1 - ToBeReleased
+#### 4.2.1 - June 04 2018
 * Added default reference to bin\Microsoft.Crm.Sdk.Proxy.dll in _Config.fsx
 * Skip trying to load types returned from Assembly.GetTypes() that cannot be loaded
+* Update plugin synchronization to filter out invalid plugins
+* Update Daxif to .NET Framework 4.6.2
 
 #### 4.2.0 - April 03 2017
 * Renamed DGSolution to ExtendedSolution
