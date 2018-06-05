@@ -6,16 +6,16 @@
 * Update plugin synchronization to filter out invalid plugins
 * Update Daxif to .NET Framework 4.6.2
 
-#### 4.2.0 - April 03 2017
+#### 4.2.0 - April 03 2018
 * Renamed DGSolution to ExtendedSolution
 * Renamed dgSolution.xml to ExtendSolution.xml
 * Readded logging for when assembly is created or updated in plugin synchronization
 * Fix bug in Extended Solution where records was not deleted or status of records was not updated on import
 
-#### 4.1.1 - February 02 2017
+#### 4.1.1 - February 02 2018
 * Fixed the expected type of statecode and statuscode for attributes in ViewExtender
 
-#### 4.1.0 - February 02 2017
+#### 4.1.0 - February 02 2018
 * Added support for duplicate naming for option's label in ViewExtender
 
 #### 4.0.0 - December 07 2017
