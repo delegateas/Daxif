@@ -1,5 +1,8 @@
 # Release Notes
 
+#### 4.2.2 - June 21 2018
+* Changed Extended Solution to use assembly name as primary key (instead of assembly guid)
+
 #### 4.2.1 - June 04 2018
 * Added default reference to bin\Microsoft.Crm.Sdk.Proxy.dll in _Config.fsx
 * Skip trying to load types returned from Assembly.GetTypes() that cannot be loaded

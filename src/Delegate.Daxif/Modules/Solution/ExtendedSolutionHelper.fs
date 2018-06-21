@@ -310,7 +310,7 @@ let importExtendedSolution org ac solutionName zipPath =
     [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
       (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
       (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)
-      (asmLogicName, extSol.keepAssemblies, targetAsms, takeGuid, None)
+      (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, None)
       (webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, None)
       (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
     |> Array.iter(fun (ln, source, target, fieldCompFunc, preDeleteAction) ->   
