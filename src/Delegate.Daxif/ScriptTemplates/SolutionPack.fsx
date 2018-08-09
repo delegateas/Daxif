@@ -1,6 +1,5 @@
 ﻿(**
 SolutionPack
-============
 *)
 
 #load @"_Config.fsx"

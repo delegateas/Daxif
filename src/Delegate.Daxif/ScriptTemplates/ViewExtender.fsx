@@ -1,6 +1,5 @@
 ﻿(**
 View Extender
-=============
 *)
 
 #load @"_Config.fsx"

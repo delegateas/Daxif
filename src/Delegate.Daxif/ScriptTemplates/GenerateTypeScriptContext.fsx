@@ -1,6 +1,5 @@
 ﻿(**
 SolutionUpdateTsContext
-=====================
 *)
 
 #load @"_Config.fsx"

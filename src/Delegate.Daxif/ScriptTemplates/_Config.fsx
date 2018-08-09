@@ -1,7 +1,4 @@
 ﻿(**
-Config
-======
-
 Sets up all the necessary variables and functions to be used for the other scripts. 
 *)
 #r @"bin\Microsoft.Xrm.Sdk.dll"
@@ -11,12 +8,7 @@ open System
 open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
 open DG.Daxif.Common.Utility
-
-(** 
-CRM Environment Setup 
----------------------
-*)
-   
+  
 // Prompts the developer for a username and password the first time a script is run.
 // It then stores these credentials in a local .daxif-file.
 let creds = Credentials.FromKey("UserCreds")

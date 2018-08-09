@@ -1,6 +1,5 @@
 ﻿(**
 SolutionCreateDev
-=================
 *)
 
 #load @"_Config.fsx"

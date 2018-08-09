@@ -1,6 +1,5 @@
 ﻿(**
 Playground
-=================
 *)
 
 #load @"_Config.fsx"

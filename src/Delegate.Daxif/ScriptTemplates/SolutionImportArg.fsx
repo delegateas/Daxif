@@ -1,6 +1,5 @@
 ﻿(**
 SolutionImportArg
-=================
 
 Configurable import script, which is mainly intended for use by the build server.
 
