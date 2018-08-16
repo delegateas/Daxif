@@ -1,17 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Daxif.Docs", "Daxif.Docs.fsproj", "{7B1A4368-89C9-46D5-9B1F-204990B2581F}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{ED2AD46B-44CA-4EEA-8F59-50B508975266}"
-	ProjectSection(SolutionItems) = preProject
-		content\index.md = content\index.md
-		content\plugin-reg-setup.md = content\plugin-reg-setup.md
-		content\setup_fsharp.md = content\setup_fsharp.md
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{84C1F23F-5AE8-46B9-ADC9-D4A45ED6E7BB}"
 	ProjectSection(SolutionItems) = preProject
 		templates\docpage.cshtml = templates\docpage.cshtml
@@ -57,12 +48,6 @@ Global
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7B1A4368-89C9-46D5-9B1F-204990B2581F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7B1A4368-89C9-46D5-9B1F-204990B2581F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7B1A4368-89C9-46D5-9B1F-204990B2581F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7B1A4368-89C9-46D5-9B1F-204990B2581F}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
@@ -71,5 +56,8 @@ Global
 		{5151E723-D9EB-4C09-82A3-D767F43E04B9} = {84C1F23F-5AE8-46B9-ADC9-D4A45ED6E7BB}
 		{958E186D-607C-4C07-BA0D-57C1A464401D} = {84C1F23F-5AE8-46B9-ADC9-D4A45ED6E7BB}
 		{E81B609E-15C5-4F65-A63F-F4AF421301D9} = {84C1F23F-5AE8-46B9-ADC9-D4A45ED6E7BB}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DBEB81C8-B7AA-4A99-A03F-4879D18FA715}
 	EndGlobalSection
 EndGlobal
