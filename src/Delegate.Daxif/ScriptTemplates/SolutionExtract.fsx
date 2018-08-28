@@ -1,6 +1,5 @@
 ﻿(**
 SolutionExtract
-===============
 *)
 #load @"_Config.fsx"
 open _Config

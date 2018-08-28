@@ -1,6 +1,5 @@
 ﻿(**
 WebResouresSyncDev
-=================
 *)
 
 #load @"_Config.fsx"

@@ -1,6 +1,5 @@
 ﻿(**
 PluginSyncDev
-=================
 *)
 
 #load @"_Config.fsx"

@@ -168,8 +168,6 @@
     <None Include="ScriptTemplates\SolutionCreateDev.fsx" />
     <None Include="ScriptTemplates\SolutionExtract.fsx" />
     <None Include="ScriptTemplates\SolutionExportDev.fsx" />
-    <None Include="ScriptTemplates\SolutionImportDev.fsx" />
-    <None Include="ScriptTemplates\SolutionImportTest.fsx" />
     <None Include="ScriptTemplates\SolutionImportArg.fsx" />
     <None Include="ScriptTemplates\SolutionPack.fsx" />
     <None Include="ScriptTemplates\WebResourceSyncDev.fsx" />

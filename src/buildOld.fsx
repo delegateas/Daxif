@@ -1,7 +1,8 @@
-// --------------------------------------------------------------------------------------
-// FAKE build script
+﻿// --------------------------------------------------------------------------------------
+// FAKE build script 
 // --------------------------------------------------------------------------------------
 #r "packages/FAKE/tools/FakeLib.dll"
+#r "FSharp.Literate.dll"
 
 open Fake
 open Fake.Git
@@ -15,10 +16,10 @@ open System.IO
 // --------------------------------------------------------------------------------------
 // Information about the project are used
 //  - for version and project name in generated AssemblyInfo file
-//  - by the generated NuGet package
+//  - by the generated NuGet package 
 //  - to run tests and to publish documentation on GitHub gh-pages
 //  - for documentation, you also need to edit info in "docs/tools/generate.fsx"
-// The name of the project
+// The name of the project 
 // (used by attributes in AssemblyInfo, name of a NuGet package and directory in 'src')
 let project = "Delegate.Daxif"
 // Short summary of the project
@@ -43,14 +44,16 @@ let solutionFile = @"Delegate.Daxif"
 let testAssemblies = "tests/**/bin/Release/*Tests*.dll"
 // Git configuration (used for publishing documentation)
 // The profile where the docs project is posted 
-let docsGitHome = "https://github.com/delegateas/Daxif.wiki.git"
+let docsGitHome = "https://github.com/delegateas/Daxif"
+// The name of the project on GitHub
+let docsGitName = "delegateas.github.io"
 
 // --------------------------------------------------------------------------------------
-// END TODO: The rest of the file includes standard build steps
+// END TODO: The rest of the file includes standard build steps 
 // --------------------------------------------------------------------------------------
 // Read additional information from the release notes document
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
-let (++) x y = Path.Combine(x,y)
+
 let release = parseReleaseNotes (IO.File.ReadAllLines "RELEASE_NOTES.md")
 
 // Generate assembly info files with the right version & up-to-date information
@@ -68,6 +71,12 @@ Target "AssemblyInfo"
 
 
 // --------------------------------------------------------------------------------------
+// Clean build results & restore NuGet packages
+
+
+Target "RestorePackages" RestorePackages
+Target "CleanDocs" (fun _ -> CleanDirs [ "../docs/output" ])
+
 // Setting up VS for building with FAKE
 let commonBuild target solutions =
   //try 
@@ -194,63 +203,46 @@ Target "PublishNuGet" (fun _ ->
                [ ]
              References = [] }) (@"nuget/" + project + ".nuspec"))
 
-Target "CleanDocs" (fun _ ->
-  CleanDir "temp"
+// --------------------------------------------------------------------------------------
+// Generate the documentation
+Target "GenerateDocs" 
+  (fun _ -> 
+  executeFSIWithArgs "../docs/" "getLibs.fsx" [] [] |> ignore
+  executeFSIWithArgs "../docs/" "getContent.fsx" [ "--define:RELEASE" ] [] 
+  |> ignore
+  executeFSIWithArgs "../docs/" "generate.fsx" [ "--define:RELEASE" ] [] 
+  |> ignore)
+Target "GenerateDocsLocal" (fun _ -> 
+  executeFSIWithArgs "../docs/" "getLibs.fsx" [] [] |> ignore
+  executeFSIWithArgs "../docs/" "getContent.fsx" [] [] |> ignore
+  executeFSIWithArgs "../docs/" "generate.fsx" [] [] |> ignore)
+
+
+// --------------------------------------------------------------------------------------
+// Release Scripts
+Target "ReleaseDocs" (fun _ -> 
+  let tempDocsDir = "temp/docs"
+  let tempProjDocsDir = tempDocsDir @@ project
+  CleanDir tempDocsDir
+  Repository.cloneSingleBranch "" (docsGitHome + "/" + docsGitName + ".git") 
+    "master" tempDocsDir
+  fullclean tempProjDocsDir
+  CopyRecursive "../docs/output" tempProjDocsDir true |> tracefn "%A"
+  StageAll tempProjDocsDir
+  Commit tempProjDocsDir 
+    (sprintf "Update generated documentation for version %s" 
+       release.NugetVersion)
+  Branches.push tempDocsDir
 )
 
-Target "GenerateDocs" (fun _ ->
-    Directory.CreateDirectory("temp" ++ "code") |> ignore
-
-    Directory.EnumerateFiles ("Delegate.Daxif" ++ "ScriptTemplates")
-    |> Array.ofSeq
-    |> Array.map (fun x -> (x.Split('\\') |> Array.last).Split('.') |> Array.head, File.ReadAllLines x)
-    |> Array.map (fun (n,file) -> 
-      n,[|"```"|]
-      |> Array.append file
-      |> Array.append [|"```fsharp"|] 
-    )
-    |> Array.iter (fun (n,file) ->
-      File.WriteAllLines("temp" ++ "code" ++ n + ".md", file)   
-    )
-)
-
-Target "ReleaseDocs" (fun _ ->
-  Repository.cloneSingleBranch "" docsGitHome "master" ("temp" ++ "wiki")
-  
-  Directory.EnumerateFiles("temp" ++ "code")
-  |> Array.ofSeq
-  |> Array.map (fun d -> d.Split('\\') |> Array.last)
-  |> Array.iter (fun f -> File.Copy("temp" ++ "code" ++ f, "temp" ++ "wiki" ++ f,true))
-
-  StageAll ("temp" ++ "wiki")
-  Commit ("temp" ++ "wiki") "Updated wiki with new scripts"
-  Branches.push ("temp" ++ "wiki")
-)
+Target "Release" DoNothing
 
 
 // --------------------------------------------------------------------------------------
 // Run all targets by default. Invoke 'build <Target>' to override
-Target "GenerateReferenceDocs" DoNothing
-Target "GenerateHelp" DoNothing
-Target "GenerateHelpDebug" DoNothing
-Target "KeepRunning" DoNothing
-Target "AddLangDocs" DoNothing
-Target "BuildPackage" DoNothing
 Target "All" DoNothing
-
-"Clean"
-  ==> "AssemblyInfo"
-  ==> "Build"
-  ==> "RunTests"
-  ==> "NuGet"
-  ==> "BuildPackage"
-  ==> "All"
-  
-"BuildPackage"
-  ==> "PublishNuget"
-
-"CleanDocs"
-  ==> "GenerateDocs"
-  ==> "ReleaseDocs"
-  
-RunTargetOrDefault "Build"
+"Clean" ==> "RestorePackages" ==> "AssemblyInfo" ==> "Rebuild" ==> "All"
+"All" ==> "CleanDocs" ==> "GenerateDocsLocal"
+"All" ==> "CleanDocs" ==> "GenerateDocs" ==> "ReleaseDocs" ==> "Release"
+"All" ==> "NuGet" ==> "PublishNuGet" ==> "Release"
+RunTargetOrDefault "All"

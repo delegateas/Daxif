@@ -1,6 +1,5 @@
 ﻿(**
 Count entities
-===============
 *)
 
 #load @"_Config.fsx"
