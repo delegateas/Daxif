@@ -1,5 +1,9 @@
 # Release Notes
 
+### 4.2.3 - September 13 2018
+* Removed SolutionImportDev and SolutionImportTest script templates - use SolutionImportArg instead
+* Removed dash naming limitation from local web resources
+
 #### 4.2.2 - June 21 2018
 * Changed Extended Solution to use assembly name as primary key (instead of assembly guid)
 
