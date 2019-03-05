@@ -1,5 +1,8 @@
 # Release Notes
 
+## 4.2.4 - September 14 2018
+* Added FSharp.Core as NuGet reference
+
 ### 4.2.3 - September 13 2018
 * Removed SolutionImportDev and SolutionImportTest script templates - use SolutionImportArg instead
 * Removed dash naming limitation from local web resources
