@@ -1,6 +1,9 @@
 # Release Notes
 
-## 4.2.4 - September 14 2018
+### 4.2.5 - March 05 2019
+* Added native support for generating XrmMockup Metadata
+
+### 4.2.4 - September 14 2018
 * Added FSharp.Core as NuGet reference
 
 ### 4.2.3 - September 13 2018
