@@ -20,3 +20,16 @@ Solution.GenerateCSharpContext(Env.dev, xrmContext, businessDomain,
   extraArguments = [
     "deprecatedprefix", "ZZ_"
     ])
+
+// Uncomment to generate XrmMockup metadata whenever you generate CSharp Context
+//let xrmMockupMetadataGen = Path.metdataFolder ++ "MetadataGenerator365.exe"
+//Solution.GenerateXrmMockupMetadata(Env.dev, xrmMockupMetadataGen, Path.metdataFolder,
+//  solutions = [
+//    SolutionInfo.name
+//  ],
+//  entities = [
+//    // eg. "systemuser"
+//    ],
+//  extraArguments = [
+//    ]
+//)

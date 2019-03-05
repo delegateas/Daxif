@@ -74,7 +74,9 @@ module Path =
   let webResourceProject = solutionRoot ++ @"WebResources"
   let webResourceFolder = 
     webResourceProject ++ @"src" ++ (sprintf "%s_%s" PublisherInfo.prefix SolutionInfo.name)
-
+  
+  let testProject = solutionRoot ++ @"Tests"
+  let metdataFolder = testProject ++ @"Metadata"
 
   /// Path information used by the SolutionPackager scripts
   module SolutionPack =

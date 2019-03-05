@@ -208,6 +208,22 @@ let updateCustomServiceContext org outputDirectory ap usr (pwd: string) domain p
   SolutionHelper.updateCustomServiceContext' org' outputDirectory ap usr pwd domain 
     pathToExe logger solutions entities extraArgs
   logger.Info "The C# context was updated successfully"
+
+
+let updateXrmMockupMetadata org outputDirectory ap usr (pwd: string) domain pathToExe log 
+    solutions entities extraArgs = 
+  let org' : Uri = org
+  let logger = ConsoleLogger log
+  let pwd' = String.replicate pwd.Length "*"
+  logger.Info "%s" daxifVersion
+  logger.Info "Organization: %O" org
+  logger.Info "Path to output dir: %s" (Path.GetFullPath outputDirectory)
+  logAuthentication ap usr pwd' domain logger
+  logger.Info "Updating XrmMockup Metadata..."
+
+  SolutionHelper.updateXrmMockupMetadata' org' outputDirectory ap usr pwd domain 
+    pathToExe logger solutions entities extraArgs
+  logger.Info "XrmMockup Metadata was updated successfully"
   
 
 let updateTypeScriptContext org outputDirectory ap usr (pwd: string) domain pathToExe log solutions 
