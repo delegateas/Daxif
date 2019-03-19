@@ -4,6 +4,7 @@ open System.Net
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
+open System
 
 
 // Get credentials based on provider, username, password and domain
@@ -34,11 +35,15 @@ let internal getOrganizationServiceProxy
   (authCredentials:AuthenticationCredentials) =
   let ac = authCredentials
 
-  match serviceManagement.AuthenticationType with
-  | AuthenticationProviderType.ActiveDirectory ->
-      new OrganizationServiceProxy(serviceManagement, ac.ClientCredentials)
-  | _ ->
-      new OrganizationServiceProxy(serviceManagement, ac.SecurityTokenResponse)
+  let proxy =
+    match serviceManagement.AuthenticationType with
+    | AuthenticationProviderType.ActiveDirectory ->
+        new OrganizationServiceProxy(serviceManagement, ac.ClientCredentials)
+    | _ ->
+        new OrganizationServiceProxy(serviceManagement, ac.SecurityTokenResponse)
+
+  proxy.Timeout <- TimeSpan(0,59,0)
+  proxy
 
 // Authentication
 let authenticate org ap username password domain =
