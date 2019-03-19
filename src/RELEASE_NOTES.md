@@ -1,4 +1,6 @@
 # Release Notes
+### 4.2.6 - March 19 2019
+* Increased proxy timeout to 59 minutes
 
 ### 4.2.5 - March 05 2019
 * Added native support for generating XrmMockup Metadata
