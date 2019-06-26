@@ -61,3 +61,7 @@ type VersionIncrement =
   | Build
   | Minor
   | Major
+
+type AssemblyIsolationMode =
+  | Sandbox = 2
+  | None    = 1
