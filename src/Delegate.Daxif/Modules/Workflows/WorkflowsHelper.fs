@@ -3,14 +3,12 @@
 open System
 open System.IO
 open System.Reflection
-open System.Xml.Linq
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
-open DG.Daxif.Modules.Plugin.Domain
 
 (** Helpers functions **)
 let getName (x : Entity) = x.Attributes.["name"] :?> string
@@ -36,7 +34,7 @@ let getActivities (asm : Assembly) =
   |> Array.map (fun x -> x.FullName)
 
 // Creates a new assembly in CRM
-let createAssembly name dll (asm : Assembly) (isolationMode: PluginIsolationMode) = 
+let createAssembly name dll (asm : Assembly) (isolationMode: AssemblyIsolationMode) = 
   let pa = Entity("pluginassembly")
   pa.Attributes.Add("name", name)
   // DEBUG --- start ----

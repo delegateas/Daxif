@@ -31,7 +31,7 @@ let propertyNames =
 
 
 /// Creates a new assembly in CRM with the provided information
-let createAssembly name pathToDll (asm: Assembly) hash (isolationMode: PluginIsolationMode) =
+let createAssembly name pathToDll (asm: Assembly) hash (isolationMode: AssemblyIsolationMode) =
   let pa = Entity("pluginassembly")
   pa.Attributes.Add("name", name)
   pa.Attributes.Add("content", pathToDll |> fileToBase64)
