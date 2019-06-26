@@ -1,4 +1,7 @@
 # Release Notes
+### 4.2.7 - June 26 2019
+* Added isolation mode option to workflow registration (@ferodom)
+
 ### 4.2.6 - March 19 2019
 * Increased proxy timeout to 59 minutes
 
