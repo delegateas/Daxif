@@ -254,7 +254,7 @@ let importExtendedSolution org ac solutionName zipPath =
 
   | true -> 
     // Run everything then fail if errors
-    let errors = ref false in
+    let mutable errors = false in
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
@@ -302,7 +302,7 @@ let importExtendedSolution org ac solutionName zipPath =
           x'.stateCode x'.statusCode :> OrganizationRequest )
       |> fun req -> 
         try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
-        with _ -> errors := true;
+        with _ -> errors <- true;
 
     log.Verbose "Synching plugins"
 
@@ -339,7 +339,7 @@ let importExtendedSolution org ac solutionName zipPath =
         |> Seq.toArray
         |> fun req -> 
           try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
-          with _ -> errors := true;
+          with _ -> errors <- true;
       )
-    if !errors then
+    if errors then
       failwith "There were errors"
