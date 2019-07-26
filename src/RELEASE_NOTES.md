@@ -1,4 +1,10 @@
 # Release Notes
+### 4.2.9 - July 26 2019
+* Run all of extended solutions before crashing, in order to see multiple errors
+
+### 4.2.8 - July 26 2019
+* Fail on error in general but especially in solution export
+
 ### 4.2.7 - June 26 2019
 * Added isolation mode option to workflow registration (@ferodom)
 

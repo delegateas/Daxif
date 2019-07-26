@@ -42,7 +42,7 @@ module CrmDataInternal =
       resp
       |> Array.fold (fun (count, errs) r -> 
         if r.Fault <> null then
-          (count, sprintf "Error when performing %s: %s\n" (Seq.item r.RequestIndex reqs).RequestName r.Fault.Message :: errs)
+          (count, sprintf "Error when performing %s: %s" (Seq.item r.RequestIndex reqs).RequestName r.Fault.Message :: errs)
         else
           (count + 1, errs)
         ) (0, [])
@@ -54,7 +54,7 @@ module CrmDataInternal =
           | _ -> 
             errs
             |> List.iter (fun a -> log.Error "%s" a);
-            failwith "There were errors"
+            raise (new Exception("There were errors"))
 
   module internal Entities = 
 
