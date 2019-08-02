@@ -176,6 +176,14 @@ let syncSolution proxyGen location solutionName =
 
             true
           with ex -> 
+            match x with
+            | WebResourceAction.Create -> 
+              log.Error "%s: (%s) failed to create" y.LogicalName yrn
+            | WebResourceAction.Update -> 
+              log.Error "%s: (%O,%s) failed to update" yrn y.Id yrn
+            | WebResourceAction.Delete -> 
+              log.Error "%s: (%O,%s) failed to delete" y.LogicalName y.Id yrn
+
             log.WriteLine(LogLevel.Error, ex.Message.Replace(string y.Id, string y.Id + ", " + yrn))
             false
           )
