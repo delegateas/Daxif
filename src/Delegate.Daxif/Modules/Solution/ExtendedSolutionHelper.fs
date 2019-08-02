@@ -253,6 +253,8 @@ let importExtendedSolution org ac solutionName zipPath =
     failwith @"ExtendedSolution import failed. No ExtendedSolution.xml file found in solution package"
 
   | true -> 
+    // Run everything then fail if errors
+    let mutable errors = false in
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
@@ -298,7 +300,9 @@ let importExtendedSolution org ac solutionName zipPath =
         let x' = extSol.states.[x.Id.ToString()]
         CrmDataInternal.Entities.updateStateReq x'.logicalName x'.id
           x'.stateCode x'.statusCode :> OrganizationRequest )
-      |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
+      |> fun req -> 
+        try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
+        with _ -> errors <- true;
 
     log.Verbose "Synching plugins"
 
@@ -333,5 +337,9 @@ let importExtendedSolution org ac solutionName zipPath =
         |> Seq.map (fun (x, _) ->
           CrmData.CRUD.deleteReq ln x :> OrganizationRequest)
         |> Seq.toArray
-        |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
+        |> fun req -> 
+          try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
+          with _ -> errors <- true;
       )
+    if errors then
+      failwith "There were errors"

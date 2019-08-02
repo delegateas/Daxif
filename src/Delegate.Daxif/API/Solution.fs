@@ -63,6 +63,18 @@ type Solution private () =
 
     Main.updateCustomServiceContext env.url outputDir env.apToUse usr pwd dmn pathToXrmContext logLevel solutions entities extraArguments
 
+  /// <summary>Generates XrmMockup Metadata from a given environment and settings using XrmMockup's MetadataGenerator</summary>
+  /// <param name="env">Environment the action should be performed against.</param>
+  static member GenerateXrmMockupMetadata(env: Environment, pathToXrmMockupGenerator, outputDir, ?solutions, ?entities, ?extraArguments, ?logLevel) =
+    let usr, pwd, dmn = env.getCreds()
+    let logLevel = logLevel ?| LogLevel.Verbose
+    
+    let solutions = solutions ?| []
+    let entities = entities ?| []
+    let extraArguments = extraArguments ?| []
+
+    Main.updateXrmMockupMetadata env.url outputDir env.apToUse usr pwd dmn pathToXrmMockupGenerator logLevel solutions entities extraArguments
+
 
   /// <summary>Counts the amount of entities in a solution</summary>
   /// <param name="env">Environment the action should be performed against.</param>

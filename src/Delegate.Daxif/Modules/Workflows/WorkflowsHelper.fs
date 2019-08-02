@@ -3,7 +3,6 @@
 open System
 open System.IO
 open System.Reflection
-open System.Xml.Linq
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
@@ -35,14 +34,14 @@ let getActivities (asm : Assembly) =
   |> Array.map (fun x -> x.FullName)
 
 // Creates a new assembly in CRM
-let createAssembly name dll (asm : Assembly) = 
+let createAssembly name dll (asm : Assembly) (isolationMode: AssemblyIsolationMode) = 
   let pa = Entity("pluginassembly")
   pa.Attributes.Add("name", name)
   // DEBUG --- start ----
   pa.Attributes.Add("sourcehash", "DEBUG" |> sha1CheckSum)
   // DEBUG --- stop ----
   pa.Attributes.Add("content", dll |> fileToBase64)
-  pa.Attributes.Add("isolationmode", OptionSetValue(2)) // sandbox
+  pa.Attributes.Add("isolationmode", OptionSetValue(int isolationMode)) // sandbox OptionSetValue(2)
   pa.Attributes.Add("version", asm.GetName().Version.ToString())
   pa.Attributes.Add("description", syncDescription())
   pa
@@ -100,14 +99,14 @@ let updateAssembly proxyGen (dllName : string) (dllPath : string) (asm : Assembl
 // Checks if an existing assembly exist
 // If there is one then return the id of the assembly
 // If not then create a new and return the id of the newly created assembly
-let instantiateAssembly (solutionId : Guid) (solutionName : string) dllName dllPath asm p = 
+let instantiateAssembly (solutionId : Guid) (solutionName : string) dllName dllPath asm p isolationMode = 
   log.Verbose "Retrieving assemblies from CRM"
   let dlls = CrmDataInternal.Entities.retrievePluginAssembly p dllName
   match Seq.isEmpty dlls with
   | true -> 
     log.Verbose "No existing assembly found"
     log.Info "Creating Assembly"
-    let pluginAssembly = createAssembly dllName dllPath asm
+    let pluginAssembly = createAssembly dllName dllPath asm isolationMode
     let pc = ParameterCollection()
     pc.Add("SolutionUniqueName", solutionName)
     let guid = CrmData.CRUD.create p pluginAssembly pc
@@ -152,7 +151,7 @@ let solutionDiff asm asmId p =
   newActivities, oldActivities, targetActivities
 
 // Syncs the given workflow assembly to a solution in given CRM
-let syncSolution' proxyGen solutionName dll = 
+let syncSolution' proxyGen solutionName dll isolationMode = 
   log.Verbose "Checking local assembly"
   let dll' = Path.GetFullPath(dll)
   let tmp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + @".dll")
@@ -163,7 +162,7 @@ let syncSolution' proxyGen solutionName dll =
   let asm = Assembly.LoadFile(dllPath)
   let dllName = Path.GetFileNameWithoutExtension(dll')
   let solution = CrmDataInternal.Entities.retrieveSolutionId p solutionName
-  let asmId = instantiateAssembly solution.Id solutionName dllName dllPath asm p
+  let asmId = instantiateAssembly solution.Id solutionName dllName dllPath asm p isolationMode
   let newActivities, oldActivities, targetActivities = solutionDiff asm asmId p
   log.WriteLine(LogLevel.Info, "Deleting workflow activities")
   deleteActivity proxyGen (oldActivities, targetActivities)

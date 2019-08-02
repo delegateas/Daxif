@@ -1,4 +1,25 @@
 # Release Notes
+### 4.2.9 - July 26 2019
+* Run all of extended solutions before crashing, in order to see multiple errors
+
+### 4.2.8 - July 26 2019
+* Fail on error in general but especially in solution export
+
+### 4.2.7 - June 26 2019
+* Added isolation mode option to workflow registration (@ferodom)
+
+### 4.2.6 - March 19 2019
+* Increased proxy timeout to 59 minutes
+
+### 4.2.5 - March 05 2019
+* Added native support for generating XrmMockup Metadata
+
+### 4.2.4 - September 14 2018
+* Added FSharp.Core as NuGet reference
+
+### 4.2.3 - September 13 2018
+* Removed SolutionImportDev and SolutionImportTest script templates - use SolutionImportArg instead
+* Removed dash naming limitation from local web resources
 
 #### 4.2.2 - June 21 2018
 * Changed Extended Solution to use assembly name as primary key (instead of assembly guid)

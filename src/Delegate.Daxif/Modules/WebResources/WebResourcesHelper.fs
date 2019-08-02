@@ -31,12 +31,8 @@ let localResourceToWebResource path name =
   match webResourceType with
   | WebResourceType.XAP -> wr.Attributes.Add("silverlightversion", "4.0")
   | _ -> ()
-
-  match name.Contains(@"-") with // TODO: Do more complex HTML check
-  | false -> Some wr
-  | true -> 
-    log.WriteLine(LogLevel.Error, "Webname: " + name + " is not supported")
-    None
+  
+  wr
   
 /// Get all local webresources by enumerating all folders at given location,
 /// while looking for supported file types.
@@ -106,14 +102,13 @@ let getSyncActions proxy webresourceFolder solutionName =
       let localWrPath = localWrPathMap.[name]
       localResourceToWebResource localWrPath name
     )
-    |> Array.choose (fun x -> id x)
     |> Array.Parallel.map (fun x -> WebResourceAction.Create, x)
-    
+
   let delete = 
     getMatchingEntitiesByName (crmWRs - localWrs) webResources
     |> Seq.toArray
     |> Array.Parallel.map (fun x -> WebResourceAction.Delete, x)
-    
+
   let update = 
     getMatchingEntitiesByName (Set.intersect localWrs crmWRs) webResources
     |> Seq.toArray
@@ -122,10 +117,6 @@ let getSyncActions proxy webresourceFolder solutionName =
       let localWrPath = localWrPathMap.[name]
       let localWr = localResourceToWebResource localWrPath name
       currentWr, localWr
-    )
-    |> Array.choose (function 
-      | _, None   -> None
-      | u, Some v -> (u, v) |> Some
     )
     |> Array.Parallel.map (fun (currentWr, localWr) -> 
       let currentContent = currentWr.GetAttributeValue<string>("content")

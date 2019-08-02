@@ -40,17 +40,21 @@ module CrmDataInternal =
     let performAsBulkWithOutput proxy (log:ConsoleLogger) reqs =
       let resp = CrmDataHelper.performAsBulk proxy reqs
       resp
-      |> Array.iter (fun r -> 
-        if r.Fault <> null then 
-          log.Error "Error when performing %s: %s" (Seq.item r.RequestIndex reqs).RequestName r.Fault.Message
-      )
-      resp
-      |> Array.filter (fun x -> x.Fault = null)
-      |> Array.length
-      |> fun count -> 
+      |> Array.fold (fun (count, errs) r -> 
+        if r.Fault <> null then
+          (count, sprintf "Error when performing %s: %s" (Seq.item r.RequestIndex reqs).RequestName r.Fault.Message :: errs)
+        else
+          (count + 1, errs)
+        ) (0, [])
+      |> fun (count, errs) ->
         log.Verbose "Succesfully performed %d/%d actions in %A" count (Seq.length reqs) 
-          proxy.ServiceConfiguration.CurrentServiceEndpoint.Address
-  
+          proxy.ServiceConfiguration.CurrentServiceEndpoint.Address;
+        match errs with
+          | [] -> ()
+          | _ -> 
+            errs
+            |> List.iter (fun a -> log.Error "%s" a);
+            raise (new Exception("There were errors"))
 
   module internal Entities = 
 

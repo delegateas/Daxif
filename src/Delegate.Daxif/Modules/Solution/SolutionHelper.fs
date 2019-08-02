@@ -587,6 +587,23 @@ let updateCustomServiceContext' org location ap usr pwd domain exe log
     let args = args @ extraArgs
     Utility.executeProcess (exe, args |> toArgStringDefault)
   postProcess (ccs()) log "DG XrmContext"
+
+let updateXrmMockupMetadata' org location ap usr pwd domain exe log 
+    (solutions : string list) (entities : string list) extraArgs = 
+  let ccs() = 
+    let args = 
+      [ "url", org.ToString()
+        "username", usr
+        "password", pwd
+        "domain", domain
+        "ap", ap.ToString()
+        "out", location
+        "solutions", (solutions |> fun ss -> String.Join(",", ss))
+        "entities", (entities |> fun es -> String.Join(",", es))]
+      
+    let args = args @ extraArgs
+    Utility.executeProcess (exe, args |> toArgStringDefault)
+  postProcess (ccs()) log "DG XrmMockup"
     
 let updateTypeScriptContext' org location ap usr pwd domain exe log 
     (solutions : string list) (entities : string list) extraArgs = 

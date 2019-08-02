@@ -3,10 +3,7 @@
 open System
 open System.Reflection
 open Microsoft.Xrm.Sdk
-
-type PluginIsolationMode =
-  | Sandbox = 2
-  | None    = 1
+open DG.Daxif
 
 (** Enum for plugin configurations **)
 type ExecutionMode = 
@@ -80,7 +77,7 @@ type AssemlyLocal =
     dllName: String
     dllPath: String
     hash: String
-    isolationMode: PluginIsolationMode
+    isolationMode: AssemblyIsolationMode
     plugins: Plugin seq
   }
 
