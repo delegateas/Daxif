@@ -106,12 +106,12 @@ let updateStep (stepId:Guid) step =
   ps
 
 /// Used to update an existing image with changes to its attributes
-let updateImage (pmid:Guid) (psid:EntityReference) image = 
+let updateImage sourceImage (targetImageEntity:Entity) = 
   let psi = Entity("sdkmessageprocessingstepimage")
-  psi.Attributes.Add("sdkmessageprocessingstepimageid", pmid)
-  psi.Attributes.Add("name", image.name)
-  psi.Attributes.Add("entityalias", image.entityAlias)
-  psi.Attributes.Add("imagetype", OptionSetValue(image.imageType))
-  psi.Attributes.Add("attributes", image.attributes)
-  psi.Attributes.Add("sdkmessageprocessingstepid", psid)
+  psi.Attributes.Add("sdkmessageprocessingstepimageid", targetImageEntity.Id)
+  psi.Attributes.Add("name", sourceImage.name)
+  psi.Attributes.Add("entityalias", sourceImage.entityAlias)
+  psi.Attributes.Add("imagetype", OptionSetValue(sourceImage.imageType))
+  psi.Attributes.Add("attributes", sourceImage.attributes)
+  psi.Attributes.Add("sdkmessageprocessingstepid", targetImageEntity.GetAttributeValue<EntityReference>("sdkmessageprocessingstepid"))
   psi
