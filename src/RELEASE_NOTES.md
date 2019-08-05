@@ -1,4 +1,8 @@
 # Release Notes
+
+### 4.2.10 - August 05 2019
+* Fix an issue where updating an image through plugin sync resulted in a null reference exception
+
 ### 4.2.9 - July 26 2019
 * Run all of extended solutions before crashing, in order to see multiple errors
 
