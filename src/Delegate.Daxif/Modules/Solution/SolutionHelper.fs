@@ -389,7 +389,7 @@ let import' org ac solution location managed (log : ConsoleLogger) =
         | true -> 
           getImportJobStatus p' jobId aJobId
           |> printImportResult p' aJobId
-          if managed then
+          if not managed then
             log.WriteLine(LogLevel.Verbose, @"Publishing solution")
             CrmDataHelper.publishAll p'
             log.WriteLine
