@@ -25,4 +25,7 @@ type Plugin private () =
   /// <summary>Activates or deactivates all plugin steps of a solution</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member EnableSolutionPluginSteps(env: Environment, solutionName, ?enable, ?logLevel) =
-    SolutionMain.enablePluginSteps env solutionName enable logLevel
+    let proxyGen = env.connect(log).GetProxy
+    log.setLevelOption logLevel
+
+    SolutionMain.enablePluginSteps proxyGen solutionName enable

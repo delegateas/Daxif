@@ -104,7 +104,6 @@ let loadAndValidateAssembly proxyGen projectPath dllPath isolationMode ignoreOut
 
   asmLocal
 
-
 /// Analyzes local and remote registrations and returns the information about each of them
 let analyze proxyGen projectPath dllPath solutionName isolationMode ignoreOutdatedAssembly =
   use proxy = proxyGen()

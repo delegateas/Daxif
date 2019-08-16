@@ -10,33 +10,32 @@ type Solution private () =
   /// <summary>Imports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel) =
-    let usr, pwd, dmn = env.getCreds()
-    let logLevel = logLevel ?| LogLevel.Verbose
-    let extended = extended ?| false
+    let proxyGen = env.connect(log).GetProxy
+    log.setLevelOption logLevel
 
-    match extended with
+    match extended ?| false with
     | true  -> Main.importWithExtendedSolution
     | false -> Main.import
-    |> fun f -> f env.url pathToSolutionZip env.apToUse usr pwd dmn logLevel
+    |> fun f -> f proxyGen pathToSolutionZip
     
     match activatePluginSteps with
     | Some true -> 
       let solutionName, _ = CrmUtility.getSolutionInformationFromFile pathToSolutionZip
-      Main.pluginSteps env.url solutionName true env.apToUse usr pwd dmn logLevel
+      Main.pluginSteps proxyGen solutionName true
     | _ -> ()
-
 
   /// <summary>Exports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member Export(env: Environment, solutionName, outputDirectory, managed, ?extended, ?deltaFromDate, ?logLevel) =
-    let usr, pwd, dmn = env.getCreds()
-    let logLevel = logLevel ?| LogLevel.Verbose
+    let proxyGen = env.connect(log).GetProxy
+    log.setLevelOption logLevel
+
     let extended = extended ?| false
 
     match extended with
     | true  -> Main.exportWithExtendedSolution 
     | false -> Main.export
-    |> fun f -> f env.url solutionName outputDirectory managed env.apToUse usr pwd dmn logLevel
+    |> fun f -> f proxyGen solutionName outputDirectory managed
 
 
   /// <summary>Generates TypeScript context from a given environment and settings using XrmDefinitelyTyped</summary>
@@ -88,8 +87,10 @@ type Solution private () =
   /// <summary>Activates or deactivates all plugin steps of a solution</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member EnablePluginSteps(env: Environment, solutionName, ?enable, ?logLevel) =
-    Main.enablePluginSteps env solutionName enable logLevel
-
+    let proxyGen = env.connect(log).GetProxy
+    log.setLevelOption logLevel
+    
+    Main.enablePluginSteps proxyGen solutionName enable
 
   /// <summary>Creates a solution in the given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>

@@ -14,6 +14,7 @@ open DG.Daxif.Common.InternalUtility
 open DG.Daxif.Common.CrmUtility
 open DG.Daxif.Modules.Serialization
 open Domain
+open Microsoft.Xrm.Sdk.Client
 
 let asmLogicName = @"pluginassembly"
 let typeLogicName = @"plugintype"
@@ -114,9 +115,7 @@ let getPluginsIds p solution =
 
   let stepsName = 
     steps
-    |> Seq.map(fun x -> 
-      let stage = getAttribute "stage" x :?> OptionSetValue
-      x.Id, (getName x))
+    |> Seq.map(fun x -> x.Id, (getName x))
 
   // Find all images of active steps 
   // Note: Use 
@@ -143,14 +142,43 @@ let deactivateWorkflows p ln target (diff: Set<string>) log =
     |> Seq.toArray
     |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
 
+let serializeExtSolToArchive (archive: ZipArchive) extSol = 
+  log.WriteLine(LogLevel.Verbose, @"Creating extended solution file")
+
+  // Serialize the record to an xml file called ExtendedSolution.xml and add it to the
+  // packaged solution 
+  let arr = 
+    SerializationHelper.serializeXML<ExtendedSolution> extSol
+    |> SerializationHelper.xmlPrettyPrinterHelper'
+
+  let solEntry = archive.CreateEntry("ExtendedSolution.xml")
+  use writer = new StreamWriter(solEntry.Open())
+  writer.BaseStream.Write(arr,0,arr.Length)
+
+  log.WriteLine(LogLevel.Verbose, sprintf @"Added %s to solution package" solEntry.Name)
+
+let unpackExtendedSolution zipPath solutionName = 
+  use zipToOpen = new FileStream(zipPath, FileMode.Open)
+  use archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update)
+
+  let zipSolName = getSolutionNameFromSolution solutionName archive log
+
+  log.Verbose @"Attempting to retrieve ExtendedSolution.xml file from solution package"
+  match archive.Entries |> Seq.exists(fun e -> e.Name = "ExtendedSolution.xml") with                                        
+  | false -> 
+    failwith @"ExtendedSolution import failed. No ExtendedSolution.xml file found in solution package"
+  | true -> 
+    // Fetch the ExtendedSolution.xml file and unserialize it
+    let entry = archive.GetEntry("ExtendedSolution.xml")
+    use writer = new StreamReader(entry.Open())
+
+    let xmlContent = writer.ReadToEnd()
+    SerializationHelper.deserializeXML<ExtendedSolution> xmlContent, zipSolName
 
 // Stores entities statecode and statuscode in a seperate file to be
 // implemented on import
-let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
-
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
+let exportExtendedSolution (proxyGen: unit -> OrganizationServiceProxy) solutionName zipPath =
+  use p = proxyGen()
 
   let solution = CrmDataInternal.Entities.retrieveSolutionId p solutionName
 
@@ -206,140 +234,99 @@ let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
   [|("Assemblies", asmsIds); ("Plugin Types", typesIds) 
     ("Plugin Steps", stepsIds); ("Step Images", imgsIds)|]
   |> Array.iter(fun (name, x) -> 
-    log.WriteLine(LogLevel.Verbose, sprintf @"Found %d %s" (Seq.length x) name )
-    )
+    log.WriteLine(LogLevel.Verbose, sprintf @"Found %d %s" (Seq.length x) name ))
 
-  let workflowsIds = workflows |> getEntityIds
-  let webResIds = getWebresources p solution.Id |> getEntityIds
-
-  let delegateSolution = 
-    { states=states
-      keepAssemblies = asmsIds
-      keepPluginTypes = typesIds
-      keepPluginSteps = stepsIds
-      keepPluginImages = imgsIds
-      keepWorkflows = workflowsIds
-      keepWebresources = webResIds}
-    
-  log.WriteLine(LogLevel.Verbose, @"Creating extended solution file")
-
-  // Serialize the record to an xml file called ExtendedSolution.xml and add it to the
-  // packaged solution 
-  let arr = 
-    SerializationHelper.serializeXML<ExtendedSolution> delegateSolution
-    |> SerializationHelper.xmlPrettyPrinterHelper'
-
-  let solEntry = archive.CreateEntry("ExtendedSolution.xml")
-  use writer = new StreamWriter(solEntry.Open())
-  writer.BaseStream.Write(arr,0,arr.Length)
-
-  log.WriteLine(LogLevel.Verbose, sprintf @"Added %s to solution package" solEntry.Name)
+  { states=states
+    keepAssemblies = asmsIds
+    keepPluginTypes = typesIds
+    keepPluginSteps = stepsIds
+    keepPluginImages = imgsIds
+    keepWorkflows = workflows |> getEntityIds
+    keepWebresources = getWebresources p solution.Id |> getEntityIds } 
+  |> serializeExtSolToArchive archive
 
   Directory.Delete(tempFolder,true)
 
   log.WriteLine(LogLevel.Info, @"Extended solution exported successfully")
-
-
+    
 /// Import solution
-let importExtendedSolution org ac solutionName zipPath =
-  use zipToOpen = new FileStream(zipPath, FileMode.Open)
-  use archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update)
+let importExtendedSolution (proxyGen: unit -> OrganizationServiceProxy) extSol zipSolName =
+  // Run everything then fail if errors
+  let mutable errors = false in
+  use p = proxyGen()
+  let solution = CrmDataInternal.Entities.retrieveSolutionId p zipSolName
 
-  let zipSolName = getSolutionNameFromSolution solutionName archive log
+  // Read the status and statecode of the entities and update them in crm
+  log.Verbose @"Finding states of entities to be updated"
 
-  log.Verbose @"Attempting to retrieve ExtendedSolution.xml file from solution package"
-  match archive.Entries |> Seq.exists(fun e -> e.Name = "ExtendedSolution.xml") with                                        
-  | false -> 
-    failwith @"ExtendedSolution import failed. No ExtendedSolution.xml file found in solution package"
-
-  | true -> 
-    // Run everything then fail if errors
-    let mutable errors = false in
-    let m = ServiceManager.createOrgService org
-    let tc = m.Authenticate(ac)
-    use p = ServiceProxy.getOrganizationServiceProxy m tc
-    let solution = CrmDataInternal.Entities.retrieveSolutionId p zipSolName
-
-    // Fetch the ExtendedSolution.xml file and unserialize it
-    let entry = archive.GetEntry("ExtendedSolution.xml")
-    use writer = new StreamReader(entry.Open())
-
-    let xmlContent = writer.ReadToEnd()
+  // Find the source entities that have different code values than target
+  let diffExtSol =
+    extSol.states
+    |> Map.toArray
+    |> Array.Parallel.map(fun (_,guidState) -> 
+        CrmData.CRUD.retrieveReq guidState.logicalName guidState.id 
+        :> OrganizationRequest )
+    |> CrmDataHelper.performAsBulk p
+    |> Array.Parallel.map(fun resp -> 
+      let resp' = resp.Response :?> Messages.RetrieveResponse 
+      resp'.Entity)
+    |> Array.filter(fun target -> 
+      let source = extSol.states.[target.Id.ToString()]
+      getCodeValue "statecode" target <> source.stateCode ||
+      getCodeValue "statuscode" target <> source.statusCode)
       
-    let extSol = SerializationHelper.deserializeXML<ExtendedSolution> xmlContent
-      
-    // Read the status and statecode of the entities and update them in crm
-    log.Verbose @"Finding states of entities to be updated"
+  log.Verbose @"Found %d entity states to be updated" diffExtSol.Length
 
-    // Find the source entities that have different code values than target
-    let diffExtSol =
-      extSol.states
-      |> Map.toArray
-      |> Array.Parallel.map(fun (_,guidState) -> 
-          CrmData.CRUD.retrieveReq guidState.logicalName guidState.id 
-          :> OrganizationRequest )
-      |> CrmDataHelper.performAsBulk p
-      |> Array.Parallel.map(fun resp -> 
-        let resp' = resp.Response :?> Messages.RetrieveResponse 
-        resp'.Entity)
-      |> Array.filter(fun target -> 
-        let source = extSol.states.[target.Id.ToString()]
-        getCodeValue "statecode" target <> source.stateCode ||
-        getCodeValue "statuscode" target <> source.statusCode)
+  // Update the entities states
+  match diffExtSol |> Seq.length with
+  | 0 -> ()
+  | _ ->
+    log.WriteLine(LogLevel.Verbose, @"Updating entity states")
+    diffExtSol
+    |> Array.map(fun x -> 
+      let x' = extSol.states.[x.Id.ToString()]
+      CrmDataInternal.Entities.updateStateReq x'.logicalName x'.id
+        x'.stateCode x'.statusCode :> OrganizationRequest )
+    |> fun req -> 
+      try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
+      with _ -> errors <- true;
 
-      
-    log.Verbose @"Found %d entity states to be updated" diffExtSol.Length
+  log.Verbose "Synching plugins"
 
-    // Update the entities states
-    match diffExtSol |> Seq.length with
+  // Sync Plugins and Webresources
+  let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds p solution.Id
+  let targetWorkflows = getWorkflows p solution.Id |> getEntityIds
+  let targetWebRes = getWebresources p solution.Id |> getEntityIds
+
+  [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
+    (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
+    (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)
+    (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, None)
+    (webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, None)
+    (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
+  |> Array.iter(fun (ln, source, target, fieldCompFunc, preDeleteAction) ->   
+        
+    let s = source |> Seq.map fieldCompFunc |> Set.ofSeq
+    let t = target |> Seq.map fieldCompFunc |> Set.ofSeq
+    let diff = t - s
+
+    match preDeleteAction with
+    | None   -> ()
+    | Some action -> action p ln target diff log
+        
+    log.Verbose "Found %d '%s' entities to be deleted " diff.Count ln
+    match diff.Count with
     | 0 -> ()
-    | _ ->
-      log.WriteLine(LogLevel.Verbose, @"Updating entity states")
-      diffExtSol
-      |> Array.map(fun x -> 
-        let x' = extSol.states.[x.Id.ToString()]
-        CrmDataInternal.Entities.updateStateReq x'.logicalName x'.id
-          x'.stateCode x'.statusCode :> OrganizationRequest )
+    | _ -> 
+      diff
+      |> Set.toSeq
+      |> lookup target fieldCompFunc
+      |> Seq.map (fun (x, _) ->
+        CrmData.CRUD.deleteReq ln x :> OrganizationRequest)
+      |> Seq.toArray
       |> fun req -> 
         try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
         with _ -> errors <- true;
-
-    log.Verbose "Synching plugins"
-
-    // Sync Plugins and Webresources
-    let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds p solution.Id
-    let targetWorkflows = getWorkflows p solution.Id |> getEntityIds
-    let targetWebRes = getWebresources p solution.Id |> getEntityIds
-
-    [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
-      (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
-      (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)
-      (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, None)
-      (webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, None)
-      (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
-    |> Array.iter(fun (ln, source, target, fieldCompFunc, preDeleteAction) ->   
-        
-      let s = source |> Seq.map fieldCompFunc |> Set.ofSeq
-      let t = target |> Seq.map fieldCompFunc |> Set.ofSeq
-      let diff = t - s
-
-      match preDeleteAction with
-      | None   -> ()
-      | Some action -> action p ln target diff log
-        
-      log.Verbose "Found %d '%s' entities to be deleted " diff.Count ln
-      match diff.Count with
-      | 0 -> ()
-      | _ -> 
-        diff
-        |> Set.toSeq
-        |> lookup target fieldCompFunc
-        |> Seq.map (fun (x, _) ->
-          CrmData.CRUD.deleteReq ln x :> OrganizationRequest)
-        |> Seq.toArray
-        |> fun req -> 
-          try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
-          with _ -> errors <- true;
-      )
-    if errors then
-      failwith "There were errors"
+    )
+  if errors then
+    failwith "There were errors"

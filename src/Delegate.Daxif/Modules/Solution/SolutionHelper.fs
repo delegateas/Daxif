@@ -11,6 +11,9 @@ open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.CrmDataInternal
 open DG.Daxif.Modules.Serialization
+open Microsoft.Xrm.Sdk.Client
+
+open InternalUtility
 
 let createPublisher' org ac name display prefix 
     (log : ConsoleLogger) = 
@@ -146,7 +149,7 @@ let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
         |> Seq.toArray
         |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
 
-let pluginSteps' org ac solution enable (log : ConsoleLogger) = 
+let pluginSteps' proxyGen solution enable = 
   // Plugin: stateCode = 1 and statusCode = 2 (inactive), 
   //         stateCode = 0 and statusCode = 1 (active) 
   // Remark: statusCode = -1, will default the statuscode for the given statecode
@@ -155,9 +158,7 @@ let pluginSteps' org ac solution enable (log : ConsoleLogger) =
     | false -> 1, (-1)
     | true -> 0, (-1)
       
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
+  use p = proxyGen()
 
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
@@ -167,7 +168,7 @@ let pluginSteps' org ac solution enable (log : ConsoleLogger) =
   |> Seq.toArray
   |> Array.Parallel.iter 
         (fun e -> 
-        use p' = ServiceProxy.getOrganizationServiceProxy m tc
+        use p' = proxyGen()
         let en' = e.LogicalName
         let ei' = e.Id.ToString()
         try 
@@ -232,12 +233,9 @@ let workflow' org ac solution enable (log : ConsoleLogger) =
         + s.Id.ToString() + @")"
       log.WriteLine(LogLevel.Verbose, msg)
 
-
-let export' org ac solution location managed (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  do p.Timeout <- new TimeSpan(0, 59, 0) // 59 minutes timeout
+let export' (proxyGen: unit -> OrganizationServiceProxy) solution location managed = 
+  use p = proxyGen()
+  //do p.Timeout <- new TimeSpan(0, 59, 0) // 59 minutes timeout
   let req = new Messages.ExportSolutionRequest()
 
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
@@ -265,11 +263,8 @@ let export' org ac solution location managed (log : ConsoleLogger) =
 
   log.WriteLine(LogLevel.Verbose, @"Solution saved to local disk")
 
-let import' org ac solution location managed (log : ConsoleLogger) = 
-  
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
+let import' (proxyGen: unit -> OrganizationServiceProxy) solution location managed =
+  use p = proxyGen()
   do p.Timeout <- new TimeSpan(0, 59, 0) // 59 minutes timeout
 
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
@@ -368,7 +363,7 @@ let import' org ac solution location managed (log : ConsoleLogger) =
 
   let rec importHelper' exists completed progress aJobId = 
     async { 
-      use p' = ServiceProxy.getOrganizationServiceProxy m tc
+      use p' = proxyGen()
       match exists, completed with
       | false, _ -> 
         checkJobHasStarted p' aJobId |> ignore
@@ -462,8 +457,8 @@ let import' org ac solution location managed (log : ConsoleLogger) =
   | Choice2Of2 exn -> raise exn
   | _ -> excel
 
-let exportWithExtendedSolution' org ac ac' solution location managed (log : ConsoleLogger) = 
-  export' org ac solution location managed log
+let exportWithExtendedSolution' (proxyGen: unit -> OrganizationServiceProxy) solution location managed = 
+  export' (proxyGen: unit -> OrganizationServiceProxy) solution location managed
   let filename =
     let managed' =
       match managed with
@@ -471,12 +466,13 @@ let exportWithExtendedSolution' org ac ac' solution location managed (log : Cons
       | false -> ""
     sprintf "%s%s.zip" solution managed'
   log.WriteLine(LogLevel.Info, @"Exporting extended solution")
-  ExtendedSolutionHelper.exportExtendedSolution org ac' solution (location ++ filename) log
+  ExtendedSolutionHelper.exportExtendedSolution (proxyGen: unit -> OrganizationServiceProxy) solution (location ++ filename)
 
-let importWithExtendedSolution' org ac ac' solution location managed (log : ConsoleLogger) = 
-  import' org ac solution location managed log |> ignore
+let importWithExtendedSolution' proxyGen solution location managed = 
+  import' proxyGen solution location managed |> ignore
   log.WriteLine(LogLevel.Info, @"Importing extended solution")
-  ExtendedSolutionHelper.importExtendedSolution org ac' solution location
+  ExtendedSolutionHelper.unpackExtendedSolution location solution
+  ||> ExtendedSolutionHelper.importExtendedSolution proxyGen
 
 //TODO:
 let extract' location (customizations : string) (map : string) project 

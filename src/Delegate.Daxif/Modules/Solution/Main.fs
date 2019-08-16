@@ -61,29 +61,20 @@ let merge org sourceSolution targetSolution ap usr pwd domain log =
   SolutionHelper.merge' org ac sourceSolution targetSolution log
   log.Info @"The solutions was merged successfully."
   
-let pluginSteps org solution enable ap usr pwd domain log = 
-  let ac = CrmAuth.getCredentials ap usr pwd domain
-  let log = ConsoleLogger log
-  let pwd' = String.replicate pwd.Length "*"
-  logVersion log
-
+let pluginSteps proxyGen solution enable = 
   log.Info @"PluginSteps solution: %s" solution
-  log.Verbose @"Organization: %O" org
   log.Verbose @"Solution: %s" solution
-  logAuthentication ap usr pwd' domain log
-  SolutionHelper.pluginSteps' org ac solution enable log
+  SolutionHelper.pluginSteps' proxyGen solution enable
   let msg' = 
     enable |> function 
     | true -> "enabled"
     | false -> "disabled"
   log.Info @"The solution plugins was successfully %s" msg'
 
-let enablePluginSteps (env: Environment) solutionName enable logLevel =
-  let usr, pwd, dmn = env.getCreds()
-  let logLevel = logLevel ?| LogLevel.Verbose
+let enablePluginSteps proxyGen solutionName enable =
   let enable = enable ?| true
 
-  pluginSteps env.url solutionName enable env.apToUse usr pwd dmn logLevel
+  pluginSteps proxyGen solutionName enable
 
 let workflow org solution enable ap usr pwd domain log = 
   let ac = CrmAuth.getCredentials ap usr pwd domain
@@ -103,64 +94,34 @@ let workflow org solution enable ap usr pwd domain log =
     (LogLevel.Info, 
       @"The solution workflow activities was successfully " + msg')
   
-let export org solution location managed ap usr pwd domain log = 
-  let ac = CrmAuth.getCredentials ap usr pwd domain
-  let log = ConsoleLogger log
-  let pwd' = String.replicate pwd.Length "*"
-  logVersion log
+let export proxyGen solution location managed = 
   log.Info @"Export solution: %s" solution
-  log.Verbose @"Organization: %O" org
-  log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to folder: %s" location
   log.Verbose @"Managed solution: %O" managed
-  logAuthentication ap usr pwd' domain log
-  SolutionHelper.export' org ac solution location managed log
+  SolutionHelper.export' proxyGen solution location managed
   log.Info @"The solution was exported successfully"
   
-let import org location ap usr pwd domain log = 
-  let ac = CrmAuth.getCredentials ap usr pwd domain
-  let log = ConsoleLogger log
-  let pwd' = String.replicate pwd.Length "*"
+let import proxyGen location = 
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
-  logVersion log
   log.Info @"Import solution: %s" solution
-  log.Verbose @"Organization: %O" org
-  log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to file: %s" location
   log.Verbose @"Managed solution: %O" managed
-  logAuthentication ap usr pwd' domain log
-  SolutionHelper.import' org ac solution location managed log |> ignore
+  SolutionHelper.import' proxyGen solution location managed |> ignore
   log.Info @"The solution was imported successfully"
 
-let exportWithExtendedSolution org solution location managed ap usr pwd domain log = 
-  let ac = CrmAuth.getCredentials ap usr pwd domain
-  let ac' = CrmAuth.getCredentials ap usr pwd domain
-  let log = ConsoleLogger log
-  let pwd' = String.replicate pwd.Length "*"
-  logVersion log
+let exportWithExtendedSolution proxyGen solution location managed = 
   log.Info @"Export solution: %s" solution
-  log.Verbose @"Organization: %O" org
-  log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to folder: %s" location
   log.Verbose @"Managed solution: %O" managed
-  logAuthentication ap usr pwd' domain log
-  SolutionHelper.exportWithExtendedSolution' org ac ac' solution location managed log
+  SolutionHelper.exportWithExtendedSolution' proxyGen solution location managed
   log.Info @"The extended solution was exported successfully"
   
-let importWithExtendedSolution org location ap usr pwd domain log = 
-  let ac = CrmAuth.getCredentials ap usr pwd domain
-  let ac' = CrmAuth.getCredentials ap usr pwd domain
-  let log = ConsoleLogger log
-  let pwd' = String.replicate pwd.Length "*"
+let importWithExtendedSolution proxyGen location = 
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
-  logVersion log
   log.Info @"Import solution: %s" solution
-  log.Verbose @"Organization: %O" org
-  log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to file: %s" location
   log.Verbose @"Managed solution: %O" managed
-  logAuthentication ap usr pwd' domain log
-  SolutionHelper.importWithExtendedSolution' org ac ac' solution location managed log |> ignore
+  SolutionHelper.importWithExtendedSolution' proxyGen solution location managed |> ignore
   log.Info @"The extended solution was imported successfully"
   
 // TODO: 
