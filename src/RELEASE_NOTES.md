@@ -1,6 +1,6 @@
 # Release Notes
 
-### 4.2.11 - August 06 2018
+### 4.2.11 - August 06 2019
 * Fix an issue where Daxif did not publish unmanaged solution after import
 
 ### 4.2.10 - August 05 2019
