@@ -58,7 +58,7 @@ let merge org sourceSolution targetSolution ap usr pwd domain log =
   log.Info @"Merging %s solution into %s: " targetSolution sourceSolution
   log.Verbose @"Organization: %O" org
   logAuthentication ap usr pwd' domain log
-  SolutionHelper.merge' org ac sourceSolution targetSolution log
+  Merge.mergeSolutions org ac sourceSolution targetSolution log
   log.Info @"The solutions was merged successfully."
   
 let pluginSteps proxyGen solution enable = 

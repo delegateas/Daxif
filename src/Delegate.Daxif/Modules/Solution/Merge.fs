@@ -4,12 +4,13 @@ open System
 open Microsoft.Xrm.Sdk
 open DG.Daxif
 open DG.Daxif.Common
+open Microsoft.Crm.Sdk
 
 
 // TODO: Make compatible with CRM 2016 service pack 1. 
 // 2016 service pack 1 cause problem due to patching function changing the way
 // solution components are defined
-let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
+let mergeSolutions org ac sourceSolution targetSolution (log : ConsoleLogger) =
     
   let getName (x:Entity) = x.Attributes.["uniquename"] :?> string
 
