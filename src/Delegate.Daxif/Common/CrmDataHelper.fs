@@ -24,7 +24,6 @@ type RetrieveSelect =
       | OnlyId   -> ColumnSet(null)
       | Fields x -> ColumnSet(Array.ofSeq x)
 
-
 /// Makes an update request from an entity object
 let makeUpdateReq e = 
   let req = UpdateRequest()
@@ -57,6 +56,10 @@ let makeRetrieveMultiple (q: QueryExpression) =
   req.Query <- q
   req
 
+let makeAsyncRequest req =
+  let areq = new Messages.ExecuteAsyncRequest()
+  areq.Request <- req
+  areq
 
 /// Execute a request and expect a response of a certain type
 let getResponse<'T when 'T :> OrganizationResponse> (proxy: OrganizationServiceProxy) request =

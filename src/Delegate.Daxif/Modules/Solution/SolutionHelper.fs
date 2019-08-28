@@ -8,12 +8,21 @@ open Microsoft.Crm.Tools.SolutionPackager
 open Microsoft.Xrm.Sdk
 open DG.Daxif
 open DG.Daxif.Common
-open DG.Daxif.Common.Utility
-open DG.Daxif.Common.CrmDataInternal
 open DG.Daxif.Modules.Serialization
 open Microsoft.Xrm.Sdk.Client
-
 open InternalUtility
+open Utility
+open CrmDataInternal
+open CrmDataHelper
+
+
+let publish proxyGen managed =  
+  use p = proxyGen()
+  if not managed then
+    log.WriteLine(LogLevel.Verbose, @"Publishing solution")
+    CrmDataHelper.publishAll p
+    log.WriteLine
+      (LogLevel.Verbose, @"The solution was successfully published")
 
 let createPublisher' org ac name display prefix 
     (log : ConsoleLogger) = 
@@ -60,94 +69,6 @@ let delete' org ac solution (log : ConsoleLogger) =
     @"Solution was deleted successfully (Solution ID: " + s.Id.ToString() + @")"
 
   log.WriteLine(LogLevel.Verbose, msg)
-
-// TODO: Make compatible with CRM 2016 service pack 1. 
-// 2016 service pack 1 cause problem due to patching function changing the way
-// solution components are defined
-let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
-    
-  let getName (x:Entity) = x.Attributes.["uniquename"] :?> string
-
-  let isManaged (solution: Entity) = solution.Attributes.["ismanaged"] :?> bool
-
-  let getSolutionComponents proxy (solution:Entity) =
-    CrmDataInternal.Entities.retrieveAllSolutionComponenets proxy solution.Id
-    |> Seq.map(fun x -> 
-      let uid = x.Attributes.["objectid"] :?> Guid
-      let ct = x.Attributes.["componenttype"] :?> OptionSetValue
-      (uid, ct.Value))
-    |> Set.ofSeq
-
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-
-  log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
-  log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")    
-
-  // fail if 2016 service pack 1 is used
-  let v, _ = CrmDataInternal.Info.version p 
-  match v.[0], v.[2] with
-  | '8','2' -> failwith "Not supported in CRM 2016 Service Pack 1" 
-  | _, _ ->
-
-    // Retrieve solutions
-    let source =
-      CrmDataInternal.Entities.retrieveSolutionAllAttributes p sourceSolution
-    let target =
-      CrmDataInternal.Entities.retrieveSolutionAllAttributes p targetSolution
-    let sourceName = getName source
-    let targetName = getName target
-
-    // Ensure both solution are unmanaged
-    match isManaged source, isManaged target with
-    | true,_ ->
-      failwith (sprintf "Unable to merge %s as it is a managed solution"
-        sourceName)
-    | _,true ->
-      failwith (sprintf "Unable to merge %s as it is a managed solution"
-        targetName)
-    | _,_ ->
-
-      // Retrieve entities in target and source
-      let guidSource = getSolutionComponents p source
-      let guidTarget = getSolutionComponents p target
-
-      // Creating a mapping from objectid to the entity logicname
-      let uidToLogicNameMap = 
-        CrmData.Metadata.allEntities p
-        |> Seq.map(fun x -> x.MetadataId, x.LogicalName)
-        |> Seq.filter(fun (mid,_) -> mid.HasValue)
-        |> Seq.map(fun (mid,ln) -> mid.Value, ln)
-        |> Map.ofSeq
-
-      // Find entities in target which does not exist in source
-      let diff = guidTarget - guidSource
-
-      // Make new solutioncomponent for source solution with entities in diff
-      match diff.Count with
-      | 0 -> 
-        log.WriteLine(LogLevel.Info,
-          sprintf @"Nothing to merge, components in %s already exist in %s"
-            targetName sourceName)
-      | x -> 
-        log.WriteLine(LogLevel.Verbose,
-          sprintf @"Adding %d component(s) from %s to the %s" x targetName sourceName)
-        diff
-        |> Seq.map(fun (uid,cType) ->
-            
-          log.WriteLine(LogLevel.Verbose,
-            sprintf "Adding %s, %s to %s" 
-              uidToLogicNameMap.[uid] (uid.ToString()) sourceName)
-
-          let req = Messages.AddSolutionComponentRequest()
-          req.ComponentId <- uid
-          req.ComponentType <- cType
-          req.SolutionUniqueName <- getName source
-          req :> OrganizationRequest
-          )
-        |> Seq.toArray
-        |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
 
 let pluginSteps' proxyGen solution enable = 
   // Plugin: stateCode = 1 and statusCode = 2 (inactive), 
@@ -263,7 +184,7 @@ let export' (proxyGen: unit -> OrganizationServiceProxy) solution location manag
 
   log.WriteLine(LogLevel.Verbose, @"Solution saved to local disk")
 
-let import' (proxyGen: unit -> OrganizationServiceProxy) solution location managed =
+let executeImport (proxyGen: unit -> OrganizationServiceProxy) solution location managed =
   use p = proxyGen()
   do p.Timeout <- new TimeSpan(0, 59, 0) // 59 minutes timeout
 
@@ -274,176 +195,42 @@ let import' (proxyGen: unit -> OrganizationServiceProxy) solution location manag
 
   log.WriteLine(LogLevel.Verbose, @"Solution file loaded successfully")
 
-  let jobId = Guid.NewGuid()
+  let importJobId = Guid.NewGuid()
   let req = new Messages.ImportSolutionRequest()
 
   req.CustomizationFile <- zipFile
-  req.ImportJobId <- jobId
+  req.ImportJobId <- importJobId
   req.ConvertToManaged <- managed
   req.OverwriteUnmanagedCustomizations <- true
   req.PublishWorkflows <- true
 
   log.WriteLine(LogLevel.Verbose, @"Proxy timeout set to 1 hour")
 
-  let checkJobHasStarted p aJobId = 
-    // Check to ensure that the async job is started at all
-    match aJobId with
-    | None -> ()
-    | Some id ->
-        match Info.retrieveAsyncJobState p id with
-        | AsyncJobState.Failed | AsyncJobState.Canceled ->
-        log.WriteLine(LogLevel.Verbose, "Asynchronous import job failed")
-        let systemJob = CrmData.CRUD.retrieve p "asyncoperation" id
-        let msg = 
-            match systemJob.Attributes.ContainsKey "message" with
-            | true -> systemJob.Attributes.["message"] :?> string
-            | false -> "No failure message"
-        msg
-        |> sprintf "Failed with message: %s"
-        |> failwith 
-        | _ -> ()
-
-  let getAsyncJobStatus p' importJob asyncJobId =
-    let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' importJob
-    let progress' = j.Attributes.["progress"] :?> double
-
-    match asyncJobId with
-    | None ->
-    (progress', j.Attributes.Contains("completedon"))
-    | Some id ->
-      try
-          match Info.retrieveAsyncJobState p' id with
-          | AsyncJobState.Succeeded 
-          | AsyncJobState.Failed 
-          | AsyncJobState.Canceled ->
-          (progress', true)
-          | _ -> (progress', false)
-      with _ -> (progress', false)
-    
-  let getImportJobStatus p' importJob asyncJobId =
-    try
-      let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' importJob
-      let progress' = j.Attributes.["progress"] :?> double
-
-      match asyncJobId with
-      | None -> 
-        log.WriteLine(LogLevel.Verbose,@"Import job completed")
-        let data = j.Attributes.["data"] :?> string
-        let success = not (data.Contains("<result result=\"failure\""))
-
-        (progress' = 100.) || success
-      | Some id -> 
-        log.WriteLine(LogLevel.Verbose,@"Asynchronous import job completed")
-        let success = 
-          match Info.retrieveAsyncJobState p' id with
-          | AsyncJobState.Succeeded -> true
-          | _ -> false
-
-        (progress' = 100.) || success
-     with _ -> false
-
-  let printImportResult p' aJobId = function
-    | true -> 
-      sprintf  @"Solution import succeeded (ImportJob ID: %A)" jobId 
-      |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
-    | false ->
-      let msg =
-        match aJobId with
-        | None -> 
-          (sprintf @"Solution import failed (ImportJob ID: %A)" jobId)
-        | Some(id) ->
-          let systemJob = CrmData.CRUD.retrieve p' "asyncoperation" id
-          let msg = 
-            match systemJob.Attributes.ContainsKey "message" with
-            | true -> systemJob.Attributes.["message"] :?> string
-            | false -> "No failure message"
-          (jobId, msg)
-          ||> sprintf "Solution import failed (ImportJob ID: %A) with message %s"
-      failwith msg
-
-  let rec importHelper' exists completed progress aJobId = 
-    async { 
-      use p' = proxyGen()
-      match exists, completed with
-      | false, _ -> 
-        checkJobHasStarted p' aJobId |> ignore
-        let exists' =
-          CrmDataInternal.Entities.existCrm p' @"importjob" jobId None
-        do! importHelper' exists' completed progress aJobId
-      | true, true -> ()
-      | true, false -> 
-        do! Async.Sleep 10000 // Wait 10 seconds
-        let (pct, completed') = 
-          try 
-            getAsyncJobStatus p' jobId aJobId
-          with _ -> (progress, false)
-        match completed' with
-        | false -> 
-          sprintf @"Import solution: %s (%i%%)" solution (pct |> int)
-          |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
-        | true -> 
-          getImportJobStatus p' jobId aJobId
-          |> printImportResult p' aJobId
-          if not managed then
-            log.WriteLine(LogLevel.Verbose, @"Publishing solution")
-            CrmDataHelper.publishAll p'
-            log.WriteLine
-              (LogLevel.Verbose, @"The solution was successfully published")
-          return ()
-        do! importHelper' exists completed' pct aJobId
-    }
-      
-  let importHelperAsync() = 
-    // Added helper function in order to not having to look for the 
-    // Messages.ExecuteAsyncRequest Type for MS CRM 2011 (legacy)
-    let areq = new Messages.ExecuteAsyncRequest()
-    areq.Request <- req
-    p.Execute(areq) :?> Messages.ExecuteAsyncResponse 
-    |> fun r -> r.AsyncJobId
-    
   let importHelper() = 
     async { 
-      log.WriteLine(LogLevel.Debug,"Starting Import Job - check 1")
-      let aJobId = 
-        log.WriteLine(LogLevel.Debug,"Starting Import Job - check 2")
-        let version = CrmDataInternal.Info.version p
-        log.WriteLine(LogLevel.Debug,"Starting Import Job - check 3 " + fst version)
-        match version with
-        | (_, CrmReleases.CRM2011) -> 
-          p.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
-          log.WriteLine(LogLevel.Verbose,@"Import job Started")
-          None
-        | (_, _) -> 
-          log.WriteLine(LogLevel.Verbose,@"Asynchronous import job started")
-          Some (importHelperAsync())
-      log.WriteLine(LogLevel.Verbose, @"Import solution: " + solution + @" (0%)")
-
-      let! progress = importHelper' false false 0. aJobId
-      progress
+      let asyncJobId = Import.startImportJob p req
+      let! jobRes = Import.importLoop proxyGen solution importJobId asyncJobId
+      Import.printJobResult asyncJobId jobRes
+      return jobRes
     }
       
   let status = 
-    log.WriteLine(LogLevel.Debug,"Starting Import Job - check 0")
     importHelper()
     |> Async.Catch
     |> Async.RunSynchronously
     
-      
+  match status with
+  | Choice1Of2 res -> 
+    Import.printImportResult importJobId res
+  | _ -> ()
+
   // Save the XML file
   log.WriteLine(LogLevel.Verbose, @"Fetching import job result")
   let location' = location.Replace(@".zip", "")
   let excel = location' + @"_" + Utility.timeStamp'() + @".xml"
-  try  
-    let req' = new Messages.RetrieveFormattedImportJobResultsRequest()
-    req'.ImportJobId <- jobId
-    let resp' = 
-      p.Execute(req') :?> Messages.RetrieveFormattedImportJobResultsResponse
-    let xml = resp'.FormattedResults
-    let bytes = Encoding.UTF8.GetBytes(xml)
-    let bytes' = SerializationHelper.xmlPrettyPrinterHelper' bytes
-    let xml' = "<?xml version=\"1.0\"?>\n" + (Encoding.UTF8.GetString(bytes'))
-    File.WriteAllText(excel, xml')
-    log.WriteLine(LogLevel.Verbose, @"Import solution results saved to: " + excel)
+  try
+    Import.getXMLResult p importJobId
+    |> Import.printAndSaveXMLResult excel
   with 
   | ex -> 
     match status with
@@ -469,7 +256,8 @@ let exportWithExtendedSolution' (proxyGen: unit -> OrganizationServiceProxy) sol
   ExtendedSolutionHelper.exportExtendedSolution (proxyGen: unit -> OrganizationServiceProxy) solution (location ++ filename)
 
 let importWithExtendedSolution' proxyGen solution location managed = 
-  import' proxyGen solution location managed |> ignore
+  executeImport proxyGen solution location managed |> ignore
+  publish proxyGen managed
   log.WriteLine(LogLevel.Info, @"Importing extended solution")
   ExtendedSolutionHelper.unpackExtendedSolution location solution
   ||> ExtendedSolutionHelper.importExtendedSolution proxyGen

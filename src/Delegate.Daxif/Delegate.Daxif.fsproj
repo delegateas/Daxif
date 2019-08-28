@@ -128,6 +128,8 @@
     <Compile Include="Modules\Serialization\Main.fs" />
     <Compile Include="Modules\Solution\Domain.fs" />
     <Compile Include="Modules\Solution\ExtendedSolutionHelper.fs" />
+    <Compile Include="Modules\Solution\Merge.fs" />
+    <Compile Include="Modules\Solution\Import.fs" />
     <Compile Include="Modules\Solution\SolutionHelper.fs" />
     <Compile Include="Modules\Solution\Main.fs" />
     <Compile Include="Modules\Solution\Versioning.fs" />

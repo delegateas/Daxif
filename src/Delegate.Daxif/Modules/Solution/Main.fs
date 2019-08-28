@@ -106,7 +106,8 @@ let import proxyGen location =
   log.Info @"Import solution: %s" solution
   log.Verbose @"Path to file: %s" location
   log.Verbose @"Managed solution: %O" managed
-  SolutionHelper.import' proxyGen solution location managed |> ignore
+  SolutionHelper.executeImport proxyGen solution location managed |> ignore
+  SolutionHelper.publish proxyGen managed
   log.Info @"The solution was imported successfully"
 
 let exportWithExtendedSolution proxyGen solution location managed = 

@@ -1,8 +1,12 @@
 ﻿module DG.Daxif.Modules.Solution.Domain
 
 open System
-open System.Reflection
-open Microsoft.Xrm.Sdk
+
+type ImportState = 
+  | NotStarted = 0
+  | InProgress = 1
+  | Succeeded = 2
+  | Failed = 3
 
 // Record for holding the state of an entity
 type EntityState =
