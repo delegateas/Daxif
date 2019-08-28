@@ -1,5 +1,8 @@
 # Release Notes
 
+### 4.2.12 - August 28 2019
+* Added support for syncing web resources to a patch solution while taking into account web resources in the base solution. Use the optional parameter patchSolutionName when calling WebResource.Sync
+
 ### 4.2.11 - August 06 2019
 * Fix an issue where Daxif did not publish unmanaged solution after import
 
