@@ -66,7 +66,7 @@ let update proxy imgDiff stepDiff =
   let imgUpdates = 
     imgDiff.differences 
     |> Map.toArray
-    |> Array.map (fun (name, (img, e: Entity)) -> name, EntitySetup.updateImage e.Id img)
+    |> Array.map (fun (name, (img, e: Entity)) -> name, EntitySetup.updateImage img e)
 
   let stepUpdates =
     stepDiff.differences

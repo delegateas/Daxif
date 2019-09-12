@@ -137,4 +137,19 @@ module CrmData =
       let req = deleteReq logicalName guid
       proxy.Execute(req) :?> Messages.DeleteResponse |> ignore
       Guid.Empty
-   
+  
+  module Solution =
+    let addWebResourceToSolutionReq (entity:Entity) solutionName = 
+      let req = Messages.AddSolutionComponentRequest()
+      req.ComponentId <- entity.Id
+      req.ComponentType <- 61
+      req.SolutionUniqueName <- solutionName
+      req :> OrganizationRequest
+
+    let addWebResourceToSolution proxy entity solutionName = 
+      match solutionName with
+      | Some n -> let (proxy : OrganizationServiceProxy) = proxy
+                  let req = addWebResourceToSolutionReq entity n
+                  proxy.Execute(req) :?> Messages.AddSolutionComponentResponse
+                  |> ignore
+      | None -> ()

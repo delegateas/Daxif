@@ -11,6 +11,7 @@ open DG.Daxif.Common.InternalUtility
 type WebResourceAction = 
   | Create
   | Update
+  | UpdateAndAddToPatchSolution
   | Delete
   
 
@@ -78,10 +79,18 @@ let getLocalWRs location prefix crmRelease =
   )
   |> Map.ofSeq
  
-let getSyncActions proxy webresourceFolder solutionName =
+let getSyncActions proxy webresourceFolder solutionName patchSolutionName =
   let (solutionId, prefix) = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy solutionName
-  let webResources = CrmDataInternal.Entities.retrieveWebResources proxy solutionId
+  let wrBase = CrmDataInternal.Entities.retrieveWebResources proxy solutionId |> Seq.toList
   
+  let wrPatch = match patchSolutionName with
+                | Some s -> let (sIdPatch, _) = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy s
+                            CrmDataInternal.Entities.retrieveWebResources proxy sIdPatch |> Seq.toList
+                | None   -> List.empty
+
+  let wrBaseOnly = wrBase |> Seq.filter (fun a -> not (wrPatch |> Seq.exists (fun b -> b.Id = a.Id)))
+  let webResources = Seq.append wrBaseOnly wrPatch
+   
   let wrPrefix = sprintf "%s_%s" prefix solutionName
 
   let localWrPathMap = 
@@ -109,6 +118,11 @@ let getSyncActions proxy webresourceFolder solutionName =
     |> Seq.toArray
     |> Array.Parallel.map (fun x -> WebResourceAction.Delete, x)
 
+  let updateAction (e:Entity) = 
+    match wrPatch |> Seq.exists (fun a -> a.Id = e.Id) with
+    | true -> WebResourceAction.Update
+    | false -> WebResourceAction.UpdateAndAddToPatchSolution
+
   let update = 
     getMatchingEntitiesByName (Set.intersect localWrs crmWRs) webResources
     |> Seq.toArray
@@ -130,7 +144,7 @@ let getSyncActions proxy webresourceFolder solutionName =
       currentContent = localContent && currentDisplayName = localDisplayName, currentWr
     )
     |> Array.filter (fun (x, _) -> not x)
-    |> Array.Parallel.map (fun (_, y) -> WebResourceAction.Update, y)
+    |> Array.Parallel.map (fun (_, y) -> updateAction y, y)
     
   seq { 
     yield! create
@@ -138,11 +152,16 @@ let getSyncActions proxy webresourceFolder solutionName =
     yield! update
   }
 
-let syncSolution proxyGen location solutionName = 
+let syncSolution proxyGen location solutionName patchSolutionName = 
   use p = proxyGen()
   
-  let syncActions = getSyncActions p location solutionName
-  
+  let syncActions = getSyncActions p location solutionName patchSolutionName
+  let patchSolutionNameIfExists = patchSolutionName |> Option.defaultValue solutionName
+  let patchVerboseString = match patchSolutionName with
+                            | Some _ -> " and added to patch solution"
+                            | None -> ""
+
+
   let actionSuccess =
     syncActions
     |> Seq.toArray
@@ -153,9 +172,14 @@ let syncSolution proxyGen location solutionName =
             match x with
             | WebResourceAction.Create -> 
               let pc = ParameterCollection()
-              pc.Add("SolutionUniqueName", solutionName)
+              pc.Add("SolutionUniqueName", patchSolutionNameIfExists)
               let guid = CrmData.CRUD.create p' y pc
-              log.Verbose "%s: (%O,%s) was created" y.LogicalName guid yrn
+              log.Verbose "%s: (%O,%s) was created%s" y.LogicalName guid yrn patchVerboseString
+
+            | WebResourceAction.UpdateAndAddToPatchSolution -> 
+              CrmData.CRUD.update p' y |> ignore
+              CrmData.Solution.addWebResourceToSolution p' y patchSolutionName
+              log.Verbose "%s: (%O,%s) was updated%s" yrn y.Id yrn patchVerboseString
 
             | WebResourceAction.Update -> 
               CrmData.CRUD.update p' y |> ignore
@@ -167,6 +191,14 @@ let syncSolution proxyGen location solutionName =
 
             true
           with ex -> 
+            match x with
+            | WebResourceAction.Create -> 
+              log.Error "%s: (%s) failed to create" y.LogicalName yrn
+            | WebResourceAction.Update | WebResourceAction.UpdateAndAddToPatchSolution -> 
+              log.Error "%s: (%O,%s) failed to update" yrn y.Id yrn
+            | WebResourceAction.Delete -> 
+              log.Error "%s: (%O,%s) failed to delete" y.LogicalName y.Id yrn
+
             log.WriteLine(LogLevel.Error, ex.Message.Replace(string y.Id, string y.Id + ", " + yrn))
             false
           )
