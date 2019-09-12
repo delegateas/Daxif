@@ -1,5 +1,8 @@
 # Release Notes
 
+### 4.2.13 - September 12 2019
+* Hack to circumvent bug in MS concerning "flow"
+
 ### 4.2.12 - August 28 2019
 * Added support for syncing web resources to a patch solution while taking into account web resources in the base solution. Use the optional parameter patchSolutionName when calling WebResource.Sync
 
