@@ -619,6 +619,8 @@ module CrmDataInternal =
       let f = FilterExpression()
       // Only definition workflows
       f.AddCondition(ConditionExpression(t, ConditionOperator.Equal, 1))
+      // HACK: this is currently broken! Exclude "modern flow" from extended solution.
+      f.AddCondition(ConditionExpression("category", ConditionOperator.NotEqual, 5))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.LinkEntities.Add(le)
