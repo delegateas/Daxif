@@ -152,7 +152,7 @@ let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
   let tc = m.Authenticate(ac)
   use p = ServiceProxy.getOrganizationServiceProxy m tc
 
-  let solution = CrmDataInternal.Entities.retrieveSolutionId p solutionName
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solutionName
 
   // Retriev Customization.xml file from the solution package and store it in 
   // a temp folder
@@ -170,7 +170,7 @@ let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
 
   // find the entities to be persisted
   let views = getViews p xmlFile
-  let workflows = getWorkflows p solution.Id
+  let workflows = getWorkflows p solutionId
 
   let entities =
     [ ("Views",views)
@@ -201,7 +201,7 @@ let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, "Finding plugins to be persisted")
 
   // Find assemblies, plugin types, active plugin steps, and plugin images 
-  let asmsIds, typesIds, stepsIds, imgsIds = getPluginsIds p solution.Id
+  let asmsIds, typesIds, stepsIds, imgsIds = getPluginsIds p solutionId
 
   [|("Assemblies", asmsIds); ("Plugin Types", typesIds) 
     ("Plugin Steps", stepsIds); ("Step Images", imgsIds)|]
@@ -210,7 +210,7 @@ let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
     )
 
   let workflowsIds = workflows |> getEntityIds
-  let webResIds = getWebresources p solution.Id |> getEntityIds
+  let webResIds = getWebresources p solutionId |> getEntityIds
 
   let delegateSolution = 
     { states=states
@@ -258,7 +258,7 @@ let importExtendedSolution org ac solutionName zipPath =
     let m = ServiceManager.createOrgService org
     let tc = m.Authenticate(ac)
     use p = ServiceProxy.getOrganizationServiceProxy m tc
-    let solution = CrmDataInternal.Entities.retrieveSolutionId p zipSolName
+    let solutionId = CrmDataInternal.Entities.retrieveSolutionId p zipSolName
 
     // Fetch the ExtendedSolution.xml file and unserialize it
     let entry = archive.GetEntry("ExtendedSolution.xml")
@@ -307,9 +307,9 @@ let importExtendedSolution org ac solutionName zipPath =
     log.Verbose "Synching plugins"
 
     // Sync Plugins and Webresources
-    let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds p solution.Id
-    let targetWorkflows = getWorkflows p solution.Id |> getEntityIds
-    let targetWebRes = getWebresources p solution.Id |> getEntityIds
+    let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds p solutionId
+    let targetWorkflows = getWorkflows p solutionId |> getEntityIds
+    let targetWebRes = getWebresources p solutionId |> getEntityIds
 
     [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
       (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)

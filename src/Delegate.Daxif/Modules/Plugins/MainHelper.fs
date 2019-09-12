@@ -110,9 +110,9 @@ let analyze proxyGen projectPath dllPath solutionName isolationMode ignoreOutdat
   use proxy = proxyGen()
 
   let asmLocal = loadAndValidateAssembly proxyGen projectPath dllPath isolationMode ignoreOutdatedAssembly
-  let solution = CrmDataInternal.Entities.retrieveSolutionId proxy solutionName
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId proxy solutionName
 
-  let asmReg, pluginsReg = Retrieval.retrieveRegisteredByAssembly proxy solution.Id asmLocal.dllName
+  let asmReg, pluginsReg = Retrieval.retrieveRegisteredByAssembly proxy solutionId asmLocal.dllName
   let pluginsLocal = localToMaps asmLocal.plugins
     
   asmLocal, asmReg, pluginsLocal, pluginsReg

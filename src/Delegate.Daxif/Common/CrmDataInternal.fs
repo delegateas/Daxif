@@ -340,7 +340,7 @@ module CrmDataInternal =
       CrmDataHelper.retrieveFirstMatch proxy q
     
     let retrieveSolutionId proxy uniqueName =
-      ColumnSet(null) |> retrieveSolution proxy uniqueName
+      (ColumnSet(null) |> retrieveSolution proxy uniqueName).Id
 
     let retrieveSolutionIdAndPrefix proxy uniqueName = 
       ColumnSet("uniquename", "publisherid") |> retrieveSolution proxy uniqueName
@@ -519,11 +519,7 @@ module CrmDataInternal =
       q.LinkEntities.Add(le)
       CrmDataHelper.retrieveMultiple proxy q
     
-    let retrievePluginAssembly proxy uniqueName = 
-      let (uniqueName : String) = uniqueName
-      let ln = @"pluginassembly"
-      let an = @"name"
-      let em = CrmData.Metadata.entity proxy ln
+    let retrievePluginAssembliesByNameAndVersion proxy (uniqueName: string) (version: string) attrToReturn=
       let le = LinkEntity()
       le.JoinOperator <- JoinOperator.LeftOuter
       le.LinkFromAttributeName <- @"pluginassemblyid"
@@ -532,12 +528,10 @@ module CrmDataInternal =
       le.LinkToEntityName <- @"solutioncomponent"
       le.Columns.AddColumn("solutionid")
       let f = FilterExpression()
-      f.AddCondition
-        (ConditionExpression(an, ConditionOperator.Equal, uniqueName))
-      let q = QueryExpression(ln)
-      q.ColumnSet <- ColumnSet
-                       (em.PrimaryIdAttribute, em.PrimaryNameAttribute, 
-                        "sourcehash")
+      f.AddCondition (ConditionExpression("name", ConditionOperator.Equal, uniqueName))
+      f.AddCondition (ConditionExpression("version", ConditionOperator.Equal, version))
+      let q = QueryExpression("pluginassembly")
+      q.ColumnSet <- attrToReturn
       q.Criteria <- f
       q.LinkEntities.Add(le)
       CrmDataHelper.retrieveMultiple proxy q
@@ -558,7 +552,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet
                        (em.PrimaryIdAttribute, em.PrimaryNameAttribute,
-                        "sourcehash", "isolationmode")
+                        "sourcehash", "isolationmode", "version")
       q.LinkEntities.Add(le)
       CrmDataHelper.retrieveMultiple proxy q
     

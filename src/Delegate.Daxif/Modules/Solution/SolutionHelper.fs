@@ -51,10 +51,10 @@ let delete' org ac solution (log : ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let s = CrmDataInternal.Entities.retrieveSolutionId p solution
-  CrmData.CRUD.delete p s.LogicalName s.Id |> ignore
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solution
+  CrmData.CRUD.delete p "solution" solutionId |> ignore
   let msg = 
-    @"Solution was deleted successfully (Solution ID: " + s.Id.ToString() + @")"
+    @"Solution was deleted successfully (Solution ID: " + solutionId.ToString() + @")"
 
   log.WriteLine(LogLevel.Verbose, msg)
 
@@ -146,7 +146,7 @@ let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
         |> Seq.toArray
         |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
 
-let pluginSteps' org ac solution enable (log : ConsoleLogger) = 
+let pluginSteps' org ac solutionname enable (log : ConsoleLogger) = 
   // Plugin: stateCode = 1 and statusCode = 2 (inactive), 
   //         stateCode = 0 and statusCode = 1 (active) 
   // Remark: statusCode = -1, will default the statuscode for the given statecode
@@ -162,8 +162,8 @@ let pluginSteps' org ac solution enable (log : ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let s = CrmDataInternal.Entities.retrieveSolutionId p solution
-  CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p s.Id
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solutionname
+  CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p solutionId
   |> Seq.toArray
   |> Array.Parallel.iter 
         (fun e -> 
@@ -183,11 +183,11 @@ let pluginSteps' org ac solution enable (log : ConsoleLogger) =
       
   let msg = 
     @"The solution plugins were successfully " + msg' + @"(Solution ID: " 
-    + s.Id.ToString() + @")"
+    + solutionId.ToString() + @")"
   log.WriteLine(LogLevel.Verbose, msg)
 
 
-let workflow' org ac solution enable (log : ConsoleLogger) = 
+let workflow' org ac solutionname enable (log : ConsoleLogger) = 
   // Workflow: stateCode = 0 and statusCode = 1 (inactive), 
   //           stateCode = 1 and statusCode = 2 (active)
   // Remark: statusCode = -1, will default the statuscode for the given statecode
@@ -203,8 +203,8 @@ let workflow' org ac solution enable (log : ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let s = CrmDataInternal.Entities.retrieveSolutionId p solution
-  CrmDataInternal.Entities.retrieveWorkflowsOfStatus p s.Id retrievedStatus
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solutionname
+  CrmDataInternal.Entities.retrieveWorkflowsOfStatus p solutionId retrievedStatus
   |> Seq.toArray
   |> fun w -> 
     match w.Length with
@@ -229,7 +229,7 @@ let workflow' org ac solution enable (log : ConsoleLogger) =
           
       let msg = 
         @"The solution workflows were successfully " + msg' + @" (Solution ID: " 
-        + s.Id.ToString() + @")"
+        + solutionId.ToString() + @")"
       log.WriteLine(LogLevel.Verbose, msg)
 
 
@@ -626,5 +626,5 @@ let count' org solutionName ac =
   let m = ServiceManager.createOrgService org
   let tc = m.Authenticate(ac)
   use p = ServiceProxy.getOrganizationServiceProxy m tc
-  let solution = CrmDataInternal.Entities.retrieveSolutionId p solutionName
-  CrmDataInternal.Entities.countEntities p solution.Id
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solutionName
+  CrmDataInternal.Entities.countEntities p solutionId

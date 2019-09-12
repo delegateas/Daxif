@@ -46,35 +46,27 @@ let createAssembly name dll (asm : Assembly) (isolationMode: AssemblyIsolationMo
   pa.Attributes.Add("description", syncDescription())
   pa
 
-// Updates an exisiting workflow assebmly in CRM
-let updateAssembly' (paid : Guid) dll (asm : Assembly) = 
-  let pa = Entity("pluginassembly")
-  pa.Attributes.Add("pluginassemblyid", paid)
-  pa.Attributes.Add("content", dll |> fileToBase64)
-  pa.Attributes.Add("version", asm.GetName().Version.ToString())
-  pa.Attributes.Add("description", syncDescription())
-  pa
-
 // Creates an activity in CRM
-let createActivity (asmId : Guid) (asm : Assembly) (name : string) = 
+let createActivity (paId : Guid) (asm : Assembly) (name : string)= 
+  let version = asm.GetName().Version.ToString()
   let pt = Entity("plugintype")
   pt.Attributes.Add("name", name)
   pt.Attributes.Add("typename", name)
-  pt.Attributes.Add
-    ("workflowactivitygroupname", sprintf "%s %s" (asm.GetName().Name) (asm.GetName().Version.ToString()))
+  pt.Attributes.Add("workflowactivitygroupname", sprintf "%s %s" (asm.GetName().Name) version)
   pt.Attributes.Add("friendlyname", Guid.NewGuid().ToString())
-  pt.Attributes.Add("pluginassemblyid", EntityReference("pluginassembly", asmId))
+  pt.Attributes.Add("pluginassemblyid", EntityReference("pluginassembly", paId))
   pt.Attributes.Add("description", syncDescription())
+  pt.Attributes.Add("version", version)
   pt
 
 // Creates the found activities in the given assembly in CRM
-let createActivities (proxyGen: unit -> OrganizationServiceProxy) asm assemblyId entitySet = 
-  entitySet
+let createActivities (proxyGen: unit -> OrganizationServiceProxy) asm paId activityNames = 
+  activityNames
   |> Set.toArray
-  |> Array.Parallel.iter (fun name ->  
-    let pluginType = createActivity assemblyId asm name
+  |> Array.Parallel.iter (fun name ->
+    let pluginType = createActivity paId asm name
     log.Verbose "Creating workflow activity: %s" (getName pluginType)
-    proxyGen().Create(pluginType) |> ignore
+    proxyGen().Create pluginType |> ignore
     log.Verbose "%s: %s was created" pluginType.LogicalName (getName pluginType))
 
 // Deletes the exisiting activies in CRM that were not found in the assembly
@@ -87,47 +79,65 @@ let deleteActivity (proxyGen: unit -> OrganizationServiceProxy) (oldActivities, 
   |> Array.iter (fun x -> log.Verbose "%s: %s was deleted" x.LogicalName (getName x))
 
 // Fetches existing assembly in CRM an updates them
-let updateAssembly proxyGen (dllName : string) (dllPath : string) (asm : Assembly) (solution : Entity) = 
-  let p = proxyGen()
-  CrmDataInternal.Entities.retrievePluginAssemblies p solution.Id
-  |> Seq.filter (fun x -> dllName = getName x)
-  |> Seq.iter (fun x -> 
-    p.Update(updateAssembly' x.Id dllPath asm)
-    log.Verbose "%s: %s was updated" x.LogicalName (getName x)
-    )
+let updateAssembly (proxyGen: unit -> OrganizationServiceProxy) (dllPath : string) (asm : Assembly) (pa: Entity) =
+  let newContent = dllPath |> fileToBase64
+  let version = asm.GetName().Version.ToString()
+
+  let copy = Entity("pluginassembly", pa.Id)
+  copy.Attributes.Add("content", newContent)
+  copy.Attributes.Add("version", version)
+  copy.Attributes.Add("description", syncDescription())
+
+  copy.Attributes.Add("name", pa.["name"])
+  copy.Attributes.Add("publickeytoken", pa.["publickeytoken"])
+  copy.Attributes.Add("culture", pa.["culture"])
+  
+  proxyGen().Update(copy)
+  log.Verbose "%s: %s was updated with version %s" copy.LogicalName (getName copy) version
+
 
 // Checks if an existing assembly exist
 // If there is one then return the id of the assembly
 // If not then create a new and return the id of the newly created assembly
-let instantiateAssembly (solutionId : Guid) (solutionName : string) dllName dllPath asm p isolationMode = 
+let instantiateAssembly (solutionId : Guid) (solutionName : string) dllName dllPath (asm: Assembly) p isolationMode = 
   log.Verbose "Retrieving assemblies from CRM"
-  let dlls = CrmDataInternal.Entities.retrievePluginAssembly p dllName
-  match Seq.isEmpty dlls with
+
+  let ln = @"pluginassembly"
+  let attrToReturn = Query.ColumnSet (true)
+  let version = asm.GetName().Version.ToString()
+
+  let pluginAssemblies = 
+    CrmDataInternal.Entities.retrievePluginAssembliesByNameAndVersion p dllName version attrToReturn
+
+  match Seq.isEmpty pluginAssemblies with
   | true -> 
     log.Verbose "No existing assembly found"
     log.Info "Creating Assembly"
     let pluginAssembly = createAssembly dllName dllPath asm isolationMode
+
     let pc = ParameterCollection()
     pc.Add("SolutionUniqueName", solutionName)
     let guid = CrmData.CRUD.create p pluginAssembly pc
+    
     log.Verbose "%s: (%O) was created" pluginAssembly.LogicalName guid
-    guid
+    p.Retrieve(ln, guid, attrToReturn)
+
   | false -> 
     log.Verbose "Existing assembly found"
+
     let matchingAssembly = 
-      dlls
-      |> Seq.filter (fun x -> 
-        let asmSolution = 
-          getAttribute "solutioncomponent1.solutionid" x :?> AliasedValue
-          |> fun x -> x.Value :?> EntityReference
-        asmSolution.Id = solutionId)
-      |> fun x -> 
-        if Seq.isEmpty x then None else x |> Seq.head |> Some
+      pluginAssemblies
+      |> Seq.filter (fun pa ->
+        let paSolutionId = 
+          pa.GetAttributeValue<AliasedValue>("solutioncomponent1.solutionid").Value :?> EntityReference
+
+        paSolutionId.Id = solutionId)
+      |> Seq.tryHead
 
     match matchingAssembly with
     | None -> 
       failwith "An existing assembly is found but is not registered to the solution. Register the assembly first in CRM"
-    | Some x -> x.Id
+    | Some x -> x
 
 // Finds the different between the target assembly in CRM and the given source assembly
 // Fetches the activitities in the source and target and finds the difference with
@@ -161,13 +171,16 @@ let syncSolution' proxyGen solutionName dll isolationMode =
   use p = proxyGen()
   let asm = Assembly.LoadFile(dllPath)
   let dllName = Path.GetFileNameWithoutExtension(dll')
-  let solution = CrmDataInternal.Entities.retrieveSolutionId p solutionName
-  let asmId = instantiateAssembly solution.Id solutionName dllName dllPath asm p isolationMode
-  let newActivities, oldActivities, targetActivities = solutionDiff asm asmId p
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solutionName
+  let pa = instantiateAssembly solutionId solutionName dllName dllPath asm p isolationMode
+  let newActivities, oldActivities, targetActivities = solutionDiff asm pa.Id p
+
   log.WriteLine(LogLevel.Info, "Deleting workflow activities")
   deleteActivity proxyGen (oldActivities, targetActivities)
+  
   log.WriteLine(LogLevel.Info, "Updating Assembly")
-  updateAssembly proxyGen dllName dllPath asm solution
+  updateAssembly proxyGen dllPath asm pa
+  
   log.WriteLine(LogLevel.Info, "Creating workflow activities")
-  createActivities proxyGen asm asmId newActivities
+  createActivities proxyGen asm pa.Id newActivities
   ()
