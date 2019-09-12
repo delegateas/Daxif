@@ -1,4 +1,6 @@
 # Release Notes
+### 4.2.14 - September 12 2019
+* WorkflowSync will now look for a matching assembly according to both name and version
 
 ### 4.2.13 - September 12 2019
 * Hack to circumvent bug in MS concerning "flow"
