@@ -1,4 +1,7 @@
 # Release Notes
+### 4.3.0 - Semptember 24 2019
+* Added support for MFA
+
 ### 4.2.14 - September 12 2019
 * WorkflowSync will now look for a matching assembly according to both name and version
 
