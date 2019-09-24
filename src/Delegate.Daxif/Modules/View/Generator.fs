@@ -183,7 +183,7 @@ let getFullEntityList entities solutions proxy =
   finalEntities |> Set.toList
 
 let generateFiles proxyGen daxifRoot entities solutions =
-  use p = proxyGen()
+  let p = proxyGen()
   log.Verbose "Getting entities from solution and config"
   let allEntities = getFullEntityList entities solutions p
   log.Verbose "Generating files for '%s' entities" (string allEntities.Length)

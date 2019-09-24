@@ -65,7 +65,7 @@ let setOrder order (xml: XDocument) =
     xml.Element(xn "fetch").Element(xn "entity").Add(root)
     xml) xml order
 
-let getXmlFromFilterExp (proxy: Client.OrganizationServiceProxy) logicalname (filter: FilterExpression) = 
+let getXmlFromFilterExp (proxy: IOrganizationService) logicalname (filter: FilterExpression) = 
   let query = QueryExpression(logicalname)
   query.Criteria <- filter
   let req = QueryExpressionToFetchXmlRequest()
@@ -85,7 +85,7 @@ let rec getXmlFromFilterStructure proxy logicalname = function
       wrapper.Add(getXmlFromFilterStructure proxy logicalname filter)
       wrapper) wrapper filters
   
-let getXmlFromLinkEntityExp (proxy: Client.OrganizationServiceProxy) (link: LinkEntity) = 
+let getXmlFromLinkEntityExp (proxy: IOrganizationService) (link: LinkEntity) = 
   let query = QueryExpression(link.LinkFromEntityName)
   query.LinkEntities.Add(link)
   let req = QueryExpressionToFetchXmlRequest()

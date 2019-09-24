@@ -60,26 +60,26 @@ let createActivity (paId : Guid) (asm : Assembly) (name : string)=
   pt
 
 // Creates the found activities in the given assembly in CRM
-let createActivities (proxyGen: unit -> OrganizationServiceProxy) asm paId activityNames = 
+let createActivities (proxy: IOrganizationService) asm paId activityNames = 
   activityNames
   |> Set.toArray
   |> Array.Parallel.iter (fun name ->
     let pluginType = createActivity paId asm name
     log.Verbose "Creating workflow activity: %s" (getName pluginType)
-    proxyGen().Create pluginType |> ignore
+    proxy.Create pluginType |> ignore
     log.Verbose "%s: %s was created" pluginType.LogicalName (getName pluginType))
 
 // Deletes the exisiting activies in CRM that were not found in the assembly
-let deleteActivity (proxyGen: unit -> OrganizationServiceProxy) (oldActivities, targetActivites) = 
+let deleteActivity (proxy: IOrganizationService) (oldActivities, targetActivites) = 
   subset oldActivities targetActivites
   |> Seq.toArray
   |> Array.Parallel.map (fun x -> 
-    proxyGen().Delete(x.LogicalName, x.Id); x
+    proxy.Delete(x.LogicalName, x.Id); x
     )
   |> Array.iter (fun x -> log.Verbose "%s: %s was deleted" x.LogicalName (getName x))
 
 // Fetches existing assembly in CRM an updates them
-let updateAssembly (proxyGen: unit -> OrganizationServiceProxy) (dllPath : string) (asm : Assembly) (pa: Entity) =
+let updateAssembly (proxy: IOrganizationService) (dllPath : string) (asm : Assembly) (pa: Entity) =
   let newContent = dllPath |> fileToBase64
   let version = asm.GetName().Version.ToString()
 
@@ -92,7 +92,7 @@ let updateAssembly (proxyGen: unit -> OrganizationServiceProxy) (dllPath : strin
   copy.Attributes.Add("publickeytoken", pa.["publickeytoken"])
   copy.Attributes.Add("culture", pa.["culture"])
   
-  proxyGen().Update(copy)
+  proxy.Update(copy)
   log.Verbose "%s: %s was updated with version %s" copy.LogicalName (getName copy) version
 
 
@@ -168,7 +168,7 @@ let syncSolution' proxyGen solutionName dll isolationMode =
   File.Copy(dll', tmp, true)
   let dllPath = Path.GetFullPath(tmp)
   log.Verbose "Connecting to CRM"
-  use p = proxyGen()
+  let p = proxyGen()
   let asm = Assembly.LoadFile(dllPath)
   let dllName = Path.GetFileNameWithoutExtension(dll')
   let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solutionName
@@ -176,11 +176,11 @@ let syncSolution' proxyGen solutionName dll isolationMode =
   let newActivities, oldActivities, targetActivities = solutionDiff asm pa.Id p
 
   log.WriteLine(LogLevel.Info, "Deleting workflow activities")
-  deleteActivity proxyGen (oldActivities, targetActivities)
+  deleteActivity p (oldActivities, targetActivities)
   
   log.WriteLine(LogLevel.Info, "Updating Assembly")
-  updateAssembly proxyGen dllPath asm pa
+  updateAssembly p dllPath asm pa
   
   log.WriteLine(LogLevel.Info, "Creating workflow activities")
-  createActivities proxyGen asm pa.Id newActivities
+  createActivities p asm pa.Id newActivities
   ()

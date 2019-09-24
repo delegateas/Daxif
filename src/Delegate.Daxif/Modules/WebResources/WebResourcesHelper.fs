@@ -153,7 +153,7 @@ let getSyncActions proxy webresourceFolder solutionName patchSolutionName =
   }
 
 let syncSolution proxyGen location solutionName patchSolutionName = 
-  use p = proxyGen()
+  let p = proxyGen()
   
   let syncActions = getSyncActions p location solutionName patchSolutionName
   let patchSolutionNameIfExists = patchSolutionName |> Option.defaultValue solutionName
@@ -166,7 +166,7 @@ let syncSolution proxyGen location solutionName patchSolutionName =
     syncActions
     |> Seq.toArray
     |> Array.Parallel.map (fun (x, y) -> 
-          use p' = proxyGen()
+          let p' = proxyGen()
           let yrn = y.GetAttributeValue<string>("name")
           try 
             match x with

@@ -4,5 +4,5 @@ open DG.Daxif
 open DG.Daxif.Common
 
 let version' proxyGen = 
-  use p = proxyGen()
+  let p = proxyGen()
   CrmDataInternal.Info.version p

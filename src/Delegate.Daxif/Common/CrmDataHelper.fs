@@ -59,8 +59,7 @@ let makeRetrieveMultiple (q: QueryExpression) =
 
 
 /// Execute a request and expect a response of a certain type
-let getResponse<'T when 'T :> OrganizationResponse> (proxy: OrganizationServiceProxy) request =
-  proxy.Timeout <- TimeSpan(1,0,0)
+let getResponse<'T when 'T :> OrganizationResponse> (proxy: IOrganizationService) request =
   (proxy.Execute(request)) :?> 'T
 
 
@@ -109,11 +108,11 @@ let bulkRetrieveMultiple proxy =
 
 
 /// Retrieve
-let retrieve (proxy: OrganizationServiceProxy) logicalName guid (select: RetrieveSelect) =
+let retrieve (proxy: IOrganizationService) logicalName guid (select: RetrieveSelect) =
   proxy.Retrieve(logicalName, guid, select.columnSet)
 
 /// Exists
-let exists (proxy: OrganizationServiceProxy) logicalName guid =
+let exists (proxy: IOrganizationService) logicalName guid =
   try 
     let e = retrieve proxy logicalName guid RetrieveSelect.OnlyId
     e.Id <> Guid.Empty
@@ -125,7 +124,7 @@ let retrieveMultiple proxy (query:QueryExpression) =
   query.PageInfo <- PagingInfo()
 
   let rec retrieveMultiple' 
-    (proxy:OrganizationServiceProxy) (query: QueryExpression) page cookie =
+    (proxy:IOrganizationService) (query: QueryExpression) page cookie =
     seq {
         query.PageInfo.PageNumber <- page
         query.PageInfo.PagingCookie <- cookie
@@ -139,7 +138,7 @@ let retrieveMultiple proxy (query:QueryExpression) =
   retrieveMultiple' proxy query 1 null
   
 /// Retrieve multiple which returns the first match, or raises an exception if no matches were found
-let retrieveFirstMatch (proxy: OrganizationServiceProxy) (query: QueryExpression) = 
+let retrieveFirstMatch (proxy: IOrganizationService) (query: QueryExpression) = 
   query.TopCount <- Nullable(1)
   proxy.RetrieveMultiple(query).Entities
   |> Seq.tryHead
@@ -156,9 +155,8 @@ let retrieveAndMakeMap proxy keyFunc =
 
 
 /// Publish all
-let publishAll (proxy: OrganizationServiceProxy) = 
+let publishAll (proxy: IOrganizationService) = 
   let req = Messages.PublishAllXmlRequest()
-  proxy.Timeout <- new TimeSpan(1, 0, 0) // 1 hour timeout for PublishAll
   getResponse<Messages.PublishAllXmlResponse> proxy req |> ignore
 
 
