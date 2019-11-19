@@ -32,7 +32,7 @@ type Solution private () =
     SolutionDiffHelper.import solution_zip_path complete_solution_name temporary_solution_name (target_env:DG.Daxif.Environment)
 
   /// <summary>Exports a solution package from a given environment</summary>
-  /// <param name="env">Environment the action should be performed against.</param>
+  /// <param name="env">Environment the action should be performed against, for example a test environment.</param>
   static member Export(env: Environment, solutionName, outputDirectory, managed, ?extended, ?deltaFromDate, ?logLevel) =
     let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
@@ -44,7 +44,7 @@ type Solution private () =
     |> fun f -> f env.url solutionName outputDirectory managed env.apToUse usr pwd dmn logLevel
 
   /// <summary>[Experimental] Exports a difference solution out of two environments.</summary>
-  /// <returns>Path to solution containing changes at dev compared to prod.</returns>
+  /// <returns>Name of diff solution containing changes at dev compared to prod.</returns>
   /// <param name="dev">Source environment.</param>
   /// <param name="prod">Target environment.</param>
   static member ExportDiff(file_location, complete_solution_name, temporary_solution_name, (dev:DG.Daxif.Environment), (prod:DG.Daxif.Environment)) =

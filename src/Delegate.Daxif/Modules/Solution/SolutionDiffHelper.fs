@@ -431,7 +431,7 @@ let export file_location complete_solution_name temporary_solution_name (dev:DG.
     // Delete [partial solution] on DEV
     printfn "Deleting solution '%s'" temporary_solution_name;
     dev_proxy.Delete("solution", id);
-    (file_location + "/") + temporary_solution_name
+    temporary_solution_name
   with e -> 
     // Delete [partial solution] on DEV
     printfn "Deleting solution '%s'" temporary_solution_name;
