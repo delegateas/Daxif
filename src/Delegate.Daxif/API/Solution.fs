@@ -25,6 +25,11 @@ type Solution private () =
       Main.pluginSteps env.url solutionName true env.apToUse usr pwd dmn logLevel
     | _ -> ()
 
+  /// <summary>[Experimental] Imports an exported difference solution to target env.</summary>
+  /// <param name="solution_zip_path">Path to zip of difference solution to apply to target_env.</param>
+  /// <param name="target_env">Target environment to import changes.</param>
+  static member ImportDiff(solution_zip_path, complete_solution_name, temporary_solution_name, (target_env:DG.Daxif.Environment)) =
+    SolutionDiffHelper.import solution_zip_path complete_solution_name temporary_solution_name (target_env:DG.Daxif.Environment)
 
   /// <summary>Exports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
@@ -38,6 +43,12 @@ type Solution private () =
     | false -> Main.export
     |> fun f -> f env.url solutionName outputDirectory managed env.apToUse usr pwd dmn logLevel
 
+  /// <summary>[Experimental] Exports a difference solution out of two environments.</summary>
+  /// <returns>Path to solution containing changes at dev compared to prod.</returns>
+  /// <param name="dev">Source environment.</param>
+  /// <param name="prod">Target environment.</param>
+  static member ExportDiff(file_location, complete_solution_name, temporary_solution_name, (dev:DG.Daxif.Environment), (prod:DG.Daxif.Environment)) =
+    SolutionDiffHelper.export file_location complete_solution_name temporary_solution_name (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment)
 
   /// <summary>Generates TypeScript context from a given environment and settings using XrmDefinitelyTyped</summary>
   /// <param name="env">Environment the action should be performed against.</param>
