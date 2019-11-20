@@ -15,6 +15,8 @@ open System.IO.Compression
 open System.Text.RegularExpressions
 open System.Threading
 open DG.Daxif.Modules.Solution
+open InternalUtility
+
 
 let rec assoc_right_opt key map = 
   match map with
@@ -64,19 +66,6 @@ let download (env: DG.Daxif.Environment) file_location sol_name minutes =
   printf "Exporting extended solution %A" (file_location + sol_name)
   SolutionHelper.exportWithExtendedSolution' env.url ac ac' sol_name file_location false (DG.Daxif.ConsoleLogger DG.Daxif.LogLevel.Verbose)
   file_location + sol_name
-  (*
-  (proxy :?> OrganizationServiceProxy).Timeout <- new TimeSpan(0, minutes, 0);
-  let req = ExportSolutionRequest ()
-  req.Managed <- false;
-  req.SolutionName <- sol_name;
-  let resp = proxy.Execute(req) :?> ExportSolutionResponse
-  let file_prefix = 
-    file_location (*+ 
-    System.DateTime.Now.ToString("yyyyMMddHHmmss") + "-"*);
-  let zip = resp.ExportSolutionFile
-  File.WriteAllBytes(file_prefix + sol_name + ".zip", zip);
-  file_prefix + sol_name
-  *)
 
 let rec download_with_retry (env: DG.Daxif.Environment) file_location sol_name minutes retry_count =
   if retry_count > 0 then
@@ -94,11 +83,8 @@ let unzip file =
   ZipFile.ExtractToDirectory(file + ".zip", file);
 
 let fetch_solution proxy (solution: string) = 
-  let query = QueryExpression("solution")
-  query.ColumnSet <- ColumnSet("uniquename", "friendlyname", "publisherid", "version");
-  query.Criteria <- FilterExpression();
-  query.Criteria.AddCondition("uniquename", ConditionOperator.Equal, solution);
-  Seq.tryHead (CrmDataHelper.retrieveMultiple proxy query)
+  let columnSet = ColumnSet("uniquename", "friendlyname", "publisherid", "version")
+  CrmDataInternal.Entities.retrieveSolution proxy solution columnSet
 
 let create_solution (proxy: IOrganizationService) temporary_solution_name publisher = 
   printfn "Creating solution '%s'" temporary_solution_name;
@@ -426,10 +412,7 @@ let export file_location complete_solution_name temporary_solution_name (dev:DG.
       (proxy, sol))
     |> function [| dev_sol; prod_sol |] -> (dev_sol, prod_sol) | _ -> failwith "Impossible"
   // Get publisher from [complete solution]
-  let complete_sol = 
-    match fetch_solution dev_proxy complete_solution_name with
-      | None -> failwith "Complete solution not found; impossible" 
-      | Some s -> s
+  let complete_sol = fetch_solution dev_proxy complete_solution_name
   // Create new [partial solution] on DEV
   let id = create_solution dev_proxy temporary_solution_name complete_sol.Attributes.["publisherid"]
   try
@@ -489,7 +472,7 @@ let get_workflows proxy (solutionid: Guid) =
   |> List.map (fun e -> e.Id)
       
 let private transfer_solution_components (proxy: IOrganizationService) sourceid target =
-  printfn "Transfering solution components to '%s'" target;
+  log.Verbose "Transfering solution components to '%s'" target;
   let components = fetch_solution_components proxy sourceid
   let types = get_component_types proxy
   let workflows = get_workflows proxy sourceid
@@ -497,9 +480,8 @@ let private transfer_solution_components (proxy: IOrganizationService) sourceid 
   |> Seq.iter (add_component_to_solution proxy target types workflows)
 
 let publish (proxy: IOrganizationService) = 
-  let req = PublishAllXmlRequest ()
-  printfn "Publishing all changes";
-  proxy.Execute(req) |> ignore
+  log.Info "Publishing changes"
+  CrmDataHelper.publishAll proxy
 
 let fetchImportStatusOnce proxy (id: Guid) =
   let query = QueryExpression("importjob")
@@ -573,14 +555,12 @@ let import solution_zip_path complete_solution_name temporary_solution_name (env
     )
   // Run through solution components of [partial solution], add to [complete solution] on TARGET
   let sol = fetch_solution proxy temporary_solution_name
-  match sol with
-    | None -> failwith "Impossible"
-    | Some s -> 
-      publish proxy;
-      stopWatch.Stop()
-      printfn "Downtime: %.1f minutes" stopWatch.Elapsed.TotalMinutes;
-      transfer_solution_components proxy s.Id complete_solution_name
-      // Delete [partial solution] on TARGET
-      printfn "Deleting solution '%s'" temporary_solution_name;
-      proxy.Delete("solution", s.Id);
+
+  publish proxy;
+  stopWatch.Stop()
+  printfn "Downtime: %.1f minutes" stopWatch.Elapsed.TotalMinutes;
+  transfer_solution_components proxy sol.Id complete_solution_name
+  // Delete [partial solution] on TARGET
+  printfn "Deleting solution '%s'" temporary_solution_name;
+  proxy.Delete("solution", sol.Id);
     
