@@ -401,6 +401,7 @@ let diff (proxy: IOrganizationService) sol_id (dev_customizations: string) (prod
   // File.WriteAllText (__SOURCE_DIRECTORY__ + @"\diff.xml", to_string dev_doc);
 
 let export file_location complete_solution_name temporary_solution_name (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) = 
+  log.Info "Starting diff export"
   Directory.CreateDirectory(file_location) |> ignore;
   // Export [complete solution] from DEV and PROD
   let ((dev_proxy, dev_sol), (prod_proxy, prod_sol)) = 
@@ -427,6 +428,7 @@ let export file_location complete_solution_name temporary_solution_name (dev:DG.
     // Delete [partial solution] on DEV
     log.Verbose "Deleting solution '%s'" temporary_solution_name;
     dev_proxy.Delete("solution", id);
+    log.Info "Done exporting diff solution"
     temporary_solution_name
   with e -> 
     // Delete [partial solution] on DEV
