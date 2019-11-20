@@ -63,7 +63,7 @@ let download (env: DG.Daxif.Environment) file_location sol_name minutes =
   let ac = CrmAuth.getCredentials env.apToUse usr pwd domain
   let ac' = CrmAuth.getCredentials env.apToUse usr pwd domain
 
-  printf "Exporting extended solution %A" (file_location + sol_name)
+  log.Verbose "Exporting extended solution %A" (file_location + sol_name)
   SolutionHelper.exportWithExtendedSolution' env.url ac ac' sol_name file_location false (DG.Daxif.ConsoleLogger DG.Daxif.LogLevel.Verbose)
   file_location + sol_name
 
@@ -77,17 +77,20 @@ let rec download_with_retry (env: DG.Daxif.Environment) file_location sol_name m
     download env file_location sol_name minutes
 
 let unzip file =
-  printfn "Unpacking zip '%s' to '%s'" (file + ".zip") file;
+  log.Verbose "Unpacking zip '%s' to '%s'" (file + ".zip") file;
   if Directory.Exists(file) then
     Directory.Delete(file, true) |> ignore;
   ZipFile.ExtractToDirectory(file + ".zip", file);
 
 let fetch_solution proxy (solution: string) = 
   let columnSet = ColumnSet("uniquename", "friendlyname", "publisherid", "version")
+  (*query.Criteria.AddCondition("uniquename", ConditionOperator.Equal, solution);
+  Seq.tryHead (CrmDataHelper.retrieveMultiple proxy query)*)
+
   CrmDataInternal.Entities.retrieveSolution proxy solution columnSet
 
 let create_solution (proxy: IOrganizationService) temporary_solution_name publisher = 
-  printfn "Creating solution '%s'" temporary_solution_name;
+  log.Verbose "Creating solution '%s'" temporary_solution_name;
   let upd = Entity ("solution")
   upd.Attributes.["uniquename"] <- temporary_solution_name;
   upd.Attributes.["friendlyname"] <- "Temporary. For deploy";
@@ -135,7 +138,7 @@ let add_all type_ output (dev_node: XmlNode) dev_path dev_id dev_readable extra_
   |> Seq.iter (fun dev_elem ->
     let id = dev_id dev_elem
     let name = dev_readable dev_elem
-    printfn "Adding %s: %s" type_ name;
+    log.Verbose "Adding %s: %s" type_ name;
     callback id;
     )
 
@@ -168,21 +171,21 @@ let elim_elem type_ output (dev_node: XmlNode) (prod_node: XmlNode) dev_path dev
     // remove_useless dev_elem prod_elem;
     if prod_elem = null then
       if output = Diff || output = Both then 
-        printfn "Adding new %s: %s" type_ name;
+        log.Verbose "Adding new %s: %s" type_ name;
       callback id;
     else if dev_elem.OuterXml = prod_elem.OuterXml && extra_check dev_elem prod_elem then
       if output = Same || output = Both then 
-        printfn "Removing unchanged %s: %s" type_ name;
+        log.Verbose "Removing unchanged %s: %s" type_ name;
       remove_node dev_elem;
     else
       if output = Diff || output = Both then 
-        printfn "Adding modified %s: %s" type_ name;
+        log.Verbose "Adding modified %s: %s" type_ name;
       callback id;
     )
 
 // Help: https://bettercrm.blog/2017/04/26/solution-component-types-in-dynamics-365/
 let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (prod_customizations: string) (dev_node: XmlNode) (prod_node: XmlNode) output =
-  printfn "Preprocessing";
+  log.Verbose "Preprocessing";
   let expr = "//IntroducedVersion|//IsDataSourceSecret|//Format|//CanChangeDateTimeBehavior|//LookupStyle|//CascadeRollupView|//Length|//TriggerOnUpdateAttributeList[not(text())]"
   select_nodes dev_node expr |> Seq.iter remove_node;
   select_nodes prod_node expr |> Seq.iter remove_node;
@@ -196,7 +199,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
       let prod_ent = prod_node.SelectSingleNode("/ImportExportXml/Entities/Entity[EntityInfo/entity/@Name='"+name+"']")
       if prod_ent = null then
         if output = Diff || output = Both then 
-          printfn "Adding new entity: %s" name;
+          log.Verbose "Adding new entity: %s" name;
         let req = RetrieveEntityRequest ()
         req.EntityFilters <- EntityFilters.All;
         req.LogicalName <- name.ToLower();
@@ -204,10 +207,10 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
         add_solution_component proxy sol_id resp.EntityMetadata.MetadataId.Value 1
       else if dev_ent.OuterXml = prod_ent.OuterXml then
         if output = Same || output = Both then 
-          printfn "Removing unchanged entity: %s" name;
+          log.Verbose "Removing unchanged entity: %s" name;
         remove_node dev_ent;
       else
-        printfn "Processing entity: %s" name;
+        log.Verbose "Processing entity: %s" name;
         let req = RetrieveEntityRequest ()
         req.EntityFilters <- EntityFilters.All;
         req.LogicalName <- name.ToLower();
@@ -386,15 +389,15 @@ let to_string (doc : XmlDocument) =
   sw.ToString()
 
 let diff (proxy: IOrganizationService) sol_id (dev_customizations: string) (prod_customizations: string) output =
-  printfn "Parsing DEV customizations";
+  log.Verbose "Parsing DEV customizations";
   let dev_doc = XmlDocument ()
   dev_doc.Load (dev_customizations + "/customizations.xml");
-  printfn "Parsing PROD customizations";
+  log.Verbose "Parsing PROD customizations";
   let prod_doc = XmlDocument ()
   prod_doc.Load (prod_customizations + "/customizations.xml");
-  printfn "Calculating diff";
+  log.Verbose "Calculating diff";
   elim proxy sol_id dev_customizations prod_customizations dev_doc prod_doc output |> ignore;
-  // printfn "Saving";
+  // log.Verbose "Saving";
   // File.WriteAllText (__SOURCE_DIRECTORY__ + @"\diff.xml", to_string dev_doc);
 
 let export file_location complete_solution_name temporary_solution_name (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) = 
@@ -403,10 +406,10 @@ let export file_location complete_solution_name temporary_solution_name (dev:DG.
   let ((dev_proxy, dev_sol), (prod_proxy, prod_sol)) = 
     [| dev; prod |]
     |> Array.Parallel.map (fun env -> 
-      printfn "Connecting to %s" env.name;
+      log.Verbose "Connecting to %s" env.name;
       let proxy = env.connect().GetProxy()
       Directory.CreateDirectory(file_location + "/" + env.name) |> ignore;
-      printfn "Exporting solution '%s' from %s" complete_solution_name env.name;
+      log.Verbose "Exporting solution '%s' from %s" complete_solution_name env.name;
       let sol = download_with_retry env (file_location + "/" + env.name + "/") complete_solution_name 15 1
       unzip sol;
       (proxy, sol))
@@ -419,15 +422,15 @@ let export file_location complete_solution_name temporary_solution_name (dev:DG.
     // Diff the two exported solutions, add to [partial solution]
     diff dev_proxy temporary_solution_name dev_sol prod_sol Diff;
     // Export [partial solution] from DEV
-    printfn "Exporting solution '%s' from %s" temporary_solution_name dev.name;
+    log.Verbose "Exporting solution '%s' from %s" temporary_solution_name dev.name;
     let temp_sol = download dev (file_location + "/") temporary_solution_name 15
     // Delete [partial solution] on DEV
-    printfn "Deleting solution '%s'" temporary_solution_name;
+    log.Verbose "Deleting solution '%s'" temporary_solution_name;
     dev_proxy.Delete("solution", id);
     temporary_solution_name
   with e -> 
     // Delete [partial solution] on DEV
-    printfn "Deleting solution '%s'" temporary_solution_name;
+    log.Verbose "Deleting solution '%s'" temporary_solution_name;
     dev_proxy.Delete("solution", id);
     failwith e.Message; 
       
@@ -437,11 +440,11 @@ let private add_component_to_solution (proxy: IOrganizationService) solution typ
   let id = solution_component.Attributes.["objectid"] :?> Guid
   match typeString with
   // Remark, what does fake workflow mean?
-    | Some "Workflow" when not (List.contains id workflows) -> printfn " Skipping 'fake' workflow"
+    | Some "Workflow" when not (List.contains id workflows) -> log.Verbose " Skipping 'fake' workflow"
     | _ ->
       match typeString with
-        | None -> printfn "Adding thing (%i) to solution" type_
-        | Some s -> printfn "Adding %s to solution" s
+        | None -> log.Verbose "Adding thing (%i) to solution" type_
+        | Some s -> log.Verbose "Adding %s to solution" s
       let req = AddSolutionComponentRequest ()
       req.ComponentType <- type_;
       req.ComponentId <- id;
@@ -500,32 +503,32 @@ let rec fetchImportStatus proxy id asyncid =
   Thread.Sleep 10000;
   match fetchImportStatusOnce proxy id with
     | None -> 
-      printfn "Import not started yet.";
+      log.Verbose "Import not started yet.";
       fetchImportStatus proxy id asyncid
     | Some (_, _, data) when data.Contains("<result result=\"failure\"") -> 
       let job = CrmData.CRUD.retrieve proxy "asyncoperation" asyncid
       if job.Attributes.ContainsKey "message" then
-        printfn "%s" (job.Attributes.["message"] :?> string);
+        log.Verbose "%s" (job.Attributes.["message"] :?> string);
       else 
         let doc = XmlDocument ()
         doc.LoadXml data;
         select_nodes doc "//result[@result='failure']"
-        |> Seq.iter (fun a -> printfn "%s" (a.Attributes.GetNamedItem "errortext").Value)
+        |> Seq.iter (fun a -> log.Verbose "%s" (a.Attributes.GetNamedItem "errortext").Value)
       failwithf "An error occured in import.";
     | Some (true, _, _) -> 
-      printfn "Import succesful.";
+      log.Info "Import succesful.";
     | Some (false, progress, _) -> 
-      printfn "Importing: %.1f%%" progress;
+      log.Verbose "Importing: %.1f%%" progress;
       fetchImportStatus proxy id asyncid
 
 let import solution_zip_path complete_solution_name temporary_solution_name (env:DG.Daxif.Environment) = 
-  printfn "Connecting to environment %s" env.name;
+  log.Verbose "Connecting to environment %s" env.name;
   let proxy = env.connect().GetProxy()
   // TODO: Remove all Daxif plugin steps
   // Import [partial solution] to TARGET
   let fileBytes = File.ReadAllBytes(solution_zip_path + "/" + temporary_solution_name + ".zip")
   let stopWatch = System.Diagnostics.Stopwatch.StartNew()
-  printfn "Importing solution";
+  log.Info "Importing solution";
   let importid = Guid.NewGuid()
   let req = ImportSolutionRequest ()
   req.CustomizationFile <- fileBytes;
@@ -536,10 +539,10 @@ let import solution_zip_path complete_solution_name temporary_solution_name (env
   fetchImportStatus proxy importid resp.AsyncJobId;
   let temp = solution_zip_path + "/" + temporary_solution_name
   unzip temp;
-  printfn "Parsing TEMP customizations";
+  log.Verbose "Parsing TEMP customizations";
   let xml = XmlDocument ()
   xml.Load (temp + "/customizations.xml");
-  printfn "Setting workflow states";
+  log.Verbose "Setting workflow states";
   let workflows = select_nodes xml "/ImportExportXml/Workflows/Workflow"
   workflows
   |> Seq.iter (fun e ->
@@ -558,9 +561,9 @@ let import solution_zip_path complete_solution_name temporary_solution_name (env
 
   publish proxy;
   stopWatch.Stop()
-  printfn "Downtime: %.1f minutes" stopWatch.Elapsed.TotalMinutes;
+  log.Info "Downtime: %.1f minutes" stopWatch.Elapsed.TotalMinutes;
   transfer_solution_components proxy sol.Id complete_solution_name
   // Delete [partial solution] on TARGET
-  printfn "Deleting solution '%s'" temporary_solution_name;
+  log.Verbose "Deleting solution '%s'" temporary_solution_name;
   proxy.Delete("solution", sol.Id);
     
