@@ -14,6 +14,7 @@ open Microsoft.Crm.Sdk.Messages
 open System.IO.Compression
 open System.Text.RegularExpressions
 open System.Threading
+open DG.Daxif.Modules.Solution
 
 let rec assoc_right_opt key map = 
   match map with
@@ -55,7 +56,15 @@ let fetch_app_module_id (proxy: IOrganizationService) (unique_name: string) =
   |> Seq.head
   |> fun a -> a.Id
 
-let download (proxy: IOrganizationService) file_location sol_name minutes =
+let download (env: DG.Daxif.Environment) file_location sol_name minutes =
+  let usr, pwd, domain = env.getCreds()
+  let ac = CrmAuth.getCredentials env.apToUse usr pwd domain
+  let ac' = CrmAuth.getCredentials env.apToUse usr pwd domain
+
+  printf "Exporting extended solution %A" (file_location + sol_name)
+  SolutionHelper.exportWithExtendedSolution' env.url ac ac' sol_name file_location false (DG.Daxif.ConsoleLogger DG.Daxif.LogLevel.Verbose)
+  file_location + sol_name
+  (*
   (proxy :?> OrganizationServiceProxy).Timeout <- new TimeSpan(0, minutes, 0);
   let req = ExportSolutionRequest ()
   req.Managed <- false;
@@ -67,15 +76,16 @@ let download (proxy: IOrganizationService) file_location sol_name minutes =
   let zip = resp.ExportSolutionFile
   File.WriteAllBytes(file_prefix + sol_name + ".zip", zip);
   file_prefix + sol_name
+  *)
 
-let rec download_with_retry (proxy: IOrganizationService) file_location sol_name minutes retry_count =
+let rec download_with_retry (env: DG.Daxif.Environment) file_location sol_name minutes retry_count =
   if retry_count > 0 then
     try
-      download proxy file_location sol_name minutes
+      download env file_location sol_name minutes
     with _ ->
-      download_with_retry proxy file_location sol_name minutes retry_count
+      download_with_retry env file_location sol_name minutes retry_count
   else
-    download proxy file_location sol_name minutes
+    download env file_location sol_name minutes
 
 let unzip file =
   printfn "Unpacking zip '%s' to '%s'" (file + ".zip") file;
@@ -411,7 +421,7 @@ let export file_location complete_solution_name temporary_solution_name (dev:DG.
       let proxy = env.connect().GetProxy()
       Directory.CreateDirectory(file_location + "/" + env.name) |> ignore;
       printfn "Exporting solution '%s' from %s" complete_solution_name env.name;
-      let sol = download_with_retry proxy (file_location + "/" + env.name + "/") complete_solution_name 15 4
+      let sol = download_with_retry env (file_location + "/" + env.name + "/") complete_solution_name 15 1
       unzip sol;
       (proxy, sol))
     |> function [| dev_sol; prod_sol |] -> (dev_sol, prod_sol) | _ -> failwith "Impossible"
@@ -427,7 +437,7 @@ let export file_location complete_solution_name temporary_solution_name (dev:DG.
     diff dev_proxy temporary_solution_name dev_sol prod_sol Diff;
     // Export [partial solution] from DEV
     printfn "Exporting solution '%s' from %s" temporary_solution_name dev.name;
-    let temp_sol = download dev_proxy (file_location + "/") temporary_solution_name 15
+    let temp_sol = download dev (file_location + "/") temporary_solution_name 15
     // Delete [partial solution] on DEV
     printfn "Deleting solution '%s'" temporary_solution_name;
     dev_proxy.Delete("solution", id);
@@ -443,7 +453,8 @@ let private add_component_to_solution (proxy: IOrganizationService) solution typ
   let typeString = assoc_right_opt type_ types
   let id = solution_component.Attributes.["objectid"] :?> Guid
   match typeString with
-    | Some "Workflow" when List.contains id workflows -> printfn " Skipping 'fake' workflow"
+  // Remark, what does fake workflow mean?
+    | Some "Workflow" when not (List.contains id workflows) -> printfn " Skipping 'fake' workflow"
     | _ ->
       match typeString with
         | None -> printfn "Adding thing (%i) to solution" type_
