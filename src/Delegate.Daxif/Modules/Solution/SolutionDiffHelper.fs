@@ -84,9 +84,6 @@ let unzip file =
 
 let fetch_solution proxy (solution: string) = 
   let columnSet = ColumnSet("uniquename", "friendlyname", "publisherid", "version")
-  (*query.Criteria.AddCondition("uniquename", ConditionOperator.Equal, solution);
-  Seq.tryHead (CrmDataHelper.retrieveMultiple proxy query)*)
-
   CrmDataInternal.Entities.retrieveSolution proxy solution columnSet
 
 let create_solution (proxy: IOrganizationService) temporary_solution_name publisher = 
