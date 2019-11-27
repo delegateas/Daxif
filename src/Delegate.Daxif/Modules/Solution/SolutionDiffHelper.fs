@@ -200,19 +200,52 @@ let GetReadableName (elem: XmlNode) = function
 type XmlPath = string
 
 
-let elim_elem type_ output (dev_node: XmlNode) (prod_node: XmlNode) dev_path dev_id (dev_readable: ReadableName) extra_check callback =
+let workflowGuidReplace ((dev_path, prod_path): (string*string)) (dev_elem: XmlNode) (prod_elem: XmlNode) =
+  let dev_file = File.ReadAllText(dev_path + dev_elem.SelectSingleNode("XamlFileName").InnerText)
+  let prod_file = File.ReadAllText(prod_path + prod_elem.SelectSingleNode("XamlFileName").InnerText)
+  let expr = " Version=.+?,|\s*<x:Null x:Key=\"Description\" />|\s*<x:Boolean x:Key=\"ContainsElseBranch\">False</x:Boolean>"
+  let dev_file = 
+    Regex.Replace(dev_file, 
+      "\[New Object\(\) \{ Microsoft\.Xrm\.Sdk\.Workflow\.WorkflowPropertyType\.Guid, \"(........-....-....-....-............)\", \"Key\" \}\]", 
+      "[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.Guid, \"$1\", \"UniqueIdentifier\" }]")
+  let prod_file = 
+    Regex.Replace(prod_file, 
+      "\[New Object\(\) \{ Microsoft\.Xrm\.Sdk\.Workflow\.WorkflowPropertyType\.Guid, \"(........-....-....-....-............)\", \"Key\" \}\]", 
+      "[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.Guid, \"$1\", \"UniqueIdentifier\" }]")
+  Regex.Replace(dev_file, expr, "").Length = Regex.Replace(prod_file, expr, "").Length
+  // dev_file = prod_file
+
+let webResourceByteDiff ((dev_path, prod_path): (string*string))  (dev_elem: XmlNode) (prod_elem: XmlNode) = 
+  let dev_file = File.ReadAllBytes(dev_path + dev_elem.SelectSingleNode("FileName").InnerText)
+  let prod_file = File.ReadAllBytes(prod_path + prod_elem.SelectSingleNode("FileName").InnerText)
+  dev_file = prod_file
+
+type ExtraChecks =
+  | NoExtra 
+  | WebResourceByteDiff
+  | WorkflowGuidReplace
+
+let GetExtraCheck (dev_path, prod_path) (dev_elem: XmlNode) (prod_elem: XmlNode) = function
+  | NoExtra -> true
+  | WorkflowGuidReplace -> workflowGuidReplace (dev_path, prod_path) dev_elem prod_elem
+  | WebResourceByteDiff -> webResourceByteDiff (dev_path, prod_path) dev_elem prod_elem
+
+
+let elim_elem ((dev_path, prod_path): (string * string)) type_ output 
+    (dev_node: XmlNode) (prod_node: XmlNode) dev_path dev_id (dev_readable: ReadableName) (extra_check: ExtraChecks) callback =
   let dev_elems = select_nodes dev_node dev_path
   dev_elems
   |> Seq.iter (fun dev_elem ->
     let id = get_id dev_elem dev_id
     let name = GetReadableName dev_elem dev_readable
     let prod_elem = prod_node.SelectSingleNode(append_selector dev_path id dev_id)
+    let extra_check_fun = GetExtraCheck (dev_path, prod_path) dev_elem prod_elem extra_check
     // remove_useless dev_elem prod_elem;
     if prod_elem = null then
       if output = Diff || output = Both then 
         log.Verbose "Adding new %s: %s" type_ name;
       callback id;
-    else if dev_elem.OuterXml = prod_elem.OuterXml && extra_check dev_elem prod_elem then
+    else if dev_elem.OuterXml = prod_elem.OuterXml && extra_check_fun then
       if output = Same || output = Both then 
         log.Verbose "Removing unchanged %s: %s" type_ name;
       remove_node dev_elem;
@@ -228,6 +261,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
   let expr = "//IntroducedVersion|//IsDataSourceSecret|//Format|//CanChangeDateTimeBehavior|//LookupStyle|//CascadeRollupView|//Length|//TriggerOnUpdateAttributeList[not(text())]"
   select_nodes dev_node expr |> Seq.iter remove_node;
   select_nodes prod_node expr |> Seq.iter remove_node;
+  let addElementToTemp = elim_elem (dev_customizations, prod_customizations)
 
   let entities = select_nodes dev_node "/ImportExportXml/Entities/Entity"
   entities
@@ -254,134 +288,117 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
         req.EntityFilters <- EntityFilters.All;
         req.LogicalName <- name.ToLower();
         let resp = proxy.Execute(req) :?> RetrieveEntityResponse
-        elim_elem "entity info" output
+        addElementToTemp "entity info" output
           dev_ent prod_ent 
           "EntityInfo/entity/*[not(self::attributes)]" 
           (Custom (fun id -> "EntityInfo/entity/"+id))
           ElemName
-          (fun dev_elem prod_elem -> true)
+          NoExtra
           (fun id -> 
             add_entity_component proxy sol_id resp.EntityMetadata.MetadataId.Value EntityComponent.EntityMetaData);
-        elim_elem "ribbon" output
+        addElementToTemp "ribbon" output
           dev_ent prod_ent 
           "RibbonDiffXml"
           (Custom (fun id -> "RibbonDiffXml"))
           (Static "Ribbon")
-          (fun dev_elem prod_elem -> true)
+          NoExtra
           (fun id -> 
             add_solution_component proxy sol_id resp.EntityMetadata.MetadataId.Value SolutionComponent.Ribbon);
-        elim_elem "attribute" output
+        addElementToTemp "attribute" output
           dev_ent prod_ent 
           "EntityInfo/entity/attributes/attribute"
           (Attribute "PhysicalName")
           (AttributeNamedItem "PhysicalName")
-          (fun dev_elem prod_elem -> true)
+          NoExtra
           (fun id -> 
             resp.EntityMetadata.Attributes
             |> Array.find (fun a -> a.SchemaName = id)
             |> fun a -> add_entity_component proxy sol_id a.MetadataId.Value EntityComponent.Attribute);
-        elim_elem "form" output
+        addElementToTemp "form" output
           dev_ent prod_ent 
           "FormXml/forms/systemform"
           (Node "formid")
           LocalizedNameDescription
-          (fun dev_elem prod_elem -> true)
+          NoExtra
           (fun id -> 
             add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.Form);
-        elim_elem "view" output
+        addElementToTemp "view" output
           dev_ent prod_ent 
           "SavedQueries/savedqueries/savedquery"
           (Node "savedqueryid")
           LocalizedNameDescription
-          (fun dev_elem prod_elem -> true)
+          NoExtra
           (fun id -> 
             add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.View);
-        elim_elem "chart" output
+        addElementToTemp "chart" output
           dev_ent prod_ent 
           "Visualizations/visualization"
           (Node "savedqueryvisualizationid")
           LocalizedNameDescription
-          (fun dev_elem prod_elem -> true)
+          NoExtra
           (fun id -> 
             add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.Chart);
     )
-  elim_elem "role" output
+  addElementToTemp "role" output
     dev_node prod_node 
     "/ImportExportXml/Roles/Role"
     (Attribute "id")
     (AttributeNamedItem "name")
-    (fun dev_elem prod_elem -> true)
+    NoExtra
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Role);
-  elim_elem "workflow" output
+  addElementToTemp "workflow" output
     dev_node prod_node 
     "/ImportExportXml/Workflows/Workflow"
     (Attribute "WorkflowId")
     (AttributeNamedItem "Name")
-    (fun dev_elem prod_elem -> 
-      let dev_file = File.ReadAllText(dev_customizations + dev_elem.SelectSingleNode("XamlFileName").InnerText)
-      let prod_file = File.ReadAllText(prod_customizations + prod_elem.SelectSingleNode("XamlFileName").InnerText)
-      let expr = " Version=.+?,|\s*<x:Null x:Key=\"Description\" />|\s*<x:Boolean x:Key=\"ContainsElseBranch\">False</x:Boolean>"
-      let dev_file = 
-        Regex.Replace(dev_file, 
-          "\[New Object\(\) \{ Microsoft\.Xrm\.Sdk\.Workflow\.WorkflowPropertyType\.Guid, \"(........-....-....-....-............)\", \"Key\" \}\]", 
-          "[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.Guid, \"$1\", \"UniqueIdentifier\" }]")
-      let prod_file = 
-        Regex.Replace(prod_file, 
-          "\[New Object\(\) \{ Microsoft\.Xrm\.Sdk\.Workflow\.WorkflowPropertyType\.Guid, \"(........-....-....-....-............)\", \"Key\" \}\]", 
-          "[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.Guid, \"$1\", \"UniqueIdentifier\" }]")
-      Regex.Replace(dev_file, expr, "").Length = Regex.Replace(prod_file, expr, "").Length
-      // dev_file = prod_file
-      )
+    WorkflowGuidReplace
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Workflow);
-  elim_elem "field security profile" output
+  addElementToTemp "field security profile" output
     dev_node prod_node 
     "/ImportExportXml/FieldSecurityProfiles/FieldSecurityProfile"
     (Attribute "fieldsecurityprofileid")
     (AttributeNamedItem "name")
-    (fun dev_elem prod_elem -> true)
+    NoExtra
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.FieldSecurityProfile);
-  elim_elem "entity relationships" output
+  addElementToTemp "entity relationships" output
     dev_node prod_node 
     "/ImportExportXml/EntityRelationships/EntityRelationship"
     (Attribute "Name")
     (AttributeNamedItem "Name")
-    (fun dev_elem prod_elem -> true)
+    NoExtra
     (fun id -> 
       let req = RetrieveRelationshipRequest ()
       req.Name <- id;
       let resp = proxy.Execute(req) :?> RetrieveRelationshipResponse
       add_solution_component proxy sol_id resp.RelationshipMetadata.MetadataId.Value SolutionComponent.EntityRelationship);
-  elim_elem "option set" output
+  addElementToTemp "option set" output
     dev_node prod_node 
     "/ImportExportXml/optionsets/optionset"
     (Attribute "Name")
     (AttributeNamedItem "localizedName")
-    (fun dev_elem prod_elem -> true)
+    NoExtra
     (fun id -> 
       let req = RetrieveOptionSetRequest ()
       req.Name <- id;
       let resp = proxy.Execute(req) :?> RetrieveOptionSetResponse
       add_solution_component proxy sol_id resp.OptionSetMetadata.MetadataId.Value SolutionComponent.OptionSet);
-  elim_elem "dashboard" output
+  addElementToTemp "dashboard" output
     dev_node prod_node 
     "/ImportExportXml/Dashboards/Dashboard"
     (Node "FormId")
     LocalizedNameDescription
-    (fun dev_elem prod_elem -> true)
+    NoExtra
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Dashboard);
-  elim_elem "web resource" output
+  addElementToTemp "web resource" output
     dev_node prod_node 
     "/ImportExportXml/WebResources/WebResource"
     (Node "WebResourceId")
     InnerTextDisplayName
-    (fun dev_elem prod_elem -> 
-      let dev_file = File.ReadAllBytes(dev_customizations + dev_elem.SelectSingleNode("FileName").InnerText)
-      let prod_file = File.ReadAllBytes(prod_customizations + prod_elem.SelectSingleNode("FileName").InnerText)
-      dev_file = prod_file)
+    WebResourceByteDiff
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.WebResource);
   add_all "plugin assembly" output
@@ -402,20 +419,20 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.PluginStep);
   // (Reports)
   // (regular Sitemap)
-  elim_elem "app site map" output
+  addElementToTemp "app site map" output
     dev_node prod_node 
     "/ImportExportXml/AppModuleSiteMaps/AppModuleSiteMap"
     (Node "SiteMapUniqueName")
     LocalizedNameDescription
-    (fun dev_elem prod_elem -> true)
+    NoExtra
     (fun id -> 
       add_solution_component proxy sol_id (fetch_sitemap_id proxy id) SolutionComponent.SiteMap);
-  elim_elem "app" output
+  addElementToTemp "app" output
     dev_node prod_node 
     "/ImportExportXml/AppModules/AppModule"
     (Node "UniqueName")
     LocalizedNameDescription
-    (fun dev_elem prod_elem -> true)
+    NoExtra
     (fun id -> 
       add_solution_component proxy sol_id (fetch_app_module_id proxy id) SolutionComponent.AppModule);
     
