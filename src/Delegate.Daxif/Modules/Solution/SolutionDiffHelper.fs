@@ -231,15 +231,19 @@ let GetExtraCheck (dev_path, prod_path) (dev_elem: XmlNode) (prod_elem: XmlNode)
   | WebResourceByteDiff -> webResourceByteDiff (dev_path, prod_path) dev_elem prod_elem
 
 
-let elim_elem ((dev_path, prod_path): (string * string)) type_ output 
-    (dev_node: XmlNode) (prod_node: XmlNode) dev_path dev_id (dev_readable: ReadableName) (extra_check: ExtraChecks) callback =
-  let dev_elems = select_nodes dev_node dev_path
+type AddToSolutionStrategy = 
+  | EntityComponentAdd of EntityComponent
+  | SolutionComponentAdd of SolutionComponent
+
+let elim_elem ((dev_unzip_path, prod_unzip_path): (string * string)) output (dev_node: XmlNode) (prod_node: XmlNode) 
+              type_ dev_node_path dev_id (dev_readable: ReadableName) (extra_check: ExtraChecks) callback =
+  let dev_elems = select_nodes dev_node dev_node_path
   dev_elems
   |> Seq.iter (fun dev_elem ->
     let id = get_id dev_elem dev_id
     let name = GetReadableName dev_elem dev_readable
-    let prod_elem = prod_node.SelectSingleNode(append_selector dev_path id dev_id)
-    let extra_check_fun = GetExtraCheck (dev_path, prod_path) dev_elem prod_elem extra_check
+    let prod_elem = prod_node.SelectSingleNode(append_selector dev_node_path id dev_id)
+    let extra_check_fun = GetExtraCheck (dev_unzip_path, prod_unzip_path) dev_elem prod_elem extra_check
     // remove_useless dev_elem prod_elem;
     if prod_elem = null then
       if output = Diff || output = Both then 
@@ -261,7 +265,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
   let expr = "//IntroducedVersion|//IsDataSourceSecret|//Format|//CanChangeDateTimeBehavior|//LookupStyle|//CascadeRollupView|//Length|//TriggerOnUpdateAttributeList[not(text())]"
   select_nodes dev_node expr |> Seq.iter remove_node;
   select_nodes prod_node expr |> Seq.iter remove_node;
-  let addElementToTemp = elim_elem (dev_customizations, prod_customizations)
+  let GenericAddToSolution = elim_elem (dev_customizations, prod_customizations) output
 
   let entities = select_nodes dev_node "/ImportExportXml/Entities/Entity"
   entities
@@ -288,25 +292,20 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
         req.EntityFilters <- EntityFilters.All;
         req.LogicalName <- name.ToLower();
         let resp = proxy.Execute(req) :?> RetrieveEntityResponse
-        addElementToTemp "entity info" output
-          dev_ent prod_ent 
-          "EntityInfo/entity/*[not(self::attributes)]" 
+        let AddEntityDataToSolution = GenericAddToSolution dev_ent prod_ent
+        AddEntityDataToSolution "entity info" "EntityInfo/entity/*[not(self::attributes)]" 
           (Custom (fun id -> "EntityInfo/entity/"+id))
           ElemName
           NoExtra
           (fun id -> 
             add_entity_component proxy sol_id resp.EntityMetadata.MetadataId.Value EntityComponent.EntityMetaData);
-        addElementToTemp "ribbon" output
-          dev_ent prod_ent 
-          "RibbonDiffXml"
+        AddEntityDataToSolution "ribbon" "RibbonDiffXml"
           (Custom (fun id -> "RibbonDiffXml"))
           (Static "Ribbon")
           NoExtra
           (fun id -> 
             add_solution_component proxy sol_id resp.EntityMetadata.MetadataId.Value SolutionComponent.Ribbon);
-        addElementToTemp "attribute" output
-          dev_ent prod_ent 
-          "EntityInfo/entity/attributes/attribute"
+        AddEntityDataToSolution "attribute" "EntityInfo/entity/attributes/attribute"
           (Attribute "PhysicalName")
           (AttributeNamedItem "PhysicalName")
           NoExtra
@@ -314,58 +313,46 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
             resp.EntityMetadata.Attributes
             |> Array.find (fun a -> a.SchemaName = id)
             |> fun a -> add_entity_component proxy sol_id a.MetadataId.Value EntityComponent.Attribute);
-        addElementToTemp "form" output
-          dev_ent prod_ent 
-          "FormXml/forms/systemform"
+        AddEntityDataToSolution "form" "FormXml/forms/systemform"
           (Node "formid")
           LocalizedNameDescription
           NoExtra
           (fun id -> 
             add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.Form);
-        addElementToTemp "view" output
-          dev_ent prod_ent 
-          "SavedQueries/savedqueries/savedquery"
+        AddEntityDataToSolution "view" "SavedQueries/savedqueries/savedquery"
           (Node "savedqueryid")
           LocalizedNameDescription
           NoExtra
           (fun id -> 
             add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.View);
-        addElementToTemp "chart" output
-          dev_ent prod_ent 
-          "Visualizations/visualization"
+        AddEntityDataToSolution "chart" "Visualizations/visualization"
           (Node "savedqueryvisualizationid")
           LocalizedNameDescription
           NoExtra
           (fun id -> 
             add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.Chart);
     )
-  addElementToTemp "role" output
-    dev_node prod_node 
-    "/ImportExportXml/Roles/Role"
+  let AddEntityDataToSolution = elim_elem (dev_customizations, prod_customizations) output dev_node prod_node
+
+  AddEntityDataToSolution "role" "/ImportExportXml/Roles/Role"
     (Attribute "id")
     (AttributeNamedItem "name")
     NoExtra
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Role);
-  addElementToTemp "workflow" output
-    dev_node prod_node 
-    "/ImportExportXml/Workflows/Workflow"
+  AddEntityDataToSolution "workflow" "/ImportExportXml/Workflows/Workflow"
     (Attribute "WorkflowId")
     (AttributeNamedItem "Name")
     WorkflowGuidReplace
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Workflow);
-  addElementToTemp "field security profile" output
-    dev_node prod_node 
-    "/ImportExportXml/FieldSecurityProfiles/FieldSecurityProfile"
+  AddEntityDataToSolution "field security profile" "/ImportExportXml/FieldSecurityProfiles/FieldSecurityProfile"
     (Attribute "fieldsecurityprofileid")
     (AttributeNamedItem "name")
     NoExtra
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.FieldSecurityProfile);
-  addElementToTemp "entity relationships" output
-    dev_node prod_node 
-    "/ImportExportXml/EntityRelationships/EntityRelationship"
+  AddEntityDataToSolution "entity relationships" "/ImportExportXml/EntityRelationships/EntityRelationship"
     (Attribute "Name")
     (AttributeNamedItem "Name")
     NoExtra
@@ -374,9 +361,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
       req.Name <- id;
       let resp = proxy.Execute(req) :?> RetrieveRelationshipResponse
       add_solution_component proxy sol_id resp.RelationshipMetadata.MetadataId.Value SolutionComponent.EntityRelationship);
-  addElementToTemp "option set" output
-    dev_node prod_node 
-    "/ImportExportXml/optionsets/optionset"
+  AddEntityDataToSolution "option set" "/ImportExportXml/optionsets/optionset"
     (Attribute "Name")
     (AttributeNamedItem "localizedName")
     NoExtra
@@ -385,17 +370,13 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
       req.Name <- id;
       let resp = proxy.Execute(req) :?> RetrieveOptionSetResponse
       add_solution_component proxy sol_id resp.OptionSetMetadata.MetadataId.Value SolutionComponent.OptionSet);
-  addElementToTemp "dashboard" output
-    dev_node prod_node 
-    "/ImportExportXml/Dashboards/Dashboard"
+  AddEntityDataToSolution "dashboard" "/ImportExportXml/Dashboards/Dashboard"
     (Node "FormId")
     LocalizedNameDescription
     NoExtra
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Dashboard);
-  addElementToTemp "web resource" output
-    dev_node prod_node 
-    "/ImportExportXml/WebResources/WebResource"
+  AddEntityDataToSolution "web resource" "/ImportExportXml/WebResources/WebResource"
     (Node "WebResourceId")
     InnerTextDisplayName
     WebResourceByteDiff
@@ -419,17 +400,13 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.PluginStep);
   // (Reports)
   // (regular Sitemap)
-  addElementToTemp "app site map" output
-    dev_node prod_node 
-    "/ImportExportXml/AppModuleSiteMaps/AppModuleSiteMap"
+  AddEntityDataToSolution "app site map" "/ImportExportXml/AppModuleSiteMaps/AppModuleSiteMap"
     (Node "SiteMapUniqueName")
     LocalizedNameDescription
     NoExtra
     (fun id -> 
       add_solution_component proxy sol_id (fetch_sitemap_id proxy id) SolutionComponent.SiteMap);
-  addElementToTemp "app" output
-    dev_node prod_node 
-    "/ImportExportXml/AppModules/AppModule"
+  AddEntityDataToSolution "app" "/ImportExportXml/AppModules/AppModule"
     (Node "UniqueName")
     LocalizedNameDescription
     NoExtra
