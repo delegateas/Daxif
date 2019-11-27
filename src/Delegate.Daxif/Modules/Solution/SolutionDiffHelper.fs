@@ -185,27 +185,27 @@ let append_selector path id = function
 
 type ReadableName =
   | Static of string // example: "Ribbon"
+  | AttributeNamedItem of string
   | ElemName // elem.name
-  | AttributeName of string
   | InnerTextDisplayName
-  | LocalizedDescription
+  | LocalizedNameDescription
 
 let GetReadableName (elem: XmlNode) = function
   | Static name -> name
   | ElemName -> elem.Name
-  | AttributeName attrName -> elem.Attributes.GetNamedItem(attrName).Value
+  | AttributeNamedItem attrName -> elem.Attributes.GetNamedItem(attrName).Value
   | InnerTextDisplayName -> elem.SelectSingleNode("DisplayName").InnerText
-  | LocalizedDescription -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value
+  | LocalizedNameDescription -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value
   
 type XmlPath = string
 
 
-let elim_elem type_ output (dev_node: XmlNode) (prod_node: XmlNode) dev_path dev_id dev_readable extra_check callback =
+let elim_elem type_ output (dev_node: XmlNode) (prod_node: XmlNode) dev_path dev_id (dev_readable: ReadableName) extra_check callback =
   let dev_elems = select_nodes dev_node dev_path
   dev_elems
   |> Seq.iter (fun dev_elem ->
     let id = get_id dev_elem dev_id
-    let name = dev_readable dev_elem
+    let name = GetReadableName dev_elem dev_readable
     let prod_elem = prod_node.SelectSingleNode(append_selector dev_path id dev_id)
     // remove_useless dev_elem prod_elem;
     if prod_elem = null then
@@ -258,7 +258,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           dev_ent prod_ent 
           "EntityInfo/entity/*[not(self::attributes)]" 
           (Custom (fun id -> "EntityInfo/entity/"+id))
-          (fun elem -> elem.Name)
+          ElemName
           (fun dev_elem prod_elem -> true)
           (fun id -> 
             add_entity_component proxy sol_id resp.EntityMetadata.MetadataId.Value EntityComponent.EntityMetaData);
@@ -266,7 +266,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           dev_ent prod_ent 
           "RibbonDiffXml"
           (Custom (fun id -> "RibbonDiffXml"))
-          (fun elem -> "Ribbon")
+          (Static "Ribbon")
           (fun dev_elem prod_elem -> true)
           (fun id -> 
             add_solution_component proxy sol_id resp.EntityMetadata.MetadataId.Value SolutionComponent.Ribbon);
@@ -274,7 +274,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           dev_ent prod_ent 
           "EntityInfo/entity/attributes/attribute"
           (Attribute "PhysicalName")
-          (fun elem -> elem.Attributes.GetNamedItem("PhysicalName").Value)
+          (AttributeNamedItem "PhysicalName")
           (fun dev_elem prod_elem -> true)
           (fun id -> 
             resp.EntityMetadata.Attributes
@@ -284,7 +284,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           dev_ent prod_ent 
           "FormXml/forms/systemform"
           (Node "formid")
-          (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
+          LocalizedNameDescription
           (fun dev_elem prod_elem -> true)
           (fun id -> 
             add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.Form);
@@ -292,7 +292,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           dev_ent prod_ent 
           "SavedQueries/savedqueries/savedquery"
           (Node "savedqueryid")
-          (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
+          LocalizedNameDescription
           (fun dev_elem prod_elem -> true)
           (fun id -> 
             add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.View);
@@ -300,7 +300,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           dev_ent prod_ent 
           "Visualizations/visualization"
           (Node "savedqueryvisualizationid")
-          (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
+          LocalizedNameDescription
           (fun dev_elem prod_elem -> true)
           (fun id -> 
             add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.Chart);
@@ -309,7 +309,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     dev_node prod_node 
     "/ImportExportXml/Roles/Role"
     (Attribute "id")
-    (fun elem -> elem.Attributes.GetNamedItem("name").Value)
+    (AttributeNamedItem "name")
     (fun dev_elem prod_elem -> true)
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Role);
@@ -317,7 +317,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     dev_node prod_node 
     "/ImportExportXml/Workflows/Workflow"
     (Attribute "WorkflowId")
-    (fun elem -> elem.Attributes.GetNamedItem("Name").Value)
+    (AttributeNamedItem "Name")
     (fun dev_elem prod_elem -> 
       let dev_file = File.ReadAllText(dev_customizations + dev_elem.SelectSingleNode("XamlFileName").InnerText)
       let prod_file = File.ReadAllText(prod_customizations + prod_elem.SelectSingleNode("XamlFileName").InnerText)
@@ -339,7 +339,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     dev_node prod_node 
     "/ImportExportXml/FieldSecurityProfiles/FieldSecurityProfile"
     (Attribute "fieldsecurityprofileid")
-    (fun elem -> elem.Attributes.GetNamedItem("name").Value)
+    (AttributeNamedItem "name")
     (fun dev_elem prod_elem -> true)
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.FieldSecurityProfile);
@@ -347,7 +347,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     dev_node prod_node 
     "/ImportExportXml/EntityRelationships/EntityRelationship"
     (Attribute "Name")
-    (fun elem -> elem.Attributes.GetNamedItem("Name").Value)
+    (AttributeNamedItem "Name")
     (fun dev_elem prod_elem -> true)
     (fun id -> 
       let req = RetrieveRelationshipRequest ()
@@ -358,7 +358,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     dev_node prod_node 
     "/ImportExportXml/optionsets/optionset"
     (Attribute "Name")
-    (fun elem -> elem.Attributes.GetNamedItem("localizedName").Value)
+    (AttributeNamedItem "localizedName")
     (fun dev_elem prod_elem -> true)
     (fun id -> 
       let req = RetrieveOptionSetRequest ()
@@ -369,7 +369,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     dev_node prod_node 
     "/ImportExportXml/Dashboards/Dashboard"
     (Node "FormId")
-    (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
+    LocalizedNameDescription
     (fun dev_elem prod_elem -> true)
     (fun id -> 
       add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Dashboard);
@@ -377,7 +377,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     dev_node prod_node 
     "/ImportExportXml/WebResources/WebResource"
     (Node "WebResourceId")
-    (fun elem -> elem.SelectSingleNode("DisplayName").InnerText)
+    InnerTextDisplayName
     (fun dev_elem prod_elem -> 
       let dev_file = File.ReadAllBytes(dev_customizations + dev_elem.SelectSingleNode("FileName").InnerText)
       let prod_file = File.ReadAllBytes(prod_customizations + prod_elem.SelectSingleNode("FileName").InnerText)
@@ -406,7 +406,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     dev_node prod_node 
     "/ImportExportXml/AppModuleSiteMaps/AppModuleSiteMap"
     (Node "SiteMapUniqueName")
-    (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
+    LocalizedNameDescription
     (fun dev_elem prod_elem -> true)
     (fun id -> 
       add_solution_component proxy sol_id (fetch_sitemap_id proxy id) SolutionComponent.SiteMap);
@@ -414,7 +414,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     dev_node prod_node 
     "/ImportExportXml/AppModules/AppModule"
     (Node "UniqueName")
-    (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
+    LocalizedNameDescription
     (fun dev_elem prod_elem -> true)
     (fun id -> 
       add_solution_component proxy sol_id (fetch_app_module_id proxy id) SolutionComponent.AppModule);
