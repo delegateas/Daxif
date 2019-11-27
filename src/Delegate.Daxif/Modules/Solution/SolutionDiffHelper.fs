@@ -17,7 +17,6 @@ open System.Threading
 open DG.Daxif.Modules.Solution
 open InternalUtility
 
-
 let rec assoc_right_opt key map = 
   match map with
     | [] -> None
@@ -94,23 +93,47 @@ let create_solution (proxy: IOrganizationService) temporary_solution_name publis
   upd.Attributes.["publisherid"] <- publisher;
   proxy.Create upd
 
-let add_entity_component (proxy: IOrganizationService) sol_id comp_id comp_type =
+type EntityComponent = 
+  | EntityMetaData = 1
+  | Attribute = 2
+  | View = 26
+  | Chart = 59
+  | Form = 60
+
+let add_entity_component (proxy: IOrganizationService) sol_id comp_id (comp_type: EntityComponent) =
+  let compTypeId = LanguagePrimitives.EnumToValue comp_type
   let req = 
     AddSolutionComponentRequest (
       AddRequiredComponents = false,
       ComponentId = comp_id,
-      ComponentType = comp_type,
+      ComponentType = compTypeId,
       DoNotIncludeSubcomponents = true,
       SolutionUniqueName = sol_id
     )
   proxy.Execute(req) |> ignore
 
-let add_solution_component (proxy: IOrganizationService) sol_id comp_id comp_type =
+type SolutionComponent = 
+  | Entity = 1
+  | Ribbon = 1
+  | OptionSet = 9
+  | EntityRelationship = 10
+  | Role = 20
+  | Workflow = 29
+  | Dashboard = 60 // Dashboard has the same id as form!
+  | WebResource = 61
+  | SiteMap = 62
+  | FieldSecurityProfile = 70
+  | AppModule = 80
+  | PluginAssembly = 91
+  | PluginStep = 92
+
+let add_solution_component (proxy: IOrganizationService) sol_id comp_id (comp_type: SolutionComponent) =
+  let compTypeId = LanguagePrimitives.EnumToValue comp_type
   let req = 
     AddSolutionComponentRequest (
       AddRequiredComponents = false,
       ComponentId = comp_id,
-      ComponentType = comp_type,
+      ComponentType = compTypeId,
       SolutionUniqueName = sol_id
     )
   proxy.Execute(req) |> ignore
@@ -176,23 +199,6 @@ let GetReadableName (elem: XmlNode) = function
   
 type XmlPath = string
 
-type ComponentType = 
-  | Entity = 1
-  | Attribute = 2
-  | OptionSet = 10
-  | EntityRelationship = 10
-  | Role = 20
-  | Query = 26
-  | Workflow = 29
-  | Chart = 59
-  | Form = 60
-  | Dashboard = 60 // Dashboard has the same id as form!
-  | WebResource = 61
-  | SiteMap = 62
-  | FieldSecurityProfile = 70
-  | AppModule = 80
-  | PluginAssembly = 91
-  | PluginStep = 92
 
 let elim_elem type_ output (dev_node: XmlNode) (prod_node: XmlNode) dev_path dev_id dev_readable extra_check callback =
   let dev_elems = select_nodes dev_node dev_path
@@ -237,7 +243,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
         req.EntityFilters <- EntityFilters.All;
         req.LogicalName <- name.ToLower();
         let resp = proxy.Execute(req) :?> RetrieveEntityResponse
-        add_solution_component proxy sol_id resp.EntityMetadata.MetadataId.Value 1
+        add_solution_component proxy sol_id resp.EntityMetadata.MetadataId.Value SolutionComponent.Entity
       else if dev_ent.OuterXml = prod_ent.OuterXml then
         if output = Same || output = Both then 
           log.Verbose "Removing unchanged entity: %s" name;
@@ -255,7 +261,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           (fun elem -> elem.Name)
           (fun dev_elem prod_elem -> true)
           (fun id -> 
-            add_entity_component proxy sol_id resp.EntityMetadata.MetadataId.Value 1);
+            add_entity_component proxy sol_id resp.EntityMetadata.MetadataId.Value EntityComponent.EntityMetaData);
         elim_elem "ribbon" output
           dev_ent prod_ent 
           "RibbonDiffXml"
@@ -263,7 +269,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           (fun elem -> "Ribbon")
           (fun dev_elem prod_elem -> true)
           (fun id -> 
-            add_solution_component proxy sol_id resp.EntityMetadata.MetadataId.Value 1);
+            add_solution_component proxy sol_id resp.EntityMetadata.MetadataId.Value SolutionComponent.Ribbon);
         elim_elem "attribute" output
           dev_ent prod_ent 
           "EntityInfo/entity/attributes/attribute"
@@ -273,7 +279,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           (fun id -> 
             resp.EntityMetadata.Attributes
             |> Array.find (fun a -> a.SchemaName = id)
-            |> fun a -> add_entity_component proxy sol_id a.MetadataId.Value 2);
+            |> fun a -> add_entity_component proxy sol_id a.MetadataId.Value EntityComponent.Attribute);
         elim_elem "form" output
           dev_ent prod_ent 
           "FormXml/forms/systemform"
@@ -281,7 +287,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
           (fun dev_elem prod_elem -> true)
           (fun id -> 
-            add_entity_component proxy sol_id (Guid.Parse id) 60);
+            add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.Form);
         elim_elem "view" output
           dev_ent prod_ent 
           "SavedQueries/savedqueries/savedquery"
@@ -289,7 +295,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
           (fun dev_elem prod_elem -> true)
           (fun id -> 
-            add_entity_component proxy sol_id (Guid.Parse id) 26);
+            add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.View);
         elim_elem "chart" output
           dev_ent prod_ent 
           "Visualizations/visualization"
@@ -297,7 +303,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
           (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
           (fun dev_elem prod_elem -> true)
           (fun id -> 
-            add_entity_component proxy sol_id (Guid.Parse id) 59);
+            add_entity_component proxy sol_id (Guid.Parse id) EntityComponent.Chart);
     )
   elim_elem "role" output
     dev_node prod_node 
@@ -306,7 +312,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     (fun elem -> elem.Attributes.GetNamedItem("name").Value)
     (fun dev_elem prod_elem -> true)
     (fun id -> 
-      add_solution_component proxy sol_id (Guid.Parse id) 20);
+      add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Role);
   elim_elem "workflow" output
     dev_node prod_node 
     "/ImportExportXml/Workflows/Workflow"
@@ -328,7 +334,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
       // dev_file = prod_file
       )
     (fun id -> 
-      add_solution_component proxy sol_id (Guid.Parse id) 29);
+      add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Workflow);
   elim_elem "field security profile" output
     dev_node prod_node 
     "/ImportExportXml/FieldSecurityProfiles/FieldSecurityProfile"
@@ -336,7 +342,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     (fun elem -> elem.Attributes.GetNamedItem("name").Value)
     (fun dev_elem prod_elem -> true)
     (fun id -> 
-      add_solution_component proxy sol_id (Guid.Parse id) 70);
+      add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.FieldSecurityProfile);
   elim_elem "entity relationships" output
     dev_node prod_node 
     "/ImportExportXml/EntityRelationships/EntityRelationship"
@@ -347,7 +353,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
       let req = RetrieveRelationshipRequest ()
       req.Name <- id;
       let resp = proxy.Execute(req) :?> RetrieveRelationshipResponse
-      add_solution_component proxy sol_id resp.RelationshipMetadata.MetadataId.Value 10);
+      add_solution_component proxy sol_id resp.RelationshipMetadata.MetadataId.Value SolutionComponent.EntityRelationship);
   elim_elem "option set" output
     dev_node prod_node 
     "/ImportExportXml/optionsets/optionset"
@@ -358,7 +364,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
       let req = RetrieveOptionSetRequest ()
       req.Name <- id;
       let resp = proxy.Execute(req) :?> RetrieveOptionSetResponse
-      add_solution_component proxy sol_id resp.OptionSetMetadata.MetadataId.Value 9);
+      add_solution_component proxy sol_id resp.OptionSetMetadata.MetadataId.Value SolutionComponent.OptionSet);
   elim_elem "dashboard" output
     dev_node prod_node 
     "/ImportExportXml/Dashboards/Dashboard"
@@ -366,7 +372,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
     (fun dev_elem prod_elem -> true)
     (fun id -> 
-      add_solution_component proxy sol_id (Guid.Parse id) 60);
+      add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.Dashboard);
   elim_elem "web resource" output
     dev_node prod_node 
     "/ImportExportXml/WebResources/WebResource"
@@ -377,7 +383,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
       let prod_file = File.ReadAllBytes(prod_customizations + prod_elem.SelectSingleNode("FileName").InnerText)
       dev_file = prod_file)
     (fun id -> 
-      add_solution_component proxy sol_id (Guid.Parse id) 61);
+      add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.WebResource);
   add_all "plugin assembly" output
     dev_node
     "/ImportExportXml/SolutionPluginAssemblies/PluginAssembly"
@@ -385,7 +391,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     (fun elem -> elem.Attributes.GetNamedItem("FullName").Value)
     (fun dev_elem -> true)
     (fun id -> 
-      add_solution_component proxy sol_id (Guid.Parse id) 91);
+      add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.PluginAssembly);
   add_all "plugin step" output
     dev_node
     "/ImportExportXml/SdkMessageProcessingSteps/SdkMessageProcessingStep"
@@ -393,7 +399,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     (fun elem -> elem.Attributes.GetNamedItem("Name").Value)
     (fun dev_elem -> true)
     (fun id -> 
-      add_solution_component proxy sol_id (Guid.Parse id) 92);
+      add_solution_component proxy sol_id (Guid.Parse id) SolutionComponent.PluginStep);
   // (Reports)
   // (regular Sitemap)
   elim_elem "app site map" output
@@ -403,7 +409,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
     (fun dev_elem prod_elem -> true)
     (fun id -> 
-      add_solution_component proxy sol_id (fetch_sitemap_id proxy id) 62);
+      add_solution_component proxy sol_id (fetch_sitemap_id proxy id) SolutionComponent.SiteMap);
   elim_elem "app" output
     dev_node prod_node 
     "/ImportExportXml/AppModules/AppModule"
@@ -411,7 +417,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
     (fun elem -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value)
     (fun dev_elem prod_elem -> true)
     (fun id -> 
-      add_solution_component proxy sol_id (fetch_app_module_id proxy id) 80);
+      add_solution_component proxy sol_id (fetch_app_module_id proxy id) SolutionComponent.AppModule);
     
 let to_string (doc : XmlDocument) =
   let ws = new XmlWriterSettings()
