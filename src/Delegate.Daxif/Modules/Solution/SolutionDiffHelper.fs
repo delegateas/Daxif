@@ -142,21 +142,57 @@ let add_all type_ output (dev_node: XmlNode) dev_path dev_id dev_readable extra_
 type id_node = 
   | Attribute of string
   | Node of string
-  | Special of (string -> string)
+  | Custom of (string -> string)
+
 let get_id (elem: XmlNode) = function
   | Attribute id ->
     elem.Attributes.GetNamedItem(id).Value
   | Node id ->
     elem.SelectSingleNode(id).InnerText
-  | Special _ ->
+  | Custom _ ->
     elem.Name
+
 let append_selector path id = function
   | Attribute att ->
     path + "[@"+att+"='"+id+"']"
   | Node att -> 
     path + "["+att+"/text()='"+id+"']"
-  | Special fpath -> 
+  | Custom fpath -> 
     fpath id
+
+type ReadableName =
+  | Static of string // example: "Ribbon"
+  | ElemName // elem.name
+  | AttributeName of string
+  | InnerTextDisplayName
+  | LocalizedDescription
+
+let GetReadableName (elem: XmlNode) = function
+  | Static name -> name
+  | ElemName -> elem.Name
+  | AttributeName attrName -> elem.Attributes.GetNamedItem(attrName).Value
+  | InnerTextDisplayName -> elem.SelectSingleNode("DisplayName").InnerText
+  | LocalizedDescription -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value
+  
+type XmlPath = string
+
+type ComponentType = 
+  | Entity = 1
+  | Attribute = 2
+  | OptionSet = 10
+  | EntityRelationship = 10
+  | Role = 20
+  | Query = 26
+  | Workflow = 29
+  | Chart = 59
+  | Form = 60
+  | Dashboard = 60 // Dashboard has the same id as form!
+  | WebResource = 61
+  | SiteMap = 62
+  | FieldSecurityProfile = 70
+  | AppModule = 80
+  | PluginAssembly = 91
+  | PluginStep = 92
 
 let elim_elem type_ output (dev_node: XmlNode) (prod_node: XmlNode) dev_path dev_id dev_readable extra_check callback =
   let dev_elems = select_nodes dev_node dev_path
@@ -215,7 +251,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
         elim_elem "entity info" output
           dev_ent prod_ent 
           "EntityInfo/entity/*[not(self::attributes)]" 
-          (Special (fun id -> "EntityInfo/entity/"+id))
+          (Custom (fun id -> "EntityInfo/entity/"+id))
           (fun elem -> elem.Name)
           (fun dev_elem prod_elem -> true)
           (fun id -> 
@@ -223,7 +259,7 @@ let rec elim (proxy: IOrganizationService) sol_id (dev_customizations: string) (
         elim_elem "ribbon" output
           dev_ent prod_ent 
           "RibbonDiffXml"
-          (Special (fun id -> "RibbonDiffXml"))
+          (Custom (fun id -> "RibbonDiffXml"))
           (fun elem -> "Ribbon")
           (fun dev_elem prod_elem -> true)
           (fun id -> 
