@@ -129,6 +129,8 @@
     <Compile Include="Modules\Solution\Domain.fs" />
     <Compile Include="Modules\Solution\ExtendedSolutionHelper.fs" />
     <Compile Include="Modules\Solution\SolutionHelper.fs" />
+    <Compile Include="Modules\Solution\DiffFetcher.fs" />
+    <Compile Include="Modules\Solution\DiffAdder.fs" />
     <Compile Include="Modules\Solution\Main.fs" />
     <Compile Include="Modules\Solution\Versioning.fs" />
     <Compile Include="Modules\Solution\SolutionDiffHelper.fs" />

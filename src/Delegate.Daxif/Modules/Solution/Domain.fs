@@ -23,3 +23,26 @@ type ExtendedSolution =
     keepWorkflows: seq<Guid*string>
     keepWebresources: seq<Guid*string>
   }
+
+
+type EntityComponent = 
+  | EntityMetaData = 1
+  | Attribute = 2
+  | View = 26
+  | Chart = 59
+  | Form = 60
+
+type SolutionComponent = 
+  | Entity = 1
+  | Ribbon = 1
+  | OptionSet = 9
+  | EntityRelationship = 10
+  | Role = 20
+  | Workflow = 29
+  | Dashboard = 60 // Dashboard has the same id as form!
+  | WebResource = 61
+  | SiteMap = 62
+  | FieldSecurityProfile = 70
+  | AppModule = 80
+  | PluginAssembly = 91
+  | PluginStep = 92
