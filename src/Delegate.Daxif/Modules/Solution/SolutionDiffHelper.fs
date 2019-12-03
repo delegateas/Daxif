@@ -19,6 +19,10 @@ open DiffFetcher
 open DiffAdder
 
 
+let removeNode (node: XmlNode) =
+  if node <> null then
+    node.ParentNode.RemoveChild node |> ignore
+
 type output =
   | Silent
   | Same
@@ -30,7 +34,7 @@ type id_node =
   | Node of string
   | Custom of (string -> string)
 
-let get_id (elem: XmlNode) = function
+let getId (elem: XmlNode) = function
   | Attribute id ->
     elem.Attributes.GetNamedItem(id).Value
   | Node id ->
@@ -97,24 +101,24 @@ type AddToSolutionStrategy =
   | EntityComponentAdd of EntityComponent
   | SolutionComponentAdd of SolutionComponent
 
-let elim_elem ((dev_unzip_path, prod_unzip_path): (string * string)) output (dev_node: XmlNode) (prod_node: XmlNode) 
-              type_ dev_node_path dev_id (dev_readable: ReadableName) (extra_check: ExtraChecks) callback =
-  let dev_elems = selectNodes dev_node dev_node_path
-  dev_elems
-  |> Seq.iter (fun dev_elem ->
-    let id = get_id dev_elem dev_id
-    let name = GetReadableName dev_elem dev_readable
-    let prod_elem = prod_node.SelectSingleNode(append_selector dev_node_path id dev_id)
-    let extra_check_fun = GetExtraCheck (dev_unzip_path, prod_unzip_path) dev_elem prod_elem extra_check
+let elim_elem ((devExtractedPath, prodExtractedPath): (string * string)) output (devNode: XmlNode) (prodNode: XmlNode) 
+              type_ devNodePath devId (devReadable: ReadableName) (extraCheck: ExtraChecks) callback =
+  let devElements = selectNodes devNode devNodePath
+  devElements
+  |> Seq.iter (fun devElement ->
+    let id = getId devElement devId
+    let name = GetReadableName devElement devReadable
+    let prodElement = prodNode.SelectSingleNode(append_selector devNodePath id devId)
+    let extraCheckfunction = GetExtraCheck (devExtractedPath, prodExtractedPath) devElement prodElement extraCheck
     // remove_useless dev_elem prod_elem;
-    if prod_elem = null then
+    if prodElement = null then
       if output = Diff || output = Both then 
         log.Verbose "Adding new %s: %s" type_ name;
       callback id;
-    else if dev_elem.OuterXml = prod_elem.OuterXml && extra_check_fun then
+    else if devElement.OuterXml = prodElement.OuterXml && extraCheckfunction then
       if output = Same || output = Both then 
         log.Verbose "Removing unchanged %s: %s" type_ name;
-      remove_node dev_elem;
+      removeNode devElement;
     else
       if output = Diff || output = Both then 
         log.Verbose "Adding modified %s: %s" type_ name;
@@ -127,12 +131,12 @@ type NodeEntityDecision =
   | NotEntity of XmlNode * XmlNode * RetrieveEntityResponse
   | UnhandledEntity
 
-let NodeIsNotEntity (proxy: IOrganizationService) diffSolutionUniqueName output (dev_ent: XmlNode) (prod_node: XmlNode) = 
-  let entity_node = dev_ent.SelectSingleNode("EntityInfo/entity")
-  if entity_node <> null then
-    let name = entity_node.Attributes.GetNamedItem("Name").Value
-    let prod_ent = prod_node.SelectSingleNode("/ImportExportXml/Entities/Entity[EntityInfo/entity/@Name='"+name+"']")
-    if prod_ent = null then
+let NodeIsNotEntity (proxy: IOrganizationService) diffSolutionUniqueName output (devEntity: XmlNode) (prod_node: XmlNode) = 
+  let entityNode = devEntity.SelectSingleNode("EntityInfo/entity")
+  if entityNode <> null then
+    let name = entityNode.Attributes.GetNamedItem("Name").Value
+    let prodEntity = prod_node.SelectSingleNode("/ImportExportXml/Entities/Entity[EntityInfo/entity/@Name='"+name+"']")
+    if prodEntity = null then
       if output = Diff || output = Both then 
         log.Verbose "Adding new entity: %s" name;
       let req = RetrieveEntityRequest ()
@@ -141,10 +145,10 @@ let NodeIsNotEntity (proxy: IOrganizationService) diffSolutionUniqueName output 
       let resp = proxy.Execute(req) :?> RetrieveEntityResponse
       createSolutionComponent proxy diffSolutionUniqueName resp.EntityMetadata.MetadataId.Value SolutionComponent.Entity
       AddEntity
-    elif dev_ent.OuterXml = prod_ent.OuterXml then
+    elif devEntity.OuterXml = prodEntity.OuterXml then
       if output = Same || output = Both then 
         log.Verbose "Removing unchanged entity: %s" name;
-      remove_node dev_ent;
+      removeNode devEntity;
       RemoveEntity
     else
       log.Verbose "Processing entity: %s" name;
@@ -152,23 +156,23 @@ let NodeIsNotEntity (proxy: IOrganizationService) diffSolutionUniqueName output 
       req.EntityFilters <- EntityFilters.All;
       req.LogicalName <- name.ToLower();
       let resp = proxy.Execute(req) :?> RetrieveEntityResponse
-      NotEntity (dev_ent, prod_ent, resp)
+      NotEntity (devEntity, prodEntity, resp)
    else
      UnhandledEntity
 
 // Help: https://bettercrm.blog/2017/04/26/solution-component-types-in-dynamics-365/
-let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (dev_customizations: string) (prod_customizations: string) (dev_node: XmlNode) (prod_node: XmlNode) output =
+let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (devCustomizations: string) (prodCustomizations: string) (devNode: XmlNode) (prodNode: XmlNode) output =
   log.Verbose "Preprocessing";
   let expr = "//IntroducedVersion|//IsDataSourceSecret|//Format|//CanChangeDateTimeBehavior|//LookupStyle|//CascadeRollupView|//Length|//TriggerOnUpdateAttributeList[not(text())]"
-  selectNodes dev_node expr |> Seq.iter remove_node;
-  selectNodes prod_node expr |> Seq.iter remove_node;
+  selectNodes devNode expr |> Seq.iter removeNode;
+  selectNodes prodNode expr |> Seq.iter removeNode;
   
-  let GenericAddToSolution = elim_elem (dev_customizations, prod_customizations) output
-  let entities = selectNodes dev_node "/ImportExportXml/Entities/Entity"
+  let GenericAddToSolution = elim_elem (devCustomizations, prodCustomizations) output
+  let entities = selectNodes devNode "/ImportExportXml/Entities/Entity"
   
   entities
   |> Seq.iter (fun dev_ent -> 
-    let isEntityNode = NodeIsNotEntity proxy diffSolutionUniqueName output dev_ent prod_node
+    let isEntityNode = NodeIsNotEntity proxy diffSolutionUniqueName output dev_ent prodNode
     match isEntityNode with 
     | NotEntity (dev_ent, prod_ent, resp) ->
       let AddEntityDataToSolution = GenericAddToSolution dev_ent prod_ent
@@ -217,7 +221,7 @@ let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (dev_customiza
           createEntityComponent proxy diffSolutionUniqueName (Guid.Parse id) EntityComponent.Chart);
       | _ -> ()
     )
-  let AddSolutionDataToSolution = elim_elem (dev_customizations, prod_customizations) output dev_node prod_node
+  let AddSolutionDataToSolution = elim_elem (devCustomizations, prodCustomizations) output devNode prodNode
 
   AddSolutionDataToSolution "role" "/ImportExportXml/Roles/Role"
     (Attribute "id")
@@ -268,7 +272,7 @@ let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (dev_customiza
     (fun id -> 
       createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) SolutionComponent.WebResource);
   addAll "plugin assembly" output
-    dev_node
+    devNode
     "/ImportExportXml/SolutionPluginAssemblies/PluginAssembly"
     (fun elem -> elem.Attributes.GetNamedItem("PluginAssemblyId").Value)
     (fun elem -> elem.Attributes.GetNamedItem("FullName").Value)
@@ -276,7 +280,7 @@ let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (dev_customiza
     (fun id -> 
       createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginAssembly);
   addAll "plugin step" output
-    dev_node
+    devNode
     "/ImportExportXml/SdkMessageProcessingSteps/SdkMessageProcessingStep"
     (fun elem -> elem.Attributes.GetNamedItem("SdkMessageProcessingStepId").Value)
     (fun elem -> elem.Attributes.GetNamedItem("Name").Value)

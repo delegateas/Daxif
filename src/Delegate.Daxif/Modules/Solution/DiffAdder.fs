@@ -52,10 +52,6 @@ let selectNodes (node: XmlNode) (xpath: string) =
   node.SelectNodes(xpath)
   |> Seq.cast<XmlNode>
 
-let remove_node (node: XmlNode) =
-  if node <> null then
-    node.ParentNode.RemoveChild node |> ignore
-
 let addAll type_ output (dev_node: XmlNode) dev_path dev_id dev_readable extra_check callback =
   let dev_elems = selectNodes dev_node dev_path
   dev_elems
