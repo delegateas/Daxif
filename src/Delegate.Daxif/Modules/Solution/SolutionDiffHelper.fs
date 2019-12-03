@@ -101,6 +101,20 @@ type AddToSolutionStrategy =
   | EntityComponentAdd of EntityComponent
   | SolutionComponentAdd of SolutionComponent
 
+type CallbackKind =
+  | EntityMetadataCallback
+  | RibbonCallback
+  | CustomCallback of (string -> unit)
+  | EntityComponentCallback of string * EntityComponent
+  | SolutionComponentCallback of string * SolutionComponent
+
+let callbackFun resp = function 
+  | EntityMetadataCallback -> ()
+  | RibbonCallback -> ()
+  | CustomCallback _ -> ()
+  | EntityComponentCallback _ -> ()
+  | SolutionComponentCallback _ -> ()
+
 let elim_elem ((devExtractedPath, prodExtractedPath): (string * string)) output (devNode: XmlNode) (prodNode: XmlNode) 
               type_ devNodePath devId (devReadable: ReadableName) (extraCheck: ExtraChecks) callback =
   let devElements = selectNodes devNode devNodePath
@@ -136,6 +150,7 @@ let NodeIsNotEntity (proxy: IOrganizationService) diffSolutionUniqueName output 
   if entityNode <> null then
     let name = entityNode.Attributes.GetNamedItem("Name").Value
     let prodEntity = prod_node.SelectSingleNode("/ImportExportXml/Entities/Entity[EntityInfo/entity/@Name='"+name+"']")
+
     if prodEntity = null then
       if output = Diff || output = Both then 
         log.Verbose "Adding new entity: %s" name;
@@ -144,11 +159,13 @@ let NodeIsNotEntity (proxy: IOrganizationService) diffSolutionUniqueName output 
       req.LogicalName <- name.ToLower();
       let resp = proxy.Execute(req) :?> RetrieveEntityResponse
       createSolutionComponent proxy diffSolutionUniqueName resp.EntityMetadata.MetadataId.Value SolutionComponent.Entity
+
       AddEntity
     elif devEntity.OuterXml = prodEntity.OuterXml then
       if output = Same || output = Both then 
         log.Verbose "Removing unchanged entity: %s" name;
       removeNode devEntity;
+
       RemoveEntity
     else
       log.Verbose "Processing entity: %s" name;
@@ -156,6 +173,7 @@ let NodeIsNotEntity (proxy: IOrganizationService) diffSolutionUniqueName output 
       req.EntityFilters <- EntityFilters.All;
       req.LogicalName <- name.ToLower();
       let resp = proxy.Execute(req) :?> RetrieveEntityResponse
+
       NotEntity (devEntity, prodEntity, resp)
    else
      UnhandledEntity
@@ -199,6 +217,7 @@ let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (devCustomizat
           resp.EntityMetadata.Attributes
           |> Array.find (fun a -> a.SchemaName = id)
           |> fun a -> createEntityComponent proxy diffSolutionUniqueName a.MetadataId.Value EntityComponent.Attribute);
+
       AddEntityDataToSolution "form" "FormXml/forms/systemform"
         (Node "formid")
         LocalizedNameDescription
@@ -229,18 +248,21 @@ let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (devCustomizat
     NoExtra
     (fun id -> 
       createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) SolutionComponent.Role);
+
   AddSolutionDataToSolution "workflow" "/ImportExportXml/Workflows/Workflow"
     (Attribute "WorkflowId")
     (AttributeNamedItem "Name")
     WorkflowGuidReplace
     (fun id -> 
       createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) SolutionComponent.Workflow);
+
   AddSolutionDataToSolution "field security profile" "/ImportExportXml/FieldSecurityProfiles/FieldSecurityProfile"
     (Attribute "fieldsecurityprofileid")
     (AttributeNamedItem "name")
     NoExtra
     (fun id -> 
       createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) SolutionComponent.FieldSecurityProfile);
+
   AddSolutionDataToSolution "entity relationships" "/ImportExportXml/EntityRelationships/EntityRelationship"
     (Attribute "Name")
     (AttributeNamedItem "Name")
@@ -250,6 +272,7 @@ let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (devCustomizat
       req.Name <- id;
       let resp = proxy.Execute(req) :?> RetrieveRelationshipResponse
       createSolutionComponent proxy diffSolutionUniqueName resp.RelationshipMetadata.MetadataId.Value SolutionComponent.EntityRelationship);
+
   AddSolutionDataToSolution "option set" "/ImportExportXml/optionsets/optionset"
     (Attribute "Name")
     (AttributeNamedItem "localizedName")
@@ -259,18 +282,21 @@ let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (devCustomizat
       req.Name <- id;
       let resp = proxy.Execute(req) :?> RetrieveOptionSetResponse
       createSolutionComponent proxy diffSolutionUniqueName resp.OptionSetMetadata.MetadataId.Value SolutionComponent.OptionSet);
+
   AddSolutionDataToSolution "dashboard" "/ImportExportXml/Dashboards/Dashboard"
     (Node "FormId")
     LocalizedNameDescription
     NoExtra
     (fun id -> 
       createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) SolutionComponent.Dashboard);
+
   AddSolutionDataToSolution "web resource" "/ImportExportXml/WebResources/WebResource"
     (Node "WebResourceId")
     InnerTextDisplayName
     WebResourceByteDiff
     (fun id -> 
       createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) SolutionComponent.WebResource);
+
   addAll "plugin assembly" output
     devNode
     "/ImportExportXml/SolutionPluginAssemblies/PluginAssembly"
@@ -279,6 +305,7 @@ let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (devCustomizat
     (fun dev_elem -> true)
     (fun id -> 
       createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginAssembly);
+
   addAll "plugin step" output
     devNode
     "/ImportExportXml/SdkMessageProcessingSteps/SdkMessageProcessingStep"
@@ -295,6 +322,7 @@ let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (devCustomizat
     NoExtra
     (fun id -> 
       createSolutionComponent proxy diffSolutionUniqueName (fetchSitemapId proxy id) SolutionComponent.SiteMap);
+
   AddSolutionDataToSolution "app" "/ImportExportXml/AppModules/AppModule"
     (Node "UniqueName")
     LocalizedNameDescription
