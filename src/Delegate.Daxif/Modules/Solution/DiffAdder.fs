@@ -26,27 +26,27 @@ let createSolution (proxy: IOrganizationService) temporary_solution_name publish
 
 let createEntityComponent (proxy: IOrganizationService) sol_id comp_id (comp_type: EntityComponent) =
   let compTypeId = LanguagePrimitives.EnumToValue comp_type
-  let req = 
-    AddSolutionComponentRequest (
-      AddRequiredComponents = false,
-      ComponentId = comp_id,
-      ComponentType = compTypeId,
-      DoNotIncludeSubcomponents = true,
-      SolutionUniqueName = sol_id
-    )
-  proxy.Execute(req) |> ignore
+  //let req = 
+  AddSolutionComponentRequest (
+    AddRequiredComponents = false,
+    ComponentId = comp_id,
+    ComponentType = compTypeId,
+    DoNotIncludeSubcomponents = true,
+    SolutionUniqueName = sol_id
+  )
+  // proxy.Execute(req) |> ignore
 
 
 let createSolutionComponent (proxy: IOrganizationService) sol_id comp_id (comp_type: SolutionComponent) =
   let compTypeId = LanguagePrimitives.EnumToValue comp_type
-  let req = 
-    AddSolutionComponentRequest (
-      AddRequiredComponents = false,
-      ComponentId = comp_id,
-      ComponentType = compTypeId,
-      SolutionUniqueName = sol_id
-    )
-  proxy.Execute(req) |> ignore
+  //let req = 
+  AddSolutionComponentRequest (
+    AddRequiredComponents = false,
+    ComponentId = comp_id,
+    ComponentType = compTypeId,
+    SolutionUniqueName = sol_id
+  )
+  //proxy.Execute(req) |> ignore
 
 let selectNodes (node: XmlNode) (xpath: string) =
   node.SelectNodes(xpath)
@@ -55,7 +55,7 @@ let selectNodes (node: XmlNode) (xpath: string) =
 let addAll type_ output (dev_node: XmlNode) dev_path dev_id dev_readable extra_check callback =
   let dev_elems = selectNodes dev_node dev_path
   dev_elems
-  |> Seq.iter (fun dev_elem ->
+  |> Seq.map (fun dev_elem ->
     let id = dev_id dev_elem
     let name = dev_readable dev_elem
     log.Verbose "Adding %s: %s" type_ name;
