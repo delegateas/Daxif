@@ -91,7 +91,7 @@ type ExtraChecks =
   | WebResourceByteDiff
   | WorkflowGuidReplace
 
-let GetExtraCheck (dev_path, prod_path) (dev_elem: XmlNode) (prod_elem: XmlNode) = function
+let extraCheckFun (dev_path, prod_path) (dev_elem: XmlNode) (prod_elem: XmlNode) = function
   | NoExtra -> true
   | WorkflowGuidReplace -> workflowGuidReplace (dev_path, prod_path) dev_elem prod_elem
   | WebResourceByteDiff -> webResourceByteDiff (dev_path, prod_path) dev_elem prod_elem
@@ -120,16 +120,25 @@ let callbackFun proxy diffSolutionUniqueName (resp: RetrieveEntityResponse optio
   | SolutionComponentCallback comp-> 
       createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) comp
 
-let elim_elem ((proxy, devExtractedPath, prodExtractedPath): (IOrganizationService * string * string)) 
-              output diffSolutionUniqueName (devNode: XmlNode) (prodNode: XmlNode) (resp: RetrieveEntityResponse option)
+type DiffSolutionInfo = {
+  proxy: IOrganizationService
+  devExtractedPath: string
+  prodExtractedPath: string
+  solutionUniqueName: string
+}
+
+let elim_elem (diffSolutionInfo: DiffSolutionInfo) output (devNode: XmlNode) (prodNode: XmlNode) (resp: RetrieveEntityResponse option)
               type_ devNodePath devId (devReadable: ReadableName) (extraCheck: ExtraChecks) (callbackKind: CallbackKind) =
+  let { proxy = proxy; solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   let devElements = selectNodes devNode devNodePath
   devElements
   |> Seq.iter (fun devElement ->
     let id = getId devElement devId
     let name = GetReadableName devElement devReadable
     let prodElement = prodNode.SelectSingleNode(append_selector devNodePath id devId)
-    let extraCheckfunction = GetExtraCheck (devExtractedPath, prodExtractedPath) devElement prodElement extraCheck
+    let extraCheckfunction = extraCheckFun (diffSolutionInfo.devExtractedPath, diffSolutionInfo.prodExtractedPath) 
+                                            devElement prodElement extraCheck
+    
     let callback = callbackFun proxy diffSolutionUniqueName resp
     // remove_useless dev_elem prod_elem;
     if prodElement = null then
@@ -152,7 +161,8 @@ type NodeEntityDecision =
   | NotEntity of XmlNode * XmlNode * RetrieveEntityResponse
   | UnhandledEntity
 
-let NodeIsNotEntity (proxy: IOrganizationService) diffSolutionUniqueName output (devEntity: XmlNode) (prod_node: XmlNode) = 
+let NodeIsNotEntity (diffSolutionInfo: DiffSolutionInfo) output (devEntity: XmlNode) (prod_node: XmlNode) = 
+  let { proxy = proxy; solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   let entityNode = devEntity.SelectSingleNode("EntityInfo/entity")
   if entityNode <> null then
     let name = entityNode.Attributes.GetNamedItem("Name").Value
@@ -179,25 +189,27 @@ let NodeIsNotEntity (proxy: IOrganizationService) diffSolutionUniqueName output 
       let req = RetrieveEntityRequest ()
       req.EntityFilters <- EntityFilters.All;
       req.LogicalName <- name.ToLower();
-      let resp = proxy.Execute(req) :?> RetrieveEntityResponse
+      let resp = diffSolutionInfo.proxy.Execute(req) :?> RetrieveEntityResponse
 
       NotEntity (devEntity, prodEntity, resp)
    else
      UnhandledEntity
 
 // Help: https://bettercrm.blog/2017/04/26/solution-component-types-in-dynamics-365/
-let rec elim (proxy: IOrganizationService) diffSolutionUniqueName (devCustomizations: string) (prodCustomizations: string) (devNode: XmlNode) (prodNode: XmlNode) output =
+let rec elim (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNode: XmlNode) output =
   log.Verbose "Preprocessing";
   let expr = "//IntroducedVersion|//IsDataSourceSecret|//Format|//CanChangeDateTimeBehavior|//LookupStyle|//CascadeRollupView|//Length|//TriggerOnUpdateAttributeList[not(text())]"
   selectNodes devNode expr |> Seq.iter removeNode;
   selectNodes prodNode expr |> Seq.iter removeNode;
   
-  let GenericAddToSolution = elim_elem (proxy, devCustomizations, prodCustomizations) output diffSolutionUniqueName
+  let GenericAddToSolution = elim_elem diffSolutionInfo output
   let entities = selectNodes devNode "/ImportExportXml/Entities/Entity"
+  
+  let { proxy = proxy; solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   
   entities
   |> Seq.iter (fun dev_ent -> 
-    let isEntityNode = NodeIsNotEntity proxy diffSolutionUniqueName output dev_ent prodNode
+    let isEntityNode = NodeIsNotEntity diffSolutionInfo output dev_ent prodNode
     match isEntityNode with 
       | NotEntity (dev_ent, prod_ent, resp) ->
       let AddEntityDataToSolution = GenericAddToSolution dev_ent prod_ent (Some resp)
@@ -340,15 +352,23 @@ let to_string (doc : XmlDocument) =
   doc.Save(writer);
   sw.ToString()
 
-let diff (proxy: IOrganizationService) diffSolutionUniqueName (devCustomizations: string) (prodCustomizations: string) output =
+let diff (proxy: IOrganizationService) diffSolutionUniqueName (devExtractedPath: string) (prodExtractedPath: string) output =
   log.Verbose "Parsing DEV customizations";
   let devDocument = XmlDocument ()
-  devDocument.Load (devCustomizations + "/customizations.xml");
+  devDocument.Load (devExtractedPath + "/customizations.xml");
   log.Verbose "Parsing PROD customizations";
   let prodDocument = XmlDocument ()
-  prodDocument.Load (prodCustomizations + "/customizations.xml");
+  prodDocument.Load (prodExtractedPath + "/customizations.xml");
   log.Verbose "Calculating diff";
-  elim proxy diffSolutionUniqueName devCustomizations prodCustomizations devDocument prodDocument output |> ignore;
+
+  let diffSolutionInfo = {
+    proxy = proxy
+    devExtractedPath = devExtractedPath
+    prodExtractedPath = prodExtractedPath
+    solutionUniqueName = diffSolutionUniqueName
+  }
+
+  elim diffSolutionInfo devDocument prodDocument output |> ignore;
   // log.Verbose "Saving";
   // File.WriteAllText (__SOURCE_DIRECTORY__ + @"\diff.xml", to_string dev_doc);
 
