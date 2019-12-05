@@ -186,7 +186,12 @@ let executeImportRequestWithProgress (proxy: IOrganizationService) (fileBytes: b
   let resp = proxy.Execute(async_req) :?> ExecuteAsyncResponse
   fetchImportStatus proxy importid resp.AsyncJobId;
 
-let setWorkflowStates (proxy: IOrganizationService) xml = 
+let setWorkflowStates (proxy: IOrganizationService) temp = 
+  let xml = XmlDocument ()
+  xml.Load (temp + "/customizations.xml")
+
+  log.Verbose "Setting workflow states"
+
   selectNodes xml "/ImportExportXml/Workflows/Workflow"
   |> Seq.iter (fun e ->
     let id = e.Attributes.GetNamedItem("WorkflowId").Value

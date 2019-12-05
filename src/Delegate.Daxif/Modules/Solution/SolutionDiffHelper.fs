@@ -59,8 +59,8 @@ let diffElement (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNod
   result
 
 type NodeEntityDecision =
-  | AddEntity // in future, yield an add request
-  | RemoveEntity // in future, yield remove request
+  | AddEntity
+  | RemoveEntity
   | NotEntity of XmlNode * XmlNode * RetrieveEntityResponse
   | UnhandledEntity
 
@@ -163,78 +163,3 @@ let diff (proxy: IOrganizationService) diffSolutionUniqueName (devExtractedPath:
   diffSolution diffSolutionInfo devDocument prodDocument
   // log.Verbose "Saving";
   // File.WriteAllText (__SOURCE_DIRECTORY__ + @"\diff.xml", to_string dev_doc);
-
-let export fileLocation completeSolutionName temporarySolutionName (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) = 
-  log.Info "Starting diff export"
-  Directory.CreateDirectory(fileLocation) |> ignore;
-  // Export [complete solution] from DEV and PROD
-  let ((devProxy, devSolution), (prodProxy, prodSolution)) = 
-    [| dev; prod |]
-    |> Array.Parallel.map (fun env -> 
-      log.Verbose "Connecting to %s" env.name;
-      let proxy = env.connect().GetProxy()
-      Directory.CreateDirectory(fileLocation + "/" + env.name) |> ignore;
-
-      log.Verbose "Exporting solution '%s' from %s" completeSolutionName env.name;
-      let sol = downloadSolutionRetry env (fileLocation + "/" + env.name + "/") completeSolutionName 15 1
-      unzip sol;
-      (proxy, sol))
-    |> function [| devSolution; prodSolution |] -> (devSolution, prodSolution) | _ -> failwith "Impossible"
-  
-  let publisherId = (fetchSolution devProxy completeSolutionName).Attributes.["publisherid"]
-
-  // Create new [partial solution] on DEV
-  let id = createSolution devProxy temporarySolutionName publisherId
-  try
-    let requestsFromDiff = diff devProxy temporarySolutionName devSolution prodSolution
-
-    // Export [partial solution] from DEV
-    log.Verbose "Exporting solution '%s' from %s" temporarySolutionName dev.name;
-    let temp_sol = downloadSolution dev (fileLocation + "/") temporarySolutionName 15
-    // Delete [partial solution] on DEV
-    log.Verbose "Deleting solution '%s'" temporarySolutionName;
-    devProxy.Delete("solution", id);
-    log.Info "Done exporting diff solution"
-    temporarySolutionName
-  with e -> 
-    // Delete [partial solution] on DEV
-    log.Verbose "Deleting solution '%s'" temporarySolutionName;
-    devProxy.Delete("solution", id);
-    failwith e.Message; 
-
-
-let import solutionZipPath complete_solution_name temporary_solution_name (env:DG.Daxif.Environment) = 
-  log.Verbose "Connecting to environment %s" env.name;
-  let proxy = env.connect().GetProxy()
-  // TODO: Remove all Daxif plugin steps
-  // Import [partial solution] to TARGET
-  let fileBytes = File.ReadAllBytes(solutionZipPath + "/" + temporary_solution_name + ".zip")
-  let stopWatch = System.Diagnostics.Stopwatch.StartNew()
-  
-  executeImportRequestWithProgress proxy fileBytes
-
-  let temp = solutionZipPath + "/" + temporary_solution_name
-  unzip temp;
-  
-  log.Verbose "Parsing TEMP customizations";
-  let xml = XmlDocument ()
-  xml.Load (temp + "/customizations.xml");
-
-  log.Verbose "Setting workflow states";
-  setWorkflowStates proxy xml
-  
-  // Run through solution components of [partial solution], add to [complete solution] on TARGET
-  let tempSolution = fetchSolution proxy temporary_solution_name
-
-  log.Info "Publishing changes"
-  CrmDataHelper.publishAll proxy
-
-  stopWatch.Stop()
-  
-  log.Info "Downtime: %.1f minutes" stopWatch.Elapsed.TotalMinutes;
-  transferSolutionComponents proxy tempSolution.Id complete_solution_name
-  
-  // Delete [partial solution] on TARGET
-  log.Verbose "Deleting solution '%s'" temporary_solution_name
-  proxy.Delete("solution", tempSolution.Id)
-    
