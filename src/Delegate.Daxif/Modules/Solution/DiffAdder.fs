@@ -24,7 +24,7 @@ let createSolution (proxy: IOrganizationService) temporary_solution_name publish
   upd.Attributes.["publisherid"] <- publisher;
   proxy.Create upd
 
-let createEntityComponent (proxy: IOrganizationService) sol_id comp_id (comp_type: EntityComponent) =
+let createEntityComponentRequest (*(proxy: IOrganizationService)*) sol_id comp_id (comp_type: EntityComponent) =
   let compTypeId = LanguagePrimitives.EnumToValue comp_type
   //let req = 
   AddSolutionComponentRequest (
@@ -37,7 +37,7 @@ let createEntityComponent (proxy: IOrganizationService) sol_id comp_id (comp_typ
   // proxy.Execute(req) |> ignore
 
 
-let createSolutionComponent (proxy: IOrganizationService) sol_id comp_id (comp_type: SolutionComponent) =
+let createSolutionComponentRequest (*(proxy: IOrganizationService)*) sol_id comp_id (comp_type: SolutionComponent) =
   let compTypeId = LanguagePrimitives.EnumToValue comp_type
   //let req = 
   AddSolutionComponentRequest (

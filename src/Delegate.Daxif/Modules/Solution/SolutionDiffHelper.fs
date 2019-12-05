@@ -108,17 +108,17 @@ type CallbackKind =
   | EntityComponentCallback of EntityComponent
   | SolutionComponentCallback of SolutionComponent
 
-let callbackFun proxy diffSolutionUniqueName (resp: RetrieveEntityResponse option) id = function 
+let callbackFun diffSolutionUniqueName (resp: RetrieveEntityResponse option) id = function 
   | EntityMetadataCallback -> 
-      createEntityComponent proxy diffSolutionUniqueName resp.Value.EntityMetadata.MetadataId.Value EntityComponent.EntityMetaData
+      createEntityComponentRequest diffSolutionUniqueName resp.Value.EntityMetadata.MetadataId.Value EntityComponent.EntityMetaData
   | RibbonCallback ->
-      createSolutionComponent proxy diffSolutionUniqueName resp.Value.EntityMetadata.MetadataId.Value SolutionComponent.Ribbon
+      createSolutionComponentRequest diffSolutionUniqueName resp.Value.EntityMetadata.MetadataId.Value SolutionComponent.Ribbon
   | CustomCallback callback -> 
       callback id
   | EntityComponentCallback comp -> 
-      createEntityComponent proxy diffSolutionUniqueName (Guid.Parse id) comp
+      createEntityComponentRequest diffSolutionUniqueName (Guid.Parse id) comp
   | SolutionComponentCallback comp-> 
-      createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) comp
+      createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) comp
 
 type DiffSolutionInfo = {
   proxy: IOrganizationService
@@ -129,16 +129,18 @@ type DiffSolutionInfo = {
 
 let diffElement (diffSolutionInfo: DiffSolutionInfo) output (devNode: XmlNode) (prodNode: XmlNode) (resp: RetrieveEntityResponse option)
               type_ devNodePath devId (devReadable: ReadableName) (extraCheck: ExtraChecks) (callbackKind: CallbackKind) =
-  let { proxy = proxy; solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
+  let { solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   let devElements = selectNodes devNode devNodePath
+
   let result = devElements |> Seq.map (fun devElement ->
+
     let id = getId devElement devId
     let name = GetReadableName devElement devReadable
     let prodElement = prodNode.SelectSingleNode(append_selector devNodePath id devId)
     let extraCheckfunction = extraCheckFun (diffSolutionInfo.devExtractedPath, diffSolutionInfo.prodExtractedPath) 
                                             devElement prodElement extraCheck
     
-    let callback = callbackFun proxy diffSolutionUniqueName resp
+    let callback = callbackFun diffSolutionUniqueName resp
     // remove_useless dev_elem prod_elem;
     if prodElement = null then
       if output = Diff || output = Both then 
@@ -186,7 +188,7 @@ let diffEntity (diffSolutionInfo: DiffSolutionInfo) genericAddToSolution (dev_en
       (CustomCallback (fun id -> 
           resp.EntityMetadata.Attributes
           |> Array.find (fun a -> a.SchemaName = id)
-          |> fun a -> createEntityComponent proxy diffSolutionUniqueName a.MetadataId.Value EntityComponent.Attribute)
+          |> fun a -> createEntityComponentRequest diffSolutionUniqueName a.MetadataId.Value EntityComponent.Attribute)
       )
 
     yield! AddEntityDataToSolution "form" "FormXml/forms/systemform"
@@ -225,7 +227,7 @@ let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) output (devEn
     let resp = proxy.Execute(req) :?> RetrieveEntityResponse
       
     seq {
-      yield (Some (createSolutionComponent proxy diffSolutionUniqueName resp.EntityMetadata.MetadataId.Value SolutionComponent.Entity))
+      yield (Some (createSolutionComponentRequest diffSolutionUniqueName resp.EntityMetadata.MetadataId.Value SolutionComponent.Entity))
     }
 
   elif devEntity.OuterXml = prodEntity.OuterXml then
@@ -288,7 +290,7 @@ let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (pr
         let req = RetrieveRelationshipRequest ()
         req.Name <- id;
         let resp = proxy.Execute(req) :?> RetrieveRelationshipResponse
-        createSolutionComponent proxy diffSolutionUniqueName resp.RelationshipMetadata.MetadataId.Value SolutionComponent.EntityRelationship);
+        createSolutionComponentRequest diffSolutionUniqueName resp.RelationshipMetadata.MetadataId.Value SolutionComponent.EntityRelationship);
       )
 
     yield! AddSolutionDataToSolution "option set" "/ImportExportXml/optionsets/optionset"
@@ -299,7 +301,7 @@ let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (pr
           let req = RetrieveOptionSetRequest ()
           req.Name <- id;
           let resp = proxy.Execute(req) :?> RetrieveOptionSetResponse
-          createSolutionComponent proxy diffSolutionUniqueName resp.OptionSetMetadata.MetadataId.Value SolutionComponent.OptionSet);
+          createSolutionComponentRequest diffSolutionUniqueName resp.OptionSetMetadata.MetadataId.Value SolutionComponent.OptionSet);
        )
   
     yield! AddSolutionDataToSolution "dashboard" "/ImportExportXml/Dashboards/Dashboard"
@@ -321,7 +323,7 @@ let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (pr
       (fun elem -> elem.Attributes.GetNamedItem("FullName").Value)
       (fun dev_elem -> true)
       (fun id -> 
-        (Some (createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginAssembly)))
+        (Some (createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginAssembly)))
 
     yield! addAll "plugin step" output
       devNode
@@ -330,7 +332,7 @@ let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (pr
       (fun elem -> elem.Attributes.GetNamedItem("Name").Value)
       (fun dev_elem -> true)
       (fun id -> 
-        (Some (createSolutionComponent proxy diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginStep)))
+        (Some (createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginStep)))
 
     // (Reports)
     // (regular Sitemap)
@@ -339,14 +341,14 @@ let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (pr
       LocalizedNameDescription
       NoExtra
       (CustomCallback (fun id -> 
-        createSolutionComponent proxy diffSolutionUniqueName (fetchSitemapId proxy id) SolutionComponent.SiteMap))
+        createSolutionComponentRequest diffSolutionUniqueName (fetchSitemapId proxy id) SolutionComponent.SiteMap))
 
     yield! AddSolutionDataToSolution "app" "/ImportExportXml/AppModules/AppModule"
       (Node "UniqueName")
       LocalizedNameDescription
       NoExtra
       (CustomCallback (fun id -> 
-        createSolutionComponent proxy diffSolutionUniqueName (fetchAppModuleId proxy id) SolutionComponent.AppModule))
+        createSolutionComponentRequest diffSolutionUniqueName (fetchAppModuleId proxy id) SolutionComponent.AppModule))
   }
 
   printf "%A" batchedDiff
