@@ -29,96 +29,6 @@ type output =
   | Diff
   | Both
 
-type id_node = 
-  | Attribute of string
-  | Node of string
-  | Custom of (string -> string)
-
-let getId (elem: XmlNode) = function
-  | Attribute id ->
-    elem.Attributes.GetNamedItem(id).Value
-  | Node id ->
-    elem.SelectSingleNode(id).InnerText
-  | Custom _ ->
-    elem.Name
-
-let append_selector path id = function
-  | Attribute att ->
-    path + "[@"+att+"='"+id+"']"
-  | Node att -> 
-    path + "["+att+"/text()='"+id+"']"
-  | Custom fpath -> 
-    fpath id
-
-type ReadableName =
-  | Static of string // example: "Ribbon"
-  | AttributeNamedItem of string
-  | ElementName // elem.name
-  | InnerTextDisplayName
-  | LocalizedNameDescription
-
-let GetReadableName (elem: XmlNode) = function
-  | Static name -> name
-  | ElementName -> elem.Name
-  | AttributeNamedItem attrName -> elem.Attributes.GetNamedItem(attrName).Value
-  | InnerTextDisplayName -> elem.SelectSingleNode("DisplayName").InnerText
-  | LocalizedNameDescription -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value
-  
-type XmlPath = string
-
-let workflowGuidReplace ((dev_path, prod_path): (string*string)) (dev_elem: XmlNode) (prod_elem: XmlNode) =
-  let dev_file = File.ReadAllText(dev_path + dev_elem.SelectSingleNode("XamlFileName").InnerText)
-  let prod_file = File.ReadAllText(prod_path + prod_elem.SelectSingleNode("XamlFileName").InnerText)
-  let expr = " Version=.+?,|\s*<x:Null x:Key=\"Description\" />|\s*<x:Boolean x:Key=\"ContainsElseBranch\">False</x:Boolean>"
-  let dev_file = 
-    Regex.Replace(dev_file, 
-      "\[New Object\(\) \{ Microsoft\.Xrm\.Sdk\.Workflow\.WorkflowPropertyType\.Guid, \"(........-....-....-....-............)\", \"Key\" \}\]", 
-      "[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.Guid, \"$1\", \"UniqueIdentifier\" }]")
-  let prod_file = 
-    Regex.Replace(prod_file, 
-      "\[New Object\(\) \{ Microsoft\.Xrm\.Sdk\.Workflow\.WorkflowPropertyType\.Guid, \"(........-....-....-....-............)\", \"Key\" \}\]", 
-      "[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.Guid, \"$1\", \"UniqueIdentifier\" }]")
-  Regex.Replace(dev_file, expr, "").Length = Regex.Replace(prod_file, expr, "").Length
-  // dev_file = prod_file
-
-let webResourceByteDiff ((dev_path, prod_path): (string*string))  (dev_elem: XmlNode) (prod_elem: XmlNode) = 
-  let dev_file = File.ReadAllBytes(dev_path + dev_elem.SelectSingleNode("FileName").InnerText)
-  let prod_file = File.ReadAllBytes(prod_path + prod_elem.SelectSingleNode("FileName").InnerText)
-  dev_file = prod_file
-
-type ExtraChecks =
-  | NoExtra 
-  | WebResourceByteDiff
-  | WorkflowGuidReplace
-
-let extraCheckFun (dev_path, prod_path) (dev_elem: XmlNode) (prod_elem: XmlNode) = function
-  | NoExtra -> true
-  | WorkflowGuidReplace -> workflowGuidReplace (dev_path, prod_path) dev_elem prod_elem
-  | WebResourceByteDiff -> webResourceByteDiff (dev_path, prod_path) dev_elem prod_elem
-
-
-type AddToSolutionStrategy = 
-  | EntityComponentAdd of EntityComponent
-  | SolutionComponentAdd of SolutionComponent
-
-type CallbackKind =
-  | EntityMetadataCallback
-  | RibbonCallback
-  | CustomCallback of (string -> AddSolutionComponentRequest)
-  | EntityComponentCallback of EntityComponent
-  | SolutionComponentCallback of SolutionComponent
-
-let callbackFun diffSolutionUniqueName (resp: RetrieveEntityResponse option) id = function 
-  | EntityMetadataCallback -> 
-      createEntityComponentRequest diffSolutionUniqueName resp.Value.EntityMetadata.MetadataId.Value EntityComponent.EntityMetaData
-  | RibbonCallback ->
-      createSolutionComponentRequest diffSolutionUniqueName resp.Value.EntityMetadata.MetadataId.Value SolutionComponent.Ribbon
-  | CustomCallback callback -> 
-      callback id
-  | EntityComponentCallback comp -> 
-      createEntityComponentRequest diffSolutionUniqueName (Guid.Parse id) comp
-  | SolutionComponentCallback comp-> 
-      createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) comp
 
 type DiffSolutionInfo = {
   proxy: IOrganizationService
@@ -166,48 +76,15 @@ type NodeEntityDecision =
 
 
 let diffEntity (diffSolutionInfo: DiffSolutionInfo) genericAddToSolution (dev_ent: XmlNode) (prod_ent: XmlNode) (resp: RetrieveEntityResponse) =
-  let { proxy = proxy; solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
-  let AddEntityDataToSolution = genericAddToSolution dev_ent prod_ent (Some resp)  
+  let { solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
+  let checkDifference = genericAddToSolution dev_ent prod_ent (Some resp)  
   seq{
-    yield! AddEntityDataToSolution "entity info" "EntityInfo/entity/*[not(self::attributes)]" 
-      (Custom (fun id -> "EntityInfo/entity/"+id))
-      ElementName
-      NoExtra
-      EntityMetadataCallback
-  
-    yield! AddEntityDataToSolution "ribbon" "RibbonDiffXml"
-      (Custom (fun id -> "RibbonDiffXml"))
-      (Static "Ribbon")
-      NoExtra
-      RibbonCallback
-  
-    yield! AddEntityDataToSolution "attribute" "EntityInfo/entity/attributes/attribute"
-      (Attribute "PhysicalName")
-      (AttributeNamedItem "PhysicalName")
-      NoExtra
-      (CustomCallback (fun id -> 
-          resp.EntityMetadata.Attributes
-          |> Array.find (fun a -> a.SchemaName = id)
-          |> fun a -> createEntityComponentRequest diffSolutionUniqueName a.MetadataId.Value EntityComponent.Attribute)
-      )
-
-    yield! AddEntityDataToSolution "form" "FormXml/forms/systemform"
-      (Node "formid")
-      LocalizedNameDescription
-      NoExtra
-      (EntityComponentCallback EntityComponent.Form)
-  
-    yield! AddEntityDataToSolution "view" "SavedQueries/savedqueries/savedquery"
-      (Node "savedqueryid")
-      LocalizedNameDescription
-      NoExtra
-      (EntityComponentCallback EntityComponent.View)
-  
-    yield! AddEntityDataToSolution "chart" "Visualizations/visualization"
-      (Node "savedqueryvisualizationid")
-      LocalizedNameDescription
-      NoExtra
-      (EntityComponentCallback EntityComponent.Chart)
+    yield! checkDifference |> entityAttributeHandler resp diffSolutionUniqueName
+    yield! checkDifference |> entityMetadataHandler
+    yield! checkDifference |> entityRibbonHandler
+    yield! checkDifference |> entityFormHandler
+    yield! checkDifference |> entityViewHandler
+    yield! checkDifference |> entityChartHandler 
   }
 
 let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) output (devEntity: XmlNode) (prod_node: XmlNode) genericAddToSolution = 
@@ -262,93 +139,19 @@ let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (pr
   let batchedDiff = seq {
     for dev_ent in entities do yield! (decideEntityXmlDifference diffSolutionInfo output dev_ent prodNode genericAddToSolution)
 
-    let AddSolutionDataToSolution = genericAddToSolution devNode prodNode None
+    let checkDifference = genericAddToSolution devNode prodNode None
 
-    yield! AddSolutionDataToSolution "role" "/ImportExportXml/Roles/Role"
-      (Attribute "id")
-      (AttributeNamedItem "name")
-      NoExtra
-      (SolutionComponentCallback SolutionComponent.Role)
-
-    yield! AddSolutionDataToSolution "workflow" "/ImportExportXml/Workflows/Workflow"
-      (Attribute "WorkflowId")
-      (AttributeNamedItem "Name")
-      WorkflowGuidReplace
-      (SolutionComponentCallback SolutionComponent.Workflow)
-
-    yield! AddSolutionDataToSolution "field security profile" "/ImportExportXml/FieldSecurityProfiles/FieldSecurityProfile"
-      (Attribute "fieldsecurityprofileid")
-      (AttributeNamedItem "name")
-      NoExtra
-      (SolutionComponentCallback SolutionComponent.FieldSecurityProfile)
-    
-    yield! AddSolutionDataToSolution "entity relationships" "/ImportExportXml/EntityRelationships/EntityRelationship"
-      (Attribute "Name")
-      (AttributeNamedItem "Name")
-      NoExtra
-      (CustomCallback (fun id -> 
-        let req = RetrieveRelationshipRequest ()
-        req.Name <- id;
-        let resp = proxy.Execute(req) :?> RetrieveRelationshipResponse
-        createSolutionComponentRequest diffSolutionUniqueName resp.RelationshipMetadata.MetadataId.Value SolutionComponent.EntityRelationship);
-      )
-
-    yield! AddSolutionDataToSolution "option set" "/ImportExportXml/optionsets/optionset"
-      (Attribute "Name")
-      (AttributeNamedItem "localizedName")
-      NoExtra
-      (CustomCallback (fun id -> 
-          let req = RetrieveOptionSetRequest ()
-          req.Name <- id;
-          let resp = proxy.Execute(req) :?> RetrieveOptionSetResponse
-          createSolutionComponentRequest diffSolutionUniqueName resp.OptionSetMetadata.MetadataId.Value SolutionComponent.OptionSet);
-       )
-  
-    yield! AddSolutionDataToSolution "dashboard" "/ImportExportXml/Dashboards/Dashboard"
-      (Node "FormId")
-      LocalizedNameDescription
-      NoExtra
-      (SolutionComponentCallback SolutionComponent.Dashboard)
-
-    yield! AddSolutionDataToSolution "web resource" "/ImportExportXml/WebResources/WebResource"
-      (Node "WebResourceId")
-      InnerTextDisplayName
-      WebResourceByteDiff
-      (SolutionComponentCallback SolutionComponent.WebResource)
-    
-    yield! addAll "plugin assembly" output
-      devNode
-      "/ImportExportXml/SolutionPluginAssemblies/PluginAssembly"
-      (fun elem -> elem.Attributes.GetNamedItem("PluginAssemblyId").Value)
-      (fun elem -> elem.Attributes.GetNamedItem("FullName").Value)
-      (fun dev_elem -> true)
-      (fun id -> 
-        (Some (createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginAssembly)))
-
-    yield! addAll "plugin step" output
-      devNode
-      "/ImportExportXml/SdkMessageProcessingSteps/SdkMessageProcessingStep"
-      (fun elem -> elem.Attributes.GetNamedItem("SdkMessageProcessingStepId").Value)
-      (fun elem -> elem.Attributes.GetNamedItem("Name").Value)
-      (fun dev_elem -> true)
-      (fun id -> 
-        (Some (createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginStep)))
-
-    // (Reports)
-    // (regular Sitemap)
-    yield! AddSolutionDataToSolution "app site map" "/ImportExportXml/AppModuleSiteMaps/AppModuleSiteMap"
-      (Node "SiteMapUniqueName")
-      LocalizedNameDescription
-      NoExtra
-      (CustomCallback (fun id -> 
-        createSolutionComponentRequest diffSolutionUniqueName (fetchSitemapId proxy id) SolutionComponent.SiteMap))
-
-    yield! AddSolutionDataToSolution "app" "/ImportExportXml/AppModules/AppModule"
-      (Node "UniqueName")
-      LocalizedNameDescription
-      NoExtra
-      (CustomCallback (fun id -> 
-        createSolutionComponentRequest diffSolutionUniqueName (fetchAppModuleId proxy id) SolutionComponent.AppModule))
+    yield! checkDifference |> solutionRoleHandler
+    yield! checkDifference |> solutionWorkflowHandler
+    yield! checkDifference |> solutionFieldSecurityProfileHandler
+    yield! checkDifference |> solutionEntityRelationshipHandler proxy diffSolutionUniqueName
+    yield! checkDifference |> solutionOptionSetHandler proxy diffSolutionUniqueName
+    yield! checkDifference |> solutionDashboardHandler
+    yield! checkDifference |> solutionWebResourceHandler
+    yield! checkDifference |> solutionPluginAssemblyHandler devNode diffSolutionUniqueName
+    yield! checkDifference |> solutionPluginStepHandler devNode diffSolutionUniqueName
+    yield! checkDifference |> solutionAppHandler proxy diffSolutionUniqueName
+    yield! checkDifference |> solutionAppSiteMapHandler proxy diffSolutionUniqueName
   }
 
   printf "%A" batchedDiff
