@@ -49,10 +49,6 @@ let createSolutionComponentRequest (*(proxy: IOrganizationService)*) sol_id comp
   )
   //proxy.Execute(req) |> ignore
 
-let selectNodes (node: XmlNode) (xpath: string) =
-  node.SelectNodes(xpath)
-  |> Seq.cast<XmlNode>
-
 let addAll type_ (dev_node: XmlNode) dev_path dev_id dev_readable callback =
   let dev_elems = selectNodes dev_node dev_path
   dev_elems
@@ -179,6 +175,30 @@ let callbackFun diffSolutionUniqueName (resp: RetrieveEntityResponse option) id 
       createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) comp
 
 
+let executeImportRequestWithProgress (proxy: IOrganizationService) (fileBytes: byte []) = 
+  log.Info "Importing solution";
+  let importid = Guid.NewGuid()
+  let req = ImportSolutionRequest ()
+  req.CustomizationFile <- fileBytes;
+  req.ImportJobId <- importid;
+  let async_req = ExecuteAsyncRequest ()
+  async_req.Request <- req;
+  let resp = proxy.Execute(async_req) :?> ExecuteAsyncResponse
+  fetchImportStatus proxy importid resp.AsyncJobId;
+
+let setWorkflowStates (proxy: IOrganizationService) xml = 
+  selectNodes xml "/ImportExportXml/Workflows/Workflow"
+  |> Seq.iter (fun e ->
+    let id = e.Attributes.GetNamedItem("WorkflowId").Value
+    let state = int (e.SelectSingleNode("StateCode").InnerText)
+    let status = int (e.SelectSingleNode("StatusCode").InnerText)
+    let req = 
+      SetStateRequest(
+        State = new OptionSetValue(state), 
+        Status = new OptionSetValue(status), 
+        EntityMoniker = new EntityReference("workflow", Guid.Parse(id)))
+    proxy.Execute(req) |> ignore
+  )
 
 // Specific functions for adding different components
 

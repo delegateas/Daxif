@@ -23,13 +23,6 @@ let removeNode (node: XmlNode) =
   if node <> null then
     node.ParentNode.RemoveChild node |> ignore
 
-type output =
-  | Silent
-  | Same
-  | Diff
-  | Both
-
-
 type DiffSolutionInfo = {
   proxy: IOrganizationService
   devExtractedPath: string
@@ -37,7 +30,7 @@ type DiffSolutionInfo = {
   solutionUniqueName: string
 }
 
-let diffElement (diffSolutionInfo: DiffSolutionInfo) output (devNode: XmlNode) (prodNode: XmlNode) (resp: RetrieveEntityResponse option)
+let diffElement (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNode: XmlNode) (resp: RetrieveEntityResponse option)
               type_ devNodePath devId (devReadable: ReadableName) (extraCheck: ExtraChecks) (callbackKind: CallbackKind) =
   let { solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   let devElements = selectNodes devNode devNodePath
@@ -53,17 +46,14 @@ let diffElement (diffSolutionInfo: DiffSolutionInfo) output (devNode: XmlNode) (
     let callback = callbackFun diffSolutionUniqueName resp
     // remove_useless dev_elem prod_elem;
     if prodElement = null then
-      if output = Diff || output = Both then 
-        log.Verbose "Adding new %s: %s" type_ name;
+      log.Verbose "Adding new %s: %s" type_ name;
       (Some (callback id callbackKind))
     else if devElement.OuterXml = prodElement.OuterXml && extraCheckfunction then
-      if output = Same || output = Both then 
-        log.Verbose "Removing unchanged %s: %s" type_ name;
+      log.Verbose "Removing unchanged %s: %s" type_ name;
       removeNode devElement;
       None
     else
-      if output = Diff || output = Both then 
-        log.Verbose "Adding modified %s: %s" type_ name;
+      log.Verbose "Adding modified %s: %s" type_ name;
       (Some (callback id callbackKind))
   )
   result
@@ -87,7 +77,7 @@ let diffEntity (diffSolutionInfo: DiffSolutionInfo) genericAddToSolution (dev_en
     yield! checkDifference |> entityChartHandler 
   }
 
-let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) output (devEntity: XmlNode) (prod_node: XmlNode) genericAddToSolution = 
+let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) (devEntity: XmlNode) (prod_node: XmlNode) genericAddToSolution = 
   let { proxy = proxy; solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   let entityNode = devEntity.SelectSingleNode("EntityInfo/entity")
   if entityNode = null then seq { None } else
@@ -96,29 +86,21 @@ let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) output (devEn
   let prodEntity = prod_node.SelectSingleNode("/ImportExportXml/Entities/Entity[EntityInfo/entity/@Name='"+name+"']")
 
   if prodEntity = null then
-    if output = Diff || output = Both then 
-      log.Verbose "Adding new entity: %s" name;
-    let req = RetrieveEntityRequest ()
-    req.EntityFilters <- EntityFilters.All;
-    req.LogicalName <- name.ToLower();
-    let resp = proxy.Execute(req) :?> RetrieveEntityResponse
+    log.Verbose "Adding new entity: %s" name;
+    let resp = fetchEntityAllMetadata proxy name
       
     seq {
       yield (Some (createSolutionComponentRequest diffSolutionUniqueName resp.EntityMetadata.MetadataId.Value SolutionComponent.Entity))
     }
 
   elif devEntity.OuterXml = prodEntity.OuterXml then
-    if output = Same || output = Both then 
-      log.Verbose "Removing unchanged entity: %s" name;
+    log.Verbose "Removing unchanged entity: %s" name;
     removeNode devEntity;
       
     seq { None }
   else
     log.Verbose "Processing entity: %s" name;
-    let req = RetrieveEntityRequest ()
-    req.EntityFilters <- EntityFilters.All;
-    req.LogicalName <- name.ToLower();
-    let resp = diffSolutionInfo.proxy.Execute(req) :?> RetrieveEntityResponse
+    let resp = fetchEntityAllMetadata proxy name
       
     seq{
       yield! diffEntity diffSolutionInfo genericAddToSolution devEntity prodEntity resp
@@ -131,13 +113,13 @@ let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (pr
   selectNodes devNode expr |> Seq.iter removeNode;
   selectNodes prodNode expr |> Seq.iter removeNode;
   
-  let genericAddToSolution = diffElement diffSolutionInfo output
+  let genericAddToSolution = diffElement diffSolutionInfo
   let entities = selectNodes devNode "/ImportExportXml/Entities/Entity"
   
   let { proxy = proxy; solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   
   let batchedDiff = seq {
-    for dev_ent in entities do yield! (decideEntityXmlDifference diffSolutionInfo output dev_ent prodNode genericAddToSolution)
+    for dev_ent in entities do yield! (decideEntityXmlDifference diffSolutionInfo dev_ent prodNode genericAddToSolution)
 
     let checkDifference = genericAddToSolution devNode prodNode None
 
@@ -160,16 +142,8 @@ let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (pr
   |> Array.Parallel.choose (id)
   |> Array.Parallel.map (fun x -> x :> OrganizationRequest)
   |> DG.Daxif.Common.CrmDataHelper.performAsBulk proxy 
-    
-let xmlToString (doc : XmlDocument) =
-  let ws = new XmlWriterSettings()
-  ws.OmitXmlDeclaration <- true;
-  let sw = new StringWriter ()
-  let writer = XmlWriter.Create(sw, ws)
-  doc.Save(writer);
-  sw.ToString()
 
-let diff (proxy: IOrganizationService) diffSolutionUniqueName (devExtractedPath: string) (prodExtractedPath: string) output =
+let diff (proxy: IOrganizationService) diffSolutionUniqueName (devExtractedPath: string) (prodExtractedPath: string) =
   log.Verbose "Parsing DEV customizations";
   let devDocument = XmlDocument ()
   devDocument.Load (devExtractedPath + "/customizations.xml");
@@ -186,7 +160,7 @@ let diff (proxy: IOrganizationService) diffSolutionUniqueName (devExtractedPath:
     solutionUniqueName = diffSolutionUniqueName
   }
 
-  diffSolution diffSolutionInfo devDocument prodDocument output |> ignore;
+  diffSolution diffSolutionInfo devDocument prodDocument |> ignore;
   // log.Verbose "Saving";
   // File.WriteAllText (__SOURCE_DIRECTORY__ + @"\diff.xml", to_string dev_doc);
 
@@ -200,18 +174,20 @@ let export fileLocation completeSolutionName temporarySolutionName (dev:DG.Daxif
       log.Verbose "Connecting to %s" env.name;
       let proxy = env.connect().GetProxy()
       Directory.CreateDirectory(fileLocation + "/" + env.name) |> ignore;
+
       log.Verbose "Exporting solution '%s' from %s" completeSolutionName env.name;
       let sol = downloadSolutionRetry env (fileLocation + "/" + env.name + "/") completeSolutionName 15 1
       unzip sol;
       (proxy, sol))
     |> function [| devSolution; prodSolution |] -> (devSolution, prodSolution) | _ -> failwith "Impossible"
-  // Get publisher from [complete solution]
-  let completeSolution = fetchSolution devProxy completeSolutionName
+  
+  let publisherId = (fetchSolution devProxy completeSolutionName).Attributes.["publisherid"]
+
   // Create new [partial solution] on DEV
-  let id = createSolution devProxy temporarySolutionName completeSolution.Attributes.["publisherid"]
+  let id = createSolution devProxy temporarySolutionName publisherId
   try
-    // Diff the two exported solutions, add to [partial solution]
-    diff devProxy temporarySolutionName devSolution prodSolution Diff;
+    diff devProxy temporarySolutionName devSolution prodSolution;
+
     // Export [partial solution] from DEV
     log.Verbose "Exporting solution '%s' from %s" temporarySolutionName dev.name;
     let temp_sol = downloadSolution dev (fileLocation + "/") temporarySolutionName 15
@@ -226,27 +202,6 @@ let export fileLocation completeSolutionName temporarySolutionName (dev:DG.Daxif
     devProxy.Delete("solution", id);
     failwith e.Message; 
 
-let rec fetchImportStatus proxy id asyncid =
-  Thread.Sleep 10000;
-  match fetchImportStatusOnce proxy id with
-    | None -> 
-      log.Verbose "Import not started yet.";
-      fetchImportStatus proxy id asyncid
-    | Some (_, _, data) when data.Contains("<result result=\"failure\"") -> 
-      let job = CrmData.CRUD.retrieve proxy "asyncoperation" asyncid
-      if job.Attributes.ContainsKey "message" then
-        log.Verbose "%s" (job.Attributes.["message"] :?> string);
-      else 
-        let doc = XmlDocument ()
-        doc.LoadXml data;
-        selectNodes doc "//result[@result='failure']"
-        |> Seq.iter (fun a -> log.Verbose "%s" (a.Attributes.GetNamedItem "errortext").Value)
-      failwithf "An error occured in import.";
-    | Some (true, _, _) -> 
-      log.Info "Import succesful.";
-    | Some (false, progress, _) -> 
-      log.Verbose "Importing: %.1f%%" progress;
-      fetchImportStatus proxy id asyncid
 
 let import solutionZipPath complete_solution_name temporary_solution_name (env:DG.Daxif.Environment) = 
   log.Verbose "Connecting to environment %s" env.name;
@@ -255,15 +210,9 @@ let import solutionZipPath complete_solution_name temporary_solution_name (env:D
   // Import [partial solution] to TARGET
   let fileBytes = File.ReadAllBytes(solutionZipPath + "/" + temporary_solution_name + ".zip")
   let stopWatch = System.Diagnostics.Stopwatch.StartNew()
-  log.Info "Importing solution";
-  let importid = Guid.NewGuid()
-  let req = ImportSolutionRequest ()
-  req.CustomizationFile <- fileBytes;
-  req.ImportJobId <- importid;
-  let async_req = ExecuteAsyncRequest ()
-  async_req.Request <- req;
-  let resp = proxy.Execute(async_req) :?> ExecuteAsyncResponse
-  fetchImportStatus proxy importid resp.AsyncJobId;
+  
+  executeImportRequestWithProgress proxy fileBytes
+
   let temp = solutionZipPath + "/" + temporary_solution_name
   unzip temp;
   
@@ -272,21 +221,10 @@ let import solutionZipPath complete_solution_name temporary_solution_name (env:D
   xml.Load (temp + "/customizations.xml");
 
   log.Verbose "Setting workflow states";
-  let workflows = selectNodes xml "/ImportExportXml/Workflows/Workflow"
-  workflows
-  |> Seq.iter (fun e ->
-    let id = e.Attributes.GetNamedItem("WorkflowId").Value
-    let state = int (e.SelectSingleNode("StateCode").InnerText)
-    let status = int (e.SelectSingleNode("StatusCode").InnerText)
-    let req = 
-      SetStateRequest(
-        State = new OptionSetValue(state), 
-        Status = new OptionSetValue(status), 
-        EntityMoniker = new EntityReference("workflow", Guid.Parse(id)))
-    proxy.Execute(req) |> ignore
-    )
+  setWorkflowStates proxy xml
+  
   // Run through solution components of [partial solution], add to [complete solution] on TARGET
-  let sol = fetchSolution proxy temporary_solution_name
+  let tempSolution = fetchSolution proxy temporary_solution_name
 
   log.Info "Publishing changes"
   CrmDataHelper.publishAll proxy
@@ -294,9 +232,9 @@ let import solutionZipPath complete_solution_name temporary_solution_name (env:D
   stopWatch.Stop()
   
   log.Info "Downtime: %.1f minutes" stopWatch.Elapsed.TotalMinutes;
-  transferSolutionComponents proxy sol.Id complete_solution_name
+  transferSolutionComponents proxy tempSolution.Id complete_solution_name
   
   // Delete [partial solution] on TARGET
   log.Verbose "Deleting solution '%s'" temporary_solution_name
-  proxy.Delete("solution", sol.Id)
+  proxy.Delete("solution", tempSolution.Id)
     

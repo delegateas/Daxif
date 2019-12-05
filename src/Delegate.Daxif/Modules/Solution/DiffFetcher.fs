@@ -11,7 +11,11 @@ open System.Xml
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Messages
 open Microsoft.Xrm.Sdk.Metadata
+open Microsoft.Crm.Sdk.Messages
 
+let selectNodes (node: XmlNode) (xpath: string) =
+  node.SelectNodes(xpath)
+  |> Seq.cast<XmlNode>
 
 let fetchSolution proxy (solution: string) = 
   let columnSet = ColumnSet("uniquename", "friendlyname", "publisherid", "version")
@@ -40,6 +44,12 @@ let unzip file =
   if Directory.Exists(file) then
     Directory.Delete(file, true) |> ignore;
   ZipFile.ExtractToDirectory(file + ".zip", file);
+
+let fetchEntityAllMetadata (proxy: IOrganizationService) (name: string) =
+  let req = RetrieveEntityRequest ()
+  req.EntityFilters <- EntityFilters.All;
+  req.LogicalName <- name.ToLower();
+  proxy.Execute(req) :?> RetrieveEntityResponse
 
 let fetchSolutionComponents proxy (solutionid: Guid) =
   let query = QueryExpression("solutioncomponent")
@@ -117,3 +127,25 @@ let fetchGlobalOptionSet (proxy: IOrganizationService) name =
   |> Seq.toList
 
 let fetchComponentType proxy = fetchGlobalOptionSet proxy "componenttype"
+
+let rec fetchImportStatus proxy id asyncid =
+  Thread.Sleep 10000;
+  match fetchImportStatusOnce proxy id with
+    | None -> 
+      log.Verbose "Import not started yet.";
+      fetchImportStatus proxy id asyncid
+    | Some (_, _, data) when data.Contains("<result result=\"failure\"") -> 
+      let job = CrmData.CRUD.retrieve proxy "asyncoperation" asyncid
+      if job.Attributes.ContainsKey "message" then
+        log.Verbose "%s" (job.Attributes.["message"] :?> string);
+      else 
+        let doc = XmlDocument ()
+        doc.LoadXml data;
+        selectNodes doc "//result[@result='failure']"
+        |> Seq.iter (fun a -> log.Verbose "%s" (a.Attributes.GetNamedItem "errortext").Value)
+      failwithf "An error occured in import.";
+    | Some (true, _, _) -> 
+      log.Info "Import succesful.";
+    | Some (false, progress, _) -> 
+      log.Verbose "Importing: %.1f%%" progress;
+      fetchImportStatus proxy id asyncid
