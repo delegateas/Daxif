@@ -70,7 +70,7 @@ let diffEntity (diffSolutionInfo: DiffSolutionInfo) genericAddToSolution (dev_en
 let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) (devEntity: XmlNode) (prod_node: XmlNode) genericAddToSolution = 
   let { proxy = proxy; solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   let entityNode = devEntity.SelectSingleNode("EntityInfo/entity")
-  if entityNode = null then seq { None } else
+  if entityNode = null then seq { yield None } else
 
   let name = entityNode.Attributes.GetNamedItem("Name").Value
   let prodEntity = prod_node.SelectSingleNode("/ImportExportXml/Entities/Entity[EntityInfo/entity/@Name='"+name+"']")
@@ -87,7 +87,7 @@ let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) (devEntity: X
     log.Verbose "Removing unchanged entity: %s" name;
     removeNode devEntity;
       
-    seq { None }
+    seq { yield None }
   else
     log.Verbose "Processing entity: %s" name;
     let resp = fetchEntityAllMetadata proxy name
