@@ -3,19 +3,14 @@
 open DG.Daxif.Common
 open InternalUtility
 open System.IO
-open System.IO.Compression
 open System
-open Microsoft.Xrm.Sdk.Query
-open System.Threading
 open System.Xml
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Messages
-open Microsoft.Xrm.Sdk.Metadata
 open DiffFetcher
 open Microsoft.Crm.Sdk.Messages
 open Domain
 open System.Text.RegularExpressions
-
 
 let createSolution (proxy: IOrganizationService) temporary_solution_name publisher = 
   log.Verbose "Creating solution '%s'" temporary_solution_name;
@@ -27,7 +22,6 @@ let createSolution (proxy: IOrganizationService) temporary_solution_name publish
 
 let createEntityComponentRequest (*(proxy: IOrganizationService)*) sol_id comp_id (comp_type: EntityComponent) =
   let compTypeId = LanguagePrimitives.EnumToValue comp_type
-  //let req = 
   AddSolutionComponentRequest (
     AddRequiredComponents = false,
     ComponentId = comp_id,
@@ -35,19 +29,15 @@ let createEntityComponentRequest (*(proxy: IOrganizationService)*) sol_id comp_i
     DoNotIncludeSubcomponents = true,
     SolutionUniqueName = sol_id
   )
-  // proxy.Execute(req) |> ignore
-
 
 let createSolutionComponentRequest (*(proxy: IOrganizationService)*) sol_id comp_id (comp_type: SolutionComponent) =
   let compTypeId = LanguagePrimitives.EnumToValue comp_type
-  //let req = 
   AddSolutionComponentRequest (
     AddRequiredComponents = false,
     ComponentId = comp_id,
     ComponentType = compTypeId,
     SolutionUniqueName = sol_id
   )
-  //proxy.Execute(req) |> ignore
 
 let addAll type_ (dev_node: XmlNode) dev_path dev_id dev_readable callback =
   let dev_elems = selectNodes dev_node dev_path
@@ -57,14 +47,14 @@ let addAll type_ (dev_node: XmlNode) dev_path dev_id dev_readable callback =
     let name = dev_readable dev_elem
     log.Verbose "Adding %s: %s" type_ name;
     callback id;
-    )
+  )
 
 let addComponentToSolution (proxy: IOrganizationService) solution types workflows (solution_component: Entity) =
   let type_ = (solution_component.Attributes.["componenttype"] :?> OptionSetValue).Value
   let typeString = assocRightOption type_ types
   let id = solution_component.Attributes.["objectid"] :?> Guid
   match typeString with
-  // Remark, what does fake workflow mean?
+    // Remark, what does fake workflow mean?
     | Some "Workflow" when not (List.contains id workflows) -> log.Verbose " Skipping 'fake' workflow"
     | _ ->
       match typeString with
@@ -83,7 +73,6 @@ let transferSolutionComponents (proxy: IOrganizationService) sourceid target =
   let workflows = fetchWorkflowIds proxy sourceid
   components
   |> Seq.iter (addComponentToSolution proxy target types workflows)
-
 
 type id_node = 
   | Attribute of string
@@ -201,7 +190,8 @@ let setWorkflowStates (proxy: IOrganizationService) temp =
       SetStateRequest(
         State = new OptionSetValue(state), 
         Status = new OptionSetValue(status), 
-        EntityMoniker = new EntityReference("workflow", Guid.Parse(id)))
+        EntityMoniker = new EntityReference("workflow", Guid.Parse(id))
+      )
     proxy.Execute(req) |> ignore
   )
 
@@ -242,7 +232,6 @@ let entityFormHandler (diff: DiffFunction<'a>) =
     NoExtra
     (EntityComponentCallback EntityComponent.Form)
   
-
 let entityViewHandler (diff: DiffFunction<'a>) = 
   diff "view" "SavedQueries/savedqueries/savedquery"
     (Node "savedqueryid")
@@ -256,8 +245,6 @@ let entityChartHandler (diff: DiffFunction<'a>) =
     LocalizedNameDescription
     NoExtra
     (EntityComponentCallback EntityComponent.Chart)
-
-
 
 (* solution components *)
 let solutionRoleHandler (diff: DiffFunction<'a>) = 
@@ -281,7 +268,6 @@ let solutionFieldSecurityProfileHandler (diff: DiffFunction<'a>) =
     NoExtra
     (SolutionComponentCallback SolutionComponent.FieldSecurityProfile)
     
-
 let solutionEntityRelationshipHandler (proxy: IOrganizationService) diffSolutionUniqueName (diff: DiffFunction<'a>) = 
   diff "entity relationships" "/ImportExportXml/EntityRelationships/EntityRelationship"
     (Attribute "Name")
@@ -320,7 +306,6 @@ let solutionWebResourceHandler (diff: DiffFunction<'a>) =
     WebResourceByteDiff
     (SolutionComponentCallback SolutionComponent.WebResource)
     
-
 let solutionPluginAssemblyHandler devNode diffSolutionUniqueName (diff: DiffFunction<'a>) = 
   addAll "plugin assembly" devNode
     "/ImportExportXml/SolutionPluginAssemblies/PluginAssembly"
@@ -336,7 +321,6 @@ let solutionPluginStepHandler devNode diffSolutionUniqueName (diff: DiffFunction
     (fun elem -> elem.Attributes.GetNamedItem("Name").Value)
     (fun id -> 
       (Some (createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginStep)))
-
 
 let solutionAppSiteMapHandler proxy diffSolutionUniqueName (diff: DiffFunction<'a>) = 
   diff "app site map" "/ImportExportXml/AppModuleSiteMaps/AppModuleSiteMap"

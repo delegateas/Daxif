@@ -1,23 +1,14 @@
 ﻿module DG.Daxif.Modules.Solution.SolutionDiffHelper
 
-
 open Microsoft.Xrm.Sdk
-open Microsoft.Xrm.Sdk.Query;
-open Microsoft.Xrm.Sdk.Metadata;
 open Microsoft.Xrm.Sdk.Messages;
-open System.IO
-open System
 open System.Xml
 open DG.Daxif.Common
-open Microsoft.Crm.Sdk.Messages
-open System.Text.RegularExpressions
-open System.Threading
 open DG.Daxif.Modules.Solution
 open InternalUtility
 open Domain
 open DiffFetcher
 open DiffAdder
-
 
 let removeNode (node: XmlNode) =
   if node <> null then
@@ -32,11 +23,11 @@ type DiffSolutionInfo = {
 
 let diffElement (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNode: XmlNode) (resp: RetrieveEntityResponse option)
               type_ devNodePath devId (devReadable: ReadableName) (extraCheck: ExtraChecks) (callbackKind: CallbackKind) =
+
   let { solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   let devElements = selectNodes devNode devNodePath
 
-  let result = devElements |> Seq.map (fun devElement ->
-
+  devElements |> Seq.map (fun devElement ->
     let id = getId devElement devId
     let name = GetReadableName devElement devReadable
     let prodElement = prodNode.SelectSingleNode(append_selector devNodePath id devId)
@@ -56,7 +47,6 @@ let diffElement (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNod
       log.Verbose "Adding modified %s: %s" type_ name;
       (Some (callback id callbackKind))
   )
-  result
 
 type NodeEntityDecision =
   | AddEntity
@@ -68,7 +58,7 @@ type NodeEntityDecision =
 let diffEntity (diffSolutionInfo: DiffSolutionInfo) genericAddToSolution (dev_ent: XmlNode) (prod_ent: XmlNode) (resp: RetrieveEntityResponse) =
   let { solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   let checkDifference = genericAddToSolution dev_ent prod_ent (Some resp)  
-  seq{
+  seq {
     yield! checkDifference |> entityAttributeHandler resp diffSolutionUniqueName
     yield! checkDifference |> entityMetadataHandler
     yield! checkDifference |> entityRibbonHandler
@@ -89,7 +79,7 @@ let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) (devEntity: X
     log.Verbose "Adding new entity: %s" name;
     let resp = fetchEntityAllMetadata proxy name
       
-    seq {
+    seq { 
       yield (Some (createSolutionComponentRequest diffSolutionUniqueName resp.EntityMetadata.MetadataId.Value SolutionComponent.Entity))
     }
 
@@ -102,9 +92,7 @@ let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) (devEntity: X
     log.Verbose "Processing entity: %s" name;
     let resp = fetchEntityAllMetadata proxy name
       
-    seq{
-      yield! diffEntity diffSolutionInfo genericAddToSolution devEntity prodEntity resp
-    }
+    seq { yield! diffEntity diffSolutionInfo genericAddToSolution devEntity prodEntity resp }
 
 // Help: https://bettercrm.blog/2017/04/26/solution-component-types-in-dynamics-365/
 let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNode: XmlNode) =
@@ -136,12 +124,11 @@ let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (pr
     yield! checkDifference |> solutionAppSiteMapHandler proxy diffSolutionUniqueName
   }
 
-  printf "%A" batchedDiff
   batchedDiff 
   |> Seq.toArray
   |> Array.Parallel.choose (id)
   |> Array.Parallel.map (fun x -> x :> OrganizationRequest)
-  |> DG.Daxif.Common.CrmDataHelper.performAsBulk proxy 
+  |> CrmDataHelper.performAsBulk proxy 
 
 let diff (proxy: IOrganizationService) diffSolutionUniqueName (devExtractedPath: string) (prodExtractedPath: string) =
   log.Verbose "Parsing DEV customizations";

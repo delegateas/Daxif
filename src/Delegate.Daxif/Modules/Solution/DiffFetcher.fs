@@ -105,7 +105,6 @@ let fetchWorkflowIds proxy (solutionid: Guid) =
   |> Seq.toList
   |> List.map (fun e -> e.Id)
 
-
 let rec assocRightOption key map = 
   match map with
     | [] -> None
