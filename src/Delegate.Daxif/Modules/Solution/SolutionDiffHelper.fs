@@ -107,7 +107,7 @@ let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) (devEntity: X
     }
 
 // Help: https://bettercrm.blog/2017/04/26/solution-component-types-in-dynamics-365/
-let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNode: XmlNode) output =
+let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNode: XmlNode) =
   log.Verbose "Preprocessing";
   let expr = "//IntroducedVersion|//IsDataSourceSecret|//Format|//CanChangeDateTimeBehavior|//LookupStyle|//CascadeRollupView|//Length|//TriggerOnUpdateAttributeList[not(text())]"
   selectNodes devNode expr |> Seq.iter removeNode;
@@ -119,7 +119,7 @@ let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (pr
   let { proxy = proxy; solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   
   let batchedDiff = seq {
-    for dev_ent in entities do yield! (decideEntityXmlDifference diffSolutionInfo dev_ent prodNode genericAddToSolution)
+    for dev_ent in entities do yield! decideEntityXmlDifference diffSolutionInfo dev_ent prodNode genericAddToSolution
 
     let checkDifference = genericAddToSolution devNode prodNode None
 
@@ -160,7 +160,7 @@ let diff (proxy: IOrganizationService) diffSolutionUniqueName (devExtractedPath:
     solutionUniqueName = diffSolutionUniqueName
   }
 
-  diffSolution diffSolutionInfo devDocument prodDocument |> ignore;
+  diffSolution diffSolutionInfo devDocument prodDocument
   // log.Verbose "Saving";
   // File.WriteAllText (__SOURCE_DIRECTORY__ + @"\diff.xml", to_string dev_doc);
 
@@ -186,7 +186,7 @@ let export fileLocation completeSolutionName temporarySolutionName (dev:DG.Daxif
   // Create new [partial solution] on DEV
   let id = createSolution devProxy temporarySolutionName publisherId
   try
-    diff devProxy temporarySolutionName devSolution prodSolution;
+    let requestsFromDiff = diff devProxy temporarySolutionName devSolution prodSolution
 
     // Export [partial solution] from DEV
     log.Verbose "Exporting solution '%s' from %s" temporarySolutionName dev.name;
