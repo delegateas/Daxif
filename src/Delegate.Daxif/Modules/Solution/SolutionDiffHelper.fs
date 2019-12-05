@@ -211,40 +211,39 @@ let diffEntity (diffSolutionInfo: DiffSolutionInfo) genericAddToSolution (dev_en
 let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) output (devEntity: XmlNode) (prod_node: XmlNode) genericAddToSolution = 
   let { proxy = proxy; solutionUniqueName = diffSolutionUniqueName; } = diffSolutionInfo
   let entityNode = devEntity.SelectSingleNode("EntityInfo/entity")
-  if entityNode <> null then
-    let name = entityNode.Attributes.GetNamedItem("Name").Value
-    let prodEntity = prod_node.SelectSingleNode("/ImportExportXml/Entities/Entity[EntityInfo/entity/@Name='"+name+"']")
+  if entityNode = null then seq { None } else
 
-    if prodEntity = null then
-      if output = Diff || output = Both then 
-        log.Verbose "Adding new entity: %s" name;
-      let req = RetrieveEntityRequest ()
-      req.EntityFilters <- EntityFilters.All;
-      req.LogicalName <- name.ToLower();
-      let resp = proxy.Execute(req) :?> RetrieveEntityResponse
-      
-      seq {
-        yield (Some (createSolutionComponent proxy diffSolutionUniqueName resp.EntityMetadata.MetadataId.Value SolutionComponent.Entity))
-      }
+  let name = entityNode.Attributes.GetNamedItem("Name").Value
+  let prodEntity = prod_node.SelectSingleNode("/ImportExportXml/Entities/Entity[EntityInfo/entity/@Name='"+name+"']")
 
-    elif devEntity.OuterXml = prodEntity.OuterXml then
-      if output = Same || output = Both then 
-        log.Verbose "Removing unchanged entity: %s" name;
-      removeNode devEntity;
+  if prodEntity = null then
+    if output = Diff || output = Both then 
+      log.Verbose "Adding new entity: %s" name;
+    let req = RetrieveEntityRequest ()
+    req.EntityFilters <- EntityFilters.All;
+    req.LogicalName <- name.ToLower();
+    let resp = proxy.Execute(req) :?> RetrieveEntityResponse
       
-      seq { None }
-    else
-      log.Verbose "Processing entity: %s" name;
-      let req = RetrieveEntityRequest ()
-      req.EntityFilters <- EntityFilters.All;
-      req.LogicalName <- name.ToLower();
-      let resp = diffSolutionInfo.proxy.Execute(req) :?> RetrieveEntityResponse
+    seq {
+      yield (Some (createSolutionComponent proxy diffSolutionUniqueName resp.EntityMetadata.MetadataId.Value SolutionComponent.Entity))
+    }
+
+  elif devEntity.OuterXml = prodEntity.OuterXml then
+    if output = Same || output = Both then 
+      log.Verbose "Removing unchanged entity: %s" name;
+    removeNode devEntity;
       
-      seq{
-        yield! diffEntity diffSolutionInfo genericAddToSolution devEntity prodEntity resp
-      }
-   else
-     seq { None }
+    seq { None }
+  else
+    log.Verbose "Processing entity: %s" name;
+    let req = RetrieveEntityRequest ()
+    req.EntityFilters <- EntityFilters.All;
+    req.LogicalName <- name.ToLower();
+    let resp = diffSolutionInfo.proxy.Execute(req) :?> RetrieveEntityResponse
+      
+    seq{
+      yield! diffEntity diffSolutionInfo genericAddToSolution devEntity prodEntity resp
+    }
 
 // Help: https://bettercrm.blog/2017/04/26/solution-component-types-in-dynamics-365/
 let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNode: XmlNode) output =
@@ -369,11 +368,12 @@ let diff (proxy: IOrganizationService) diffSolutionUniqueName (devExtractedPath:
   log.Verbose "Parsing DEV customizations";
   let devDocument = XmlDocument ()
   devDocument.Load (devExtractedPath + "/customizations.xml");
+
   log.Verbose "Parsing PROD customizations";
   let prodDocument = XmlDocument ()
   prodDocument.Load (prodExtractedPath + "/customizations.xml");
-  log.Verbose "Calculating diff";
 
+  log.Verbose "Calculating diff";
   let diffSolutionInfo = {
     proxy = proxy
     devExtractedPath = devExtractedPath
