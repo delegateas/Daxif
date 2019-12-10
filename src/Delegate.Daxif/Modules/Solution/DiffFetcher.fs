@@ -105,14 +105,6 @@ let fetchWorkflowIds proxy (solutionid: Guid) =
   |> Seq.toList
   |> List.map (fun e -> e.Id)
 
-let rec assocRightOption key map = 
-  match map with
-    | [] -> None
-    | (v, k) :: map' ->
-      if k = key
-      then Some v
-      else assocRightOption key map'
-
 let fetchGlobalOptionSet (proxy: IOrganizationService) name =
   let req = RetrieveOptionSetRequest ()
   req.Name <- name;

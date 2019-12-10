@@ -39,15 +39,7 @@ let createSolutionComponentRequest (*(proxy: IOrganizationService)*) sol_id comp
     SolutionUniqueName = sol_id
   )
 
-let addAll type_ (dev_node: XmlNode) dev_path dev_id dev_readable callback =
-  let dev_elems = selectNodes dev_node dev_path
-  dev_elems
-  |> Seq.map (fun dev_elem ->
-    let id = dev_id dev_elem
-    let name = dev_readable dev_elem
-    log.Verbose "Adding %s: %s" type_ name;
-    callback id;
-  )
+
 
 let addComponentToSolution (proxy: IOrganizationService) solution types workflows (solution_component: Entity) =
   let typeId = (solution_component.Attributes.["componenttype"] :?> OptionSetValue).Value
@@ -110,19 +102,23 @@ let GetReadableName (elem: XmlNode) = function
   | LocalizedNameDescription -> elem.SelectSingleNode("LocalizedNames/LocalizedName").Attributes.GetNamedItem("description").Value
   
 let workflowGuidReplace ((dev_path, prod_path): (string*string)) (dev_elem: XmlNode) (prod_elem: XmlNode) =
-  let dev_file = File.ReadAllText(dev_path + dev_elem.SelectSingleNode("XamlFileName").InnerText)
-  let prod_file = File.ReadAllText(prod_path + prod_elem.SelectSingleNode("XamlFileName").InnerText)
-  let expr = " Version=.+?,|\s*<x:Null x:Key=\"Description\" />|\s*<x:Boolean x:Key=\"ContainsElseBranch\">False</x:Boolean>"
-  let dev_file = 
-    Regex.Replace(dev_file, 
-      "\[New Object\(\) \{ Microsoft\.Xrm\.Sdk\.Workflow\.WorkflowPropertyType\.Guid, \"(........-....-....-....-............)\", \"Key\" \}\]", 
-      "[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.Guid, \"$1\", \"UniqueIdentifier\" }]")
-  let prod_file = 
-    Regex.Replace(prod_file, 
-      "\[New Object\(\) \{ Microsoft\.Xrm\.Sdk\.Workflow\.WorkflowPropertyType\.Guid, \"(........-....-....-....-............)\", \"Key\" \}\]", 
-      "[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.Guid, \"$1\", \"UniqueIdentifier\" }]")
-  Regex.Replace(dev_file, expr, "").Length = Regex.Replace(prod_file, expr, "").Length
-  // dev_file = prod_file
+  try
+    let dev_file = File.ReadAllText(dev_path + dev_elem.SelectSingleNode("XamlFileName").InnerText)
+    let prod_file = File.ReadAllText(prod_path + prod_elem.SelectSingleNode("XamlFileName").InnerText)
+    let expr = " Version=.+?,|\s*<x:Null x:Key=\"Description\" />|\s*<x:Boolean x:Key=\"ContainsElseBranch\">False</x:Boolean>"
+    let dev_file = 
+      Regex.Replace(dev_file, 
+        "\[New Object\(\) \{ Microsoft\.Xrm\.Sdk\.Workflow\.WorkflowPropertyType\.Guid, \"(........-....-....-....-............)\", \"Key\" \}\]", 
+        "[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.Guid, \"$1\", \"UniqueIdentifier\" }]")
+    let prod_file = 
+      Regex.Replace(prod_file, 
+        "\[New Object\(\) \{ Microsoft\.Xrm\.Sdk\.Workflow\.WorkflowPropertyType\.Guid, \"(........-....-....-....-............)\", \"Key\" \}\]", 
+        "[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.Guid, \"$1\", \"UniqueIdentifier\" }]")
+    Regex.Replace(dev_file, expr, "").Length = Regex.Replace(prod_file, expr, "").Length
+    // dev_file = prod_file
+  with e ->
+    // If we end up here, either dev file or prod file does not exist, and there is a difference between the two
+    false
 
 let webResourceByteDiff ((dev_path, prod_path): (string*string))  (dev_elem: XmlNode) (prod_elem: XmlNode) = 
   let dev_file = File.ReadAllBytes(dev_path + dev_elem.SelectSingleNode("FileName").InnerText)
@@ -163,6 +159,15 @@ let callbackFun diffSolutionUniqueName (resp: RetrieveEntityResponse option) id 
   | SolutionComponentCallback comp-> 
       createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) comp
 
+let addAll type_ (dev_node: XmlNode) dev_path (devId: ReadableName) (devReadable: ReadableName) (addType: SolutionComponent) diffSolutionUniqueName =
+  let dev_elems = selectNodes dev_node dev_path
+  dev_elems
+  |> Seq.map (fun devElem ->
+    let id = GetReadableName devElem devId
+    let name = GetReadableName devElem devReadable
+    log.Verbose "Adding %s: %s" type_ name;
+    Some (createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) addType);
+  )
 
 let executeImportRequestWithProgress (proxy: IOrganizationService) (fileBytes: byte []) = 
   log.Info "Importing solution";
@@ -309,18 +314,18 @@ let solutionWebResourceHandler (diff: DiffFunction<'a>) =
 let solutionPluginAssemblyHandler devNode diffSolutionUniqueName (diff: DiffFunction<'a>) = 
   addAll "plugin assembly" devNode
     "/ImportExportXml/SolutionPluginAssemblies/PluginAssembly"
-    (fun elem -> elem.Attributes.GetNamedItem("PluginAssemblyId").Value)
-    (fun elem -> elem.Attributes.GetNamedItem("FullName").Value)
-    (fun id -> 
-      (Some (createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginAssembly)))
+    (AttributeNamedItem "PluginAssemblyId")
+    (AttributeNamedItem "FullName")
+    SolutionComponent.PluginAssembly
+    diffSolutionUniqueName
 
 let solutionPluginStepHandler devNode diffSolutionUniqueName (diff: DiffFunction<'a>) = 
   addAll "plugin step" devNode
     "/ImportExportXml/SdkMessageProcessingSteps/SdkMessageProcessingStep"
-    (fun elem -> elem.Attributes.GetNamedItem("SdkMessageProcessingStepId").Value)
-    (fun elem -> elem.Attributes.GetNamedItem("Name").Value)
-    (fun id -> 
-      (Some (createSolutionComponentRequest diffSolutionUniqueName (Guid.Parse id) SolutionComponent.PluginStep)))
+    (AttributeNamedItem "SdkMessageProcessingStepId")
+    (AttributeNamedItem "Name")
+    SolutionComponent.PluginStep
+    diffSolutionUniqueName
 
 let solutionAppSiteMapHandler proxy diffSolutionUniqueName (diff: DiffFunction<'a>) = 
   diff "app site map" "/ImportExportXml/AppModuleSiteMaps/AppModuleSiteMap"

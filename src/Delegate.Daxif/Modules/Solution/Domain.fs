@@ -24,6 +24,7 @@ type ExtendedSolution =
     keepWebresources: seq<Guid*string>
   }
 
+let partialSolutionName = "DAXIFPartialSolution"
 
 type EntityComponent = 
   | EntityMetaData = 1
