@@ -26,10 +26,10 @@ type Solution private () =
     | _ -> ()
 
   /// <summary>[Experimental] Imports an exported difference solution to target env.</summary>
-  /// <param name="solutionZipPath">Path to zip of difference solution to apply to target_env.</param>
+  /// <param name="solutionZipPath">Path to zip of difference solution to apply to target_env. Assumes solution called Temp in given solutions folder.</param>
   /// <param name="targetEnv">Target environment to import changes.</param>
-  static member ImportDiff(solutionZipPath, completeSolutionName, temporarySolutionName, (targetEnv:DG.Daxif.Environment)) =
-    Main.importDiff solutionZipPath completeSolutionName temporarySolutionName (targetEnv:DG.Daxif.Environment)
+  static member ImportDiff(solutionsFolder, completeSolutionName, (targetEnv:DG.Daxif.Environment)) =
+    Main.importDiff solutionsFolder completeSolutionName "Temp" (targetEnv:DG.Daxif.Environment)
 
   /// <summary>Exports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
@@ -44,11 +44,11 @@ type Solution private () =
     |> fun f -> f env.url solutionName outputDirectory managed env.apToUse usr pwd dmn logLevel
 
   /// <summary>[Experimental] Exports a difference solution out of two environments.</summary>
-  /// <returns>Name of diff solution containing changes at dev compared to prod.</returns>
+  /// <returns>Name of diff solution containing changes at dev compared to prod. Is exported to solution called "Temp".</returns>
   /// <param name="sourceEnv">Source environment to diff with.</param>
   /// <param name="targetEnv">Target environment to diff against.</param>
-  static member ExportDiff(fileLocation, completeSolutionName, temporarySoltionName, (sourceEnv:DG.Daxif.Environment), (targetEnv:DG.Daxif.Environment)) =
-    Main.exportDiff fileLocation completeSolutionName temporarySoltionName (sourceEnv:DG.Daxif.Environment) (targetEnv:DG.Daxif.Environment)
+  static member ExportDiff(solutionsFolder, completeSolutionName, (sourceEnv:DG.Daxif.Environment), (targetEnv:DG.Daxif.Environment)) =
+    Main.exportDiff solutionsFolder completeSolutionName "Temp" (sourceEnv:DG.Daxif.Environment) (targetEnv:DG.Daxif.Environment)
 
   /// <summary>Generates TypeScript context from a given environment and settings using XrmDefinitelyTyped</summary>
   /// <param name="env">Environment the action should be performed against.</param>
