@@ -50,18 +50,18 @@ let addAll type_ (dev_node: XmlNode) dev_path dev_id dev_readable callback =
   )
 
 let addComponentToSolution (proxy: IOrganizationService) solution types workflows (solution_component: Entity) =
-  let type_ = (solution_component.Attributes.["componenttype"] :?> OptionSetValue).Value
-  let typeString = assocRightOption type_ types
+  let typeId = (solution_component.Attributes.["componenttype"] :?> OptionSetValue).Value
+  let typeString = Map.tryFind typeId types
   let id = solution_component.Attributes.["objectid"] :?> Guid
   match typeString with
     // Remark, what does fake workflow mean?
     | Some "Workflow" when not (List.contains id workflows) -> log.Verbose " Skipping 'fake' workflow"
     | _ ->
       match typeString with
-        | None -> log.Verbose "Adding thing (%i) to solution" type_
+        | None -> log.Verbose "Adding thing (%i) to solution" typeId
         | Some s -> log.Verbose "Adding %s to solution" s
       let req = AddSolutionComponentRequest ()
-      req.ComponentType <- type_;
+      req.ComponentType <- typeId;
       req.ComponentId <- id;
       req.SolutionUniqueName <- solution;
       proxy.Execute(req) |> ignore
@@ -69,7 +69,7 @@ let addComponentToSolution (proxy: IOrganizationService) solution types workflow
 let transferSolutionComponents (proxy: IOrganizationService) sourceid target =
   log.Verbose "Transfering solution components to '%s'" target;
   let components = fetchSolutionComponents proxy sourceid
-  let types = fetchComponentType proxy
+  let types = fetchComponentTypes proxy
   let workflows = fetchWorkflowIds proxy sourceid
   components
   |> Seq.iter (addComponentToSolution proxy target types workflows)

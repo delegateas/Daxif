@@ -113,19 +113,16 @@ let rec assocRightOption key map =
       then Some v
       else assocRightOption key map'
 
-let assoc_right key map = 
-  (assocRightOption key map).Value
-
 let fetchGlobalOptionSet (proxy: IOrganizationService) name =
   let req = RetrieveOptionSetRequest ()
   req.Name <- name;
   let resp = proxy.Execute(req) :?> RetrieveOptionSetResponse
   let oSetMeta = resp.OptionSetMetadata :?> OptionSetMetadata
   oSetMeta.Options
-  |> Seq.map (fun o -> (o.Label.UserLocalizedLabel.Label, o.Value.Value))
-  |> Seq.toList
+  |> Seq.map (fun o -> (o.Value.Value, o.Label.UserLocalizedLabel.Label))
+  |> Map.ofSeq
 
-let fetchComponentType proxy = fetchGlobalOptionSet proxy "componenttype"
+let fetchComponentTypes proxy = fetchGlobalOptionSet proxy "componenttype"
 
 let rec fetchImportStatus proxy id asyncid =
   Thread.Sleep 10000;
