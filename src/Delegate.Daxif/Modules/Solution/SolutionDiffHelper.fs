@@ -95,7 +95,7 @@ let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) (devEntity: X
     seq { yield! diffEntity diffSolutionInfo genericAddToSolution devEntity prodEntity resp }
 
 // Help: https://bettercrm.blog/2017/04/26/solution-component-types-in-dynamics-365/
-let rec diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNode: XmlNode) =
+let diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNode: XmlNode) =
   log.Verbose "Preprocessing";
   let expr = "//IntroducedVersion|//IsDataSourceSecret|//Format|//CanChangeDateTimeBehavior|//LookupStyle|//CascadeRollupView|//Length|//TriggerOnUpdateAttributeList[not(text())]"
   selectNodes devNode expr |> Seq.iter removeNode;
