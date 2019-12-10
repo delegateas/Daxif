@@ -26,13 +26,13 @@ type Solution private () =
     | _ -> ()
 
   /// <summary>[Experimental] Imports an exported difference solution to target env.</summary>
-  /// <param name="solution_zip_path">Path to zip of difference solution to apply to target_env.</param>
-  /// <param name="target_env">Target environment to import changes.</param>
-  static member ImportDiff(solutionZipPath, completeSolutionName, temporarySolutionName, (target_env:DG.Daxif.Environment)) =
-    Main.importDiff solutionZipPath completeSolutionName temporarySolutionName (target_env:DG.Daxif.Environment)
+  /// <param name="solutionZipPath">Path to zip of difference solution to apply to target_env.</param>
+  /// <param name="targetEnv">Target environment to import changes.</param>
+  static member ImportDiff(solutionZipPath, completeSolutionName, temporarySolutionName, (targetEnv:DG.Daxif.Environment)) =
+    Main.importDiff solutionZipPath completeSolutionName temporarySolutionName (targetEnv:DG.Daxif.Environment)
 
   /// <summary>Exports a solution package from a given environment</summary>
-  /// <param name="env">Environment the action should be performed against, for example a test environment.</param>
+  /// <param name="env">Environment the action should be performed against.</param>
   static member Export(env: Environment, solutionName, outputDirectory, managed, ?extended, ?deltaFromDate, ?logLevel) =
     let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
@@ -45,10 +45,10 @@ type Solution private () =
 
   /// <summary>[Experimental] Exports a difference solution out of two environments.</summary>
   /// <returns>Name of diff solution containing changes at dev compared to prod.</returns>
-  /// <param name="dev">Source environment.</param>
-  /// <param name="prod">Target environment.</param>
-  static member ExportDiff(fileLocation, completeSolutionName, temporarySoltionName, (dev:DG.Daxif.Environment), (prod:DG.Daxif.Environment)) =
-    Main.exportDiff fileLocation completeSolutionName temporarySoltionName (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment)
+  /// <param name="sourceEnv">Source environment to diff with.</param>
+  /// <param name="targetEnv">Target environment to diff against.</param>
+  static member ExportDiff(fileLocation, completeSolutionName, temporarySoltionName, (sourceEnv:DG.Daxif.Environment), (targetEnv:DG.Daxif.Environment)) =
+    Main.exportDiff fileLocation completeSolutionName temporarySoltionName (sourceEnv:DG.Daxif.Environment) (targetEnv:DG.Daxif.Environment)
 
   /// <summary>Generates TypeScript context from a given environment and settings using XrmDefinitelyTyped</summary>
   /// <param name="env">Environment the action should be performed against.</param>
