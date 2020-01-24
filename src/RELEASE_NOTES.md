@@ -1,4 +1,7 @@
 # Release Notes
+### 4.4.0 - January 24 2020
+* Added export/import dynamic diff
+
 ### 4.3.0 - Semptember 24 2019
 * Added support for MFA
 
