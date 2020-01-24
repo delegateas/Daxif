@@ -76,7 +76,7 @@ let executeRequest proxy request =
 /// Perform requests as bulk
 let performAsBulk proxy (reqs: OrganizationRequest[]) = 
   reqs
-  |> FSharpCoreExt.Array.chunk 200
+  |> Array.chunkBySize 200
   |> Array.map (fun splitReqs ->
     let req = ExecuteMultipleRequest()
     req.Requests <- OrganizationRequestCollection()
