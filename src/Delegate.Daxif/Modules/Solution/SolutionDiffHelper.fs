@@ -97,9 +97,9 @@ let decideEntityXmlDifference (diffSolutionInfo: DiffSolutionInfo) (devEntity: X
 // Help: https://bettercrm.blog/2017/04/26/solution-component-types-in-dynamics-365/
 let diffSolution (diffSolutionInfo: DiffSolutionInfo) (devNode: XmlNode) (prodNode: XmlNode) =
   log.Verbose "Preprocessing";
-  let expr = "//IntroducedVersion|//IsDataSourceSecret|//Format|//CanChangeDateTimeBehavior|//LookupStyle|//CascadeRollupView|//Length|//TriggerOnUpdateAttributeList[not(text())]"
-  selectNodes devNode expr |> Seq.iter removeNode;
-  selectNodes prodNode expr |> Seq.iter removeNode;
+  let nodesToDelete = "//IntroducedVersion|//IsDataSourceSecret|//Format|//CanChangeDateTimeBehavior|//LookupStyle|//CascadeRollupView|//Length|//TriggerOnUpdateAttributeList[not(text())]"
+  selectNodes devNode nodesToDelete |> Seq.iter removeNode;
+  selectNodes prodNode nodesToDelete |> Seq.iter removeNode;
   
   let genericAddToSolution = diffElement diffSolutionInfo
   let entities = selectNodes devNode "/ImportExportXml/Entities/Entity"
@@ -148,5 +148,3 @@ let diff (proxy: IOrganizationService) diffSolutionUniqueName (devExtractedPath:
   }
 
   diffSolution diffSolutionInfo devDocument prodDocument
-  // log.Verbose "Saving";
-  // File.WriteAllText (__SOURCE_DIRECTORY__ + @"\diff.xml", to_string dev_doc);

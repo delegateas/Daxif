@@ -21,7 +21,7 @@ let fetchSolution proxy (solution: string) =
   let columnSet = ColumnSet("uniquename", "friendlyname", "publisherid", "version")
   CrmDataInternal.Entities.retrieveSolution proxy solution columnSet
 
-let downloadSolution (env: DG.Daxif.Environment) file_location sol_name minutes =
+let downloadSolution (env: DG.Daxif.Environment) file_location sol_name =
   let usr, pwd, domain = env.getCreds()
   let ac = CrmAuth.getCredentials env.apToUse usr pwd domain
   let ac' = CrmAuth.getCredentials env.apToUse usr pwd domain
@@ -29,15 +29,6 @@ let downloadSolution (env: DG.Daxif.Environment) file_location sol_name minutes 
   log.Verbose "Exporting extended solution %A" (file_location + sol_name)
   SolutionHelper.exportWithExtendedSolution' env.url ac ac' sol_name file_location false (DG.Daxif.ConsoleLogger DG.Daxif.LogLevel.Verbose)
   file_location + sol_name
-
-let rec downloadSolutionRetry (env: DG.Daxif.Environment) file_location sol_name minutes retry_count =
-  if retry_count > 0 then
-    try
-      downloadSolution env file_location sol_name minutes
-    with _ ->
-      downloadSolutionRetry env file_location sol_name minutes retry_count
-  else
-    downloadSolution env file_location sol_name minutes
 
 let unzip file =
   log.Verbose "Unpacking zip '%s' to '%s'" (file + ".zip") file;

@@ -170,7 +170,7 @@ let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.D
       Directory.CreateDirectory(fileLocation + "/" + env.name) |> ignore;
 
       log.Verbose "Exporting solution '%s' from %s" completeSolutionName env.name;
-      let sol = DiffFetcher.downloadSolutionRetry env (fileLocation + "/" + env.name + "/") completeSolutionName 15 1
+      let sol = DiffFetcher.downloadSolution env (fileLocation + "/" + env.name + "/") completeSolutionName
       DiffFetcher.unzip sol;
       (proxy, sol))
     |> function [| devSolution; prodSolution |] -> (devSolution, prodSolution) | _ -> failwith "Impossible"
@@ -182,7 +182,7 @@ let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.D
     SolutionDiffHelper.diff devProxy temporarySolutionName devSolution prodSolution|> ignore
     // Export [partial solution] from DEV
     log.Verbose "Exporting solution '%s' from %s" temporarySolutionName dev.name;
-    DiffFetcher.downloadSolution dev (fileLocation + "/") temporarySolutionName 15 |> ignore
+    DiffFetcher.downloadSolution dev (fileLocation + "/") temporarySolutionName |> ignore
     // Delete [partial solution] on DEV
     log.Verbose "Deleting solution '%s'" temporarySolutionName;
     devProxy.Delete("solution", id);
