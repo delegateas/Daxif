@@ -5,6 +5,7 @@ open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
 open System
+open Microsoft.Xrm.Tooling.Connector
 
 
 // Get credentials based on provider, username, password and domain
@@ -51,3 +52,11 @@ let authenticate org ap username password domain =
   let at = m.Authenticate(getCredentials ap username password domain)
   m,at
 
+let internal getOrganizationServiceProxyUsingMFA userName password (orgUrl:Uri) mfaAppId mfaReturnUrl =
+  let mutable orgName = ""
+  let mutable region = ""
+  let mutable isOnPrem = false
+  Utilities.GetOrgnameAndOnlineRegionFromServiceUri(orgUrl, &region, &orgName, &isOnPrem)
+  let cacheFileLocation = System.IO.Path.Combine(System.IO.Path.GetTempPath(), orgName, "oauth-cache.txt")
+  let mutable proxy = new CrmServiceClient(userName, CrmServiceClient.MakeSecureString(password), region, orgName, false, null, null, mfaAppId, new Uri(mfaReturnUrl), cacheFileLocation, null)
+  proxy :> IOrganizationService

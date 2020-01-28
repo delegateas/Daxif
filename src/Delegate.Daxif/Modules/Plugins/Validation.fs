@@ -106,13 +106,12 @@ let postEventsNoPostImages plugins =
             
   findInvalid plugins invalidPlugins "Plugin %s: Post-events does not support post-images"
 
-let validUserContext proxyGen plugins =
+let validUserContext proxy plugins =
   let invalidPlugins =
     plugins
     |> Seq.filter(fun (_,pl) -> pl.step.userContext <> Guid.Empty)
     |> Seq.filter(fun (_,pl) ->
-      use p = proxyGen()
-      CrmDataHelper.exists p "systemuser" pl.step.userContext
+      CrmDataHelper.exists proxy "systemuser" pl.step.userContext
     )
 
   findInvalid plugins invalidPlugins "Plugin %s: Defined user context is not in the system"
@@ -123,15 +122,15 @@ let validateAssociateDisassosiate =
   >> bind associateDisassociateNoImages
   >> bind associateDisassociateAllEntity
 
-let validate proxyGen =
+let validate proxy =
   postOperationNoAsync
   >> bind preOperationNoPreImages
   >> bind validateAssociateDisassosiate
   >> bind preEventsNoPreImages
   >> bind postEventsNoPostImages
-  >> bind (validUserContext proxyGen)
+  >> bind (validUserContext proxy)
 
-let validatePlugins proxyGen plugins =
+let validatePlugins proxy plugins =
   plugins
   |> Seq.map (fun pl -> pl.step.name, pl)
-  |> validate proxyGen
+  |> validate proxy

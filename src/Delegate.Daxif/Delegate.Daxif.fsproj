@@ -48,6 +48,9 @@
     <Compile Include="Modules\Solution\Domain.fs" />
     <Compile Include="Modules\Solution\ExtendedSolutionHelper.fs" />
     <Compile Include="Modules\Solution\SolutionHelper.fs" />
+    <Compile Include="Modules\Solution\DiffFetcher.fs" />
+    <Compile Include="Modules\Solution\DiffAdder.fs" />
+    <Compile Include="Modules\Solution\SolutionDiffHelper.fs" />
     <Compile Include="Modules\Solution\Main.fs" />
     <Compile Include="Modules\Solution\Versioning.fs" />
     <Compile Include="Modules\Data\DataHelper.fs" />
@@ -99,8 +102,7 @@
       <HintPath>..\packages\FSharp.Core.4.3.4\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Crm.Sdk.Proxy">
-      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.2.0.2\lib\net452\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.9.0.2.9\lib\net462\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Crm.Services.Utility">
       <HintPath>..\..\lib\Microsoft.Crm.Services.Utility.dll</HintPath>
@@ -110,9 +112,29 @@
       <HintPath>..\packages\Microsoft.IdentityModel.6.1.7600.16394\lib\net35\Microsoft.IdentityModel.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Microsoft.IdentityModel.Clients.ActiveDirectory">
+      <HintPath>..\packages\Microsoft.IdentityModel.Clients.ActiveDirectory.2.22.302111727\lib\net45\Microsoft.IdentityModel.Clients.ActiveDirectory.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IdentityModel.Clients.ActiveDirectory.WindowsForms">
+      <HintPath>..\packages\Microsoft.IdentityModel.Clients.ActiveDirectory.2.22.302111727\lib\net45\Microsoft.IdentityModel.Clients.ActiveDirectory.WindowsForms.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Rest.ClientRuntime">
+      <HintPath>..\packages\Microsoft.CrmSdk.XrmTooling.CoreAssembly.9.0.2.27\lib\net462\Microsoft.Rest.ClientRuntime.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Xrm.Sdk">
-      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.8.2.0.2\lib\net452\Microsoft.Xrm.Sdk.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.9.0.2.9\lib\net462\Microsoft.Xrm.Sdk.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Xrm.Sdk.Deployment">
+      <HintPath>..\packages\Microsoft.CrmSdk.Deployment.9.0.2.17\lib\net462\Microsoft.Xrm.Sdk.Deployment.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Xrm.Sdk.Workflow">
+      <HintPath>..\packages\Microsoft.CrmSdk.Workflow.9.0.2.9\lib\net462\Microsoft.Xrm.Sdk.Workflow.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Xrm.Tooling.Connector">
+      <HintPath>..\packages\Microsoft.CrmSdk.XrmTooling.CoreAssembly.9.0.2.27\lib\net462\Microsoft.Xrm.Tooling.Connector.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="SolutionPackager">
       <HintPath>..\packages\Microsoft.CrmSdk.CoreTools.8.2.0.2\content\bin\coretools\SolutionPackager.exe</HintPath>

@@ -9,19 +9,30 @@ open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 
+type ConnectionMethod = 
+  | Proxy of IServiceManagement<IOrganizationService> * AuthenticationCredentials 
+  | CrmServiceClient of Uri * string * string * string * string
+
 /// Used to get new proxy connections to a CRM environment
 type Connection = {
-  serviceManagement: IServiceManagement<IOrganizationService>
-  authCreds: AuthenticationCredentials 
+  method: ConnectionMethod
 } with
 
   /// Creates a connection with the given credentials
   static member Connect(org, ap, usr, pwd, dmn) =
     let m, at = CrmAuth.authenticate org ap usr pwd dmn
-    { serviceManagement = m; authCreds = at }
+    { method = ConnectionMethod.Proxy(m,at) }
   
-  /// Connects to the environment and returns an OrganizationServiceProxy
-  member x.GetProxy() = CrmAuth.getOrganizationServiceProxy x.serviceManagement x.authCreds
+  static member Connect(org,usr,pwd,appId,returnUrl) =
+    { method = ConnectionMethod.CrmServiceClient(org,usr,pwd,appId,returnUrl)}
+
+  /// Connects to the environment and returns an IOrganizationService
+  member x.GetProxy() = 
+    match x.method with
+    | ConnectionMethod.Proxy(m,at) -> 
+      CrmAuth.getOrganizationServiceProxy m at :> IOrganizationService
+    | ConnectionMethod.CrmServiceClient(org,usr,pwd,appId,returnUrl) ->
+      CrmAuth.getOrganizationServiceProxyUsingMFA usr pwd org appId returnUrl
 
 
 /// Manages credentials used for connecting to a CRM environment
@@ -67,6 +78,8 @@ type Environment = {
   url: Uri
   creds: Credentials option
   ap: AuthenticationProviderType option
+  mfaAppId: string option
+  mfaReturnUrl: string option
 } with 
   override x.ToString() = sprintf "%A (%A)" x.name x.url
  
@@ -74,7 +87,7 @@ type Environment = {
   static member Get(name) = EnvironmentHelper.get name
 
   /// Creates a new environment using the credentials and arguments given
-  static member Create(name, url, ?ap, ?creds, ?args) =
+  static member Create(name, url, ?ap, ?creds, ?mfaAppId, ?mfaReturnUrl, ?args) =
     let credsToUse = 
       match args ?|> parseArgs with
       | None        -> creds
@@ -91,6 +104,8 @@ type Environment = {
       url = Uri(url)
       creds = credsToUse
       ap = ap
+      mfaAppId = mfaAppId
+      mfaReturnUrl = mfaReturnUrl
     }
 
     EnvironmentHelper.add name env
@@ -116,7 +131,14 @@ type Environment = {
     )
 
     try
-      Connection.Connect(x.url, x.apToUse, usr, pwd, dmn)
+      match x.mfaAppId, x.mfaReturnUrl with
+      | None,_
+      | _,None
+      | Some "",_
+      | _,Some "" ->
+        Connection.Connect(x.url, x.apToUse, usr, pwd, dmn)
+      | Some appId, Some returnUrl ->
+        Connection.Connect(x.url, usr, pwd, appId, returnUrl)
     with 
       ex -> 
         logger ?|>+ (fun log -> log.Error "Unable to connect to CRM.")

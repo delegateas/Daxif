@@ -14,7 +14,7 @@ open DG.Daxif.Common
 module CrmData = 
   module Metadata = 
     let private entityHelper proxy (logicalName:string) filter = 
-      let (proxy : OrganizationServiceProxy) = proxy
+      let (proxy : IOrganizationService) = proxy
       let (filter : EntityFilters) = filter
       let req = RetrieveEntityRequest()
       req.LogicalName <- logicalName
@@ -37,24 +37,21 @@ module CrmData =
     let entityManyToManyRelationships proxy logicalName = 
       (entityHelper proxy logicalName EntityFilters.Relationships).ManyToManyRelationships
     
-    let allEntities (proxy : OrganizationServiceProxy) = 
+    let allEntities (proxy : IOrganizationService) = 
       let req = OrganizationRequest()
       let param = ParameterCollection()
       param.Add(@"EntityFilters", EntityFilters.Entity)
       param.Add(@"RetrieveAsIfPublished", true)
       req.RequestName <- @"RetrieveAllEntities"
       req.Parameters.AddRange(param)
-      proxy.Timeout <- new TimeSpan(0, 10, 0) // 10 minutes timeout
       let resp = proxy.Execute(req)
       (Seq.head resp.Results).Value :?> seq<EntityMetadata>
     
-    let getEntityLogicalNameFromId (proxy:OrganizationServiceProxy) metadataId =
+    let getEntityLogicalNameFromId (proxy:IOrganizationService) metadataId =
       let request = RetrieveEntityRequest()
       request.MetadataId <- metadataId
       request.EntityFilters <- Microsoft.Xrm.Sdk.Metadata.EntityFilters.Entity
       request.RetrieveAsIfPublished <- true
-
-      proxy.Timeout <- TimeSpan(1,0,0)
       let resp = proxy.Execute(request) :?> RetrieveEntityResponse
       resp.EntityMetadata.LogicalName
   
@@ -68,7 +65,7 @@ module CrmData =
       req
     
     let create proxy entity parameters = 
-      let (proxy : OrganizationServiceProxy) = proxy
+      let (proxy : IOrganizationService) = proxy
       let (parameters : ParameterCollection) = parameters
       let req = createReq entity parameters
       let resp = proxy.Execute(req) :?> Messages.CreateResponse
@@ -81,14 +78,14 @@ module CrmData =
       req
     
     let retrieve proxy logicalName guid = 
-      let (proxy : OrganizationServiceProxy) = proxy
+      let (proxy : IOrganizationService) = proxy
       let req = retrieveReq logicalName guid
       let resp = proxy.Execute(req) :?> Messages.RetrieveResponse
       resp.Entity
     
     let retrieveMultiple proxy logicalName query = 
       try 
-        let (proxy : OrganizationServiceProxy) = proxy
+        let (proxy : IOrganizationService) = proxy
         let (query : QueryExpression) = query
         query.PageInfo <- PagingInfo()
         query.PageInfo.ReturnTotalRecordCount <- true
@@ -103,7 +100,6 @@ module CrmData =
               | true -> 
                 query.PageInfo.PageNumber <- (pn + 1)
                 query.PageInfo.PagingCookie <- ec.PagingCookie
-                proxy.Timeout <- new TimeSpan(0, 10, 0) // 10 minutes timeout
                 let resp' = proxy.RetrieveMultiple(query)
                 yield! resp'.Entities
                 yield! retrieveMultiple' resp' (pn + 1)
@@ -122,7 +118,7 @@ module CrmData =
       req
     
     let update proxy entity = 
-      let (proxy : OrganizationServiceProxy) = proxy
+      let (proxy : IOrganizationService) = proxy
       let req = updateReq entity
       proxy.Execute(req) :?> Messages.UpdateResponse |> ignore
       entity.Id
@@ -133,7 +129,7 @@ module CrmData =
       req
     
     let delete proxy logicalName guid = 
-      let (proxy : OrganizationServiceProxy) = proxy
+      let (proxy : IOrganizationService) = proxy
       let req = deleteReq logicalName guid
       proxy.Execute(req) :?> Messages.DeleteResponse |> ignore
       Guid.Empty
@@ -148,7 +144,7 @@ module CrmData =
 
     let addWebResourceToSolution proxy entity solutionName = 
       match solutionName with
-      | Some n -> let (proxy : OrganizationServiceProxy) = proxy
+      | Some n -> let (proxy : IOrganizationService) = proxy
                   let req = addWebResourceToSolutionReq entity n
                   proxy.Execute(req) :?> Messages.AddSolutionComponentResponse
                   |> ignore

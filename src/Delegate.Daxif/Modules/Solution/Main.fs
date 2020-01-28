@@ -132,6 +132,7 @@ let import org location ap usr pwd domain log =
   SolutionHelper.import' org ac solution location managed log |> ignore
   log.Info @"The solution was imported successfully"
 
+
 let exportWithExtendedSolution org solution location managed ap usr pwd domain log = 
   let ac = CrmAuth.getCredentials ap usr pwd domain
   let ac' = CrmAuth.getCredentials ap usr pwd domain
@@ -146,7 +147,81 @@ let exportWithExtendedSolution org solution location managed ap usr pwd domain l
   logAuthentication ap usr pwd' domain log
   SolutionHelper.exportWithExtendedSolution' org ac ac' solution location managed log
   log.Info @"The extended solution was exported successfully"
+
+let exportStandard (env: Environment) solutionName outputDirectory managed extended logLevel =
+  let usr, pwd, dmn = env.getCreds()
+  let logLevel = logLevel ?| LogLevel.Verbose
+  let extended = extended ?| false
+
+  match extended with
+  | true  -> exportWithExtendedSolution 
+  | false -> export
+  |> fun f -> f env.url solutionName outputDirectory managed env.apToUse usr pwd dmn logLevel
+
+let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) = 
+  log.Info "Starting diff export"
+  Directory.CreateDirectory(fileLocation) |> ignore;
+  // Export [complete solution] from DEV and PROD
+  let ((devProxy, devSolution), (_, prodSolution)) = 
+    [| dev; prod |]
+    |> Array.Parallel.map (fun env -> 
+      log.Verbose "Connecting to %s" env.name;
+      let proxy = env.connect().GetProxy()
+      Directory.CreateDirectory(fileLocation + "/" + env.name) |> ignore;
+
+      log.Verbose "Exporting solution '%s' from %s" completeSolutionName env.name;
+      let sol = DiffFetcher.downloadSolution env (fileLocation + "/" + env.name + "/") completeSolutionName
+      DiffFetcher.unzip sol;
+      (proxy, sol))
+    |> function [| devSolution; prodSolution |] -> (devSolution, prodSolution) | _ -> failwith "Impossible"
   
+  let publisherId = (DiffFetcher.fetchSolution devProxy completeSolutionName).Attributes.["publisherid"]
+  let id = DiffAdder.createSolution devProxy temporarySolutionName publisherId
+  
+  try
+    SolutionDiffHelper.diff devProxy temporarySolutionName devSolution prodSolution|> ignore
+    // Export [partial solution] from DEV
+    log.Verbose "Exporting solution '%s' from %s" temporarySolutionName dev.name;
+    DiffFetcher.downloadSolution dev (fileLocation + "/") temporarySolutionName |> ignore
+    // Delete [partial solution] on DEV
+    log.Verbose "Deleting solution '%s'" temporarySolutionName;
+    devProxy.Delete("solution", id);
+    log.Info "Done exporting diff solution"
+    temporarySolutionName
+  with e -> 
+    // Delete [partial solution] on DEV in case of error
+    log.Verbose "Deleting solution '%s'" temporarySolutionName;
+    devProxy.Delete("solution", id);
+    failwith e.Message; 
+
+let importDiff solutionZipPath completeSolutionName tempSolutionName (env:DG.Daxif.Environment) = 
+  log.Verbose "Connecting to environment %s" env.name;
+  let proxy = env.connect().GetProxy()
+  let fileBytes = File.ReadAllBytes(solutionZipPath + "/" + tempSolutionName + ".zip")
+  let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+  
+  DiffAdder.executeImportRequestWithProgress proxy fileBytes
+
+  let temp = solutionZipPath + "/" + tempSolutionName
+  DiffFetcher.unzip temp;
+  
+  log.Verbose "Parsing TEMP customizations";
+  DiffAdder.setWorkflowStates proxy temp
+  
+  let tempSolution = DiffFetcher.fetchSolution proxy tempSolutionName
+  
+  log.Info "Publishing changes"
+  CrmDataHelper.publishAll proxy
+
+  stopWatch.Stop()
+  
+  log.Info "Downtime: %.1f minutes" stopWatch.Elapsed.TotalMinutes;
+  DiffAdder.transferSolutionComponents proxy tempSolution.Id completeSolutionName
+  
+  log.Verbose "Deleting solution '%s'" tempSolutionName
+  proxy.Delete("solution", tempSolution.Id)
+    
+
 let importWithExtendedSolution org location ap usr pwd domain log = 
   let ac = CrmAuth.getCredentials ap usr pwd domain
   let ac' = CrmAuth.getCredentials ap usr pwd domain
@@ -163,6 +238,22 @@ let importWithExtendedSolution org location ap usr pwd domain log =
   SolutionHelper.importWithExtendedSolution' org ac ac' solution location managed log |> ignore
   log.Info @"The extended solution was imported successfully"
   
+let importStandard (env: Environment) (activatePluginSteps: bool option) extended pathToSolutionZip logLevel  =
+  let usr, pwd, dmn = env.getCreds()
+  let logLevel = logLevel ?| LogLevel.Verbose
+  let extended = extended ?| false
+
+  match extended with
+  | true  -> importWithExtendedSolution
+  | false -> import
+  |> fun f -> f env.url pathToSolutionZip env.apToUse usr pwd dmn logLevel
+      
+  match activatePluginSteps with
+  | Some true -> 
+    let solutionName, _ = CrmUtility.getSolutionInformationFromFile pathToSolutionZip
+    pluginSteps env.url solutionName true env.apToUse usr pwd dmn logLevel
+  | _ -> ()
+
 // TODO: 
 let extract location customizations map project logLevel = 
   let log = ConsoleLogger logLevel

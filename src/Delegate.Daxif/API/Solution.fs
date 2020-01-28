@@ -5,40 +5,32 @@ open DG.Daxif.Modules.Solution
 open Utility
 open InternalUtility
 
+type DiffImportCallingInfo = {
+  SolutionName : string
+}
+
+type DiffExportCallingInfo = {
+  TargetEnv : Environment
+}
+
 type Solution private () =
 
   /// <summary>Imports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
-  static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel) =
-    let usr, pwd, dmn = env.getCreds()
-    let logLevel = logLevel ?| LogLevel.Verbose
-    let extended = extended ?| false
-
-    match extended with
-    | true  -> Main.importWithExtendedSolution
-    | false -> Main.import
-    |> fun f -> f env.url pathToSolutionZip env.apToUse usr pwd dmn logLevel
-    
-    match activatePluginSteps with
-    | Some true -> 
-      let solutionName, _ = CrmUtility.getSolutionInformationFromFile pathToSolutionZip
-      Main.pluginSteps env.url solutionName true env.apToUse usr pwd dmn logLevel
-    | _ -> ()
-
+  /// <param name="diffCallingInfo">[Experimental] When specified, a diff import will be performed. Assumes exportdiff has been used prior.</param>
+  static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel, ?diffCallingInfo) =    
+    match diffCallingInfo with
+    | Some dci -> Main.importDiff pathToSolutionZip dci.SolutionName Domain.partialSolutionName env
+    | _ -> Main.importStandard env activatePluginSteps extended pathToSolutionZip logLevel
 
   /// <summary>Exports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
-  static member Export(env: Environment, solutionName, outputDirectory, managed, ?extended, ?deltaFromDate, ?logLevel) =
-    let usr, pwd, dmn = env.getCreds()
-    let logLevel = logLevel ?| LogLevel.Verbose
-    let extended = extended ?| false
-
-    match extended with
-    | true  -> Main.exportWithExtendedSolution 
-    | false -> Main.export
-    |> fun f -> f env.url solutionName outputDirectory managed env.apToUse usr pwd dmn logLevel
-
-
+  /// <param name="diffCallingInfo">[Experimental] When specified, a diff export happens with env as source and diffCallingInfo.TargetEnv as target</param
+  static member Export(env: Environment, solutionName, outputDirectory, managed, ?extended, ?deltaFromDate, ?logLevel, ?diffCallingInfo) =
+    match diffCallingInfo with
+    | Some dci -> Main.exportDiff outputDirectory solutionName Domain.partialSolutionName env dci.TargetEnv |> ignore
+    | _ -> Main.exportStandard env solutionName outputDirectory managed extended logLevel
+    
   /// <summary>Generates TypeScript context from a given environment and settings using XrmDefinitelyTyped</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member GenerateTypeScriptContext(env: Environment, pathToXDT, outputDir, ?solutions, ?entities, ?extraArguments, ?logLevel) =

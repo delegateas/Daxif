@@ -26,7 +26,7 @@ module CrmDataInternal =
       | x when x < '5' -> failwith "Version not supported."
       | _ -> CrmReleases.D365
     
-    let version (proxy : OrganizationServiceProxy) = 
+    let version (proxy : IOrganizationService) = 
       let req = Messages.RetrieveVersionRequest()
       let resp = proxy.Execute(req) :?> Messages.RetrieveVersionResponse
       resp.Version, resp.Version |> versionHelper
@@ -47,8 +47,7 @@ module CrmDataInternal =
           (count + 1, errs)
         ) (0, [])
       |> fun (count, errs) ->
-        log.Verbose "Succesfully performed %d/%d actions in %A" count (Seq.length reqs) 
-          proxy.ServiceConfiguration.CurrentServiceEndpoint.Address;
+        log.Verbose "Succesfully performed %d/%d actions" count (Seq.length reqs)
         match errs with
           | [] -> ()
           | _ -> 
@@ -66,7 +65,7 @@ module CrmDataInternal =
       req
     
     let updateState proxy logicalName guid state status = 
-      let (proxy : OrganizationServiceProxy) = proxy
+      let (proxy : IOrganizationService) = proxy
       let req = updateStateReq logicalName guid state status
       proxy.Execute(req) :?> Messages.SetStateResponse |> ignore
     
@@ -77,7 +76,7 @@ module CrmDataInternal =
       req
     
     let assign proxy userid logicalName guid = 
-      let (proxy : OrganizationServiceProxy) = proxy
+      let (proxy : IOrganizationService) = proxy
       let req = assignReq userid logicalName guid
       proxy.Execute(req) :?> Messages.AssignResponse |> ignore
     
@@ -143,7 +142,7 @@ module CrmDataInternal =
       CrmData.CRUD.retrieveMultiple proxy logicalName q
 
     let existCrm proxy logicalName guid primaryattribute = 
-      let (proxy : OrganizationServiceProxy) = proxy
+      let (proxy : IOrganizationService) = proxy
       let (guid : Guid) = guid
       
       let an = // Limit the amount of network calls
@@ -163,7 +162,7 @@ module CrmDataInternal =
       > 0
     
     let existCrmGuid proxy logicalName filter = 
-      let (proxy : OrganizationServiceProxy) = proxy
+      let (proxy : IOrganizationService) = proxy
       let (filter : Map<string, obj>) = filter
       let em = CrmData.Metadata.entity proxy logicalName
       let f = FilterExpression()
@@ -322,7 +321,7 @@ module CrmDataInternal =
       request
     
     let createMany2Many proxy sn r1 r2 = 
-      let (proxy : OrganizationServiceProxy) = proxy
+      let (proxy : IOrganizationService) = proxy
       let (sn : string) = sn
       let (r1 : KeyValuePair<string, Guid>) = r1
       let (r2 : KeyValuePair<string, Guid>) = r2
@@ -340,7 +339,7 @@ module CrmDataInternal =
       CrmDataHelper.retrieveFirstMatch proxy q
     
     let retrieveSolutionId proxy uniqueName =
-      ColumnSet(null) |> retrieveSolution proxy uniqueName
+      (ColumnSet(null) |> retrieveSolution proxy uniqueName).Id
 
     let retrieveSolutionIdAndPrefix proxy uniqueName = 
       ColumnSet("uniquename", "publisherid") |> retrieveSolution proxy uniqueName
@@ -519,11 +518,7 @@ module CrmDataInternal =
       q.LinkEntities.Add(le)
       CrmDataHelper.retrieveMultiple proxy q
     
-    let retrievePluginAssembly proxy uniqueName = 
-      let (uniqueName : String) = uniqueName
-      let ln = @"pluginassembly"
-      let an = @"name"
-      let em = CrmData.Metadata.entity proxy ln
+    let retrievePluginAssembliesByNameAndVersion proxy (uniqueName: string) (version: string) attrToReturn=
       let le = LinkEntity()
       le.JoinOperator <- JoinOperator.LeftOuter
       le.LinkFromAttributeName <- @"pluginassemblyid"
@@ -532,12 +527,10 @@ module CrmDataInternal =
       le.LinkToEntityName <- @"solutioncomponent"
       le.Columns.AddColumn("solutionid")
       let f = FilterExpression()
-      f.AddCondition
-        (ConditionExpression(an, ConditionOperator.Equal, uniqueName))
-      let q = QueryExpression(ln)
-      q.ColumnSet <- ColumnSet
-                       (em.PrimaryIdAttribute, em.PrimaryNameAttribute, 
-                        "sourcehash")
+      f.AddCondition (ConditionExpression("name", ConditionOperator.Equal, uniqueName))
+      f.AddCondition (ConditionExpression("version", ConditionOperator.Equal, version))
+      let q = QueryExpression("pluginassembly")
+      q.ColumnSet <- attrToReturn
       q.Criteria <- f
       q.LinkEntities.Add(le)
       CrmDataHelper.retrieveMultiple proxy q
@@ -558,7 +551,7 @@ module CrmDataInternal =
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet
                        (em.PrimaryIdAttribute, em.PrimaryNameAttribute,
-                        "sourcehash", "isolationmode")
+                        "sourcehash", "isolationmode", "version")
       q.LinkEntities.Add(le)
       CrmDataHelper.retrieveMultiple proxy q
     
@@ -619,6 +612,8 @@ module CrmDataInternal =
       let f = FilterExpression()
       // Only definition workflows
       f.AddCondition(ConditionExpression(t, ConditionOperator.Equal, 1))
+      // HACK: this is currently broken! Exclude "modern flow" from extended solution.
+      f.AddCondition(ConditionExpression("category", ConditionOperator.NotEqual, 5))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.LinkEntities.Add(le)

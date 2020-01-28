@@ -1,4 +1,15 @@
 # Release Notes
+### 4.4.0 - January 24 2020
+* Added export/import dynamic diff
+
+### 4.3.0 - Semptember 24 2019
+* Added support for MFA
+
+### 4.2.14 - September 12 2019
+* WorkflowSync will now look for a matching assembly according to both name and version
+
+### 4.2.13 - September 12 2019
+* Hack to circumvent bug in MS concerning "flow"
 
 ### 4.2.12 - August 28 2019
 * Added support for syncing web resources to a patch solution while taking into account web resources in the base solution. Use the optional parameter patchSolutionName when calling WebResource.Sync
