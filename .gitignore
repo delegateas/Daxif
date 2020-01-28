@@ -198,3 +198,6 @@ docs/content/*.fs*
 
 # VS folers
 .vs
+
+# Ionide
+.ionide
