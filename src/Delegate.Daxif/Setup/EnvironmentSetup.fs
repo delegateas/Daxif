@@ -26,14 +26,21 @@ type Connection = {
   static member Connect(org,usr,pwd,appId,returnUrl) =
     { method = ConnectionMethod.CrmServiceClient(org,usr,pwd,appId,returnUrl)}
 
-  /// Connects to the environment and returns an IOrganizationService
+  /// Connects to the environment and returns an IOrganizationServiceProxy
   member x.GetProxy() = 
     match x.method with
     | ConnectionMethod.Proxy(m,at) -> 
-      CrmAuth.getOrganizationServiceProxy m at :> IOrganizationService
+      CrmAuth.getOrganizationServiceProxy m at
     | ConnectionMethod.CrmServiceClient(org,usr,pwd,appId,returnUrl) ->
-      CrmAuth.getOrganizationServiceProxyUsingMFA usr pwd org appId returnUrl
+      CrmAuth.getCrmServiceClient usr pwd org appId returnUrl
+      |> fun x -> x.OrganizationServiceProxy
 
+  member x.GetCrmServiceClient() =
+    match x.method with
+    | ConnectionMethod.Proxy(m,at) -> 
+      failwith "Unable to get CrmServiceClient with Proxy method"
+    | ConnectionMethod.CrmServiceClient(org,usr,pwd,appId,returnUrl) ->
+      CrmAuth.getCrmServiceClient usr pwd org appId returnUrl
 
 /// Manages credentials used for connecting to a CRM environment
 type Credentials = {

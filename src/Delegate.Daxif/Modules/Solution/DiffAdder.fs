@@ -58,7 +58,7 @@ let addComponentToSolution (proxy: IOrganizationService) solution types workflow
       req.SolutionUniqueName <- solution;
       proxy.Execute(req) |> ignore
 
-let transferSolutionComponents (proxy: IOrganizationService) sourceid target =
+let transferSolutionComponents proxy sourceid target =
   log.Verbose "Transfering solution components to '%s'" target;
   let components = fetchSolutionComponents proxy sourceid
   let types = fetchComponentTypes proxy

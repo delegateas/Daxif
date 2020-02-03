@@ -16,7 +16,7 @@ let internal getCredentials provider username (password: string) domain =
   match provider with
   | AuthenticationProviderType.ActiveDirectory ->
       ac.ClientCredentials.Windows.ClientCredential <-
-        new NetworkCredential(username, password, domain)
+        NetworkCredential(username, password, domain)
 
   | AuthenticationProviderType.OnlineFederation -> // CRM Online using Office 365 
       ac.ClientCredentials.UserName.UserName <- username
@@ -52,11 +52,11 @@ let authenticate org ap username password domain =
   let at = m.Authenticate(getCredentials ap username password domain)
   m,at
 
-let internal getOrganizationServiceProxyUsingMFA userName password (orgUrl:Uri) mfaAppId mfaReturnUrl =
+let internal getCrmServiceClient userName password (orgUrl:Uri) mfaAppId mfaReturnUrl =
   let mutable orgName = ""
   let mutable region = ""
   let mutable isOnPrem = false
   Utilities.GetOrgnameAndOnlineRegionFromServiceUri(orgUrl, &region, &orgName, &isOnPrem)
   let cacheFileLocation = System.IO.Path.Combine(System.IO.Path.GetTempPath(), orgName, "oauth-cache.txt")
-  let mutable proxy = new CrmServiceClient(userName, CrmServiceClient.MakeSecureString(password), region, orgName, false, null, null, mfaAppId, new Uri(mfaReturnUrl), cacheFileLocation, null)
-  proxy :> IOrganizationService
+  let mutable serviceClient = new CrmServiceClient(userName, CrmServiceClient.MakeSecureString(password), region, orgName, false, null, null, mfaAppId, Uri(mfaReturnUrl), cacheFileLocation, null)
+  serviceClient;
