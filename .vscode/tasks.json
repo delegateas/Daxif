@@ -29,7 +29,7 @@
                 // Set configuration
                 "-c", "${input:configuration}",
                 // Ask dotnet build to generate full paths for file names.
-                "/property:GenerateFullPaths=true",
+                "/property:GenerateFullPaths=true"
             ],
             "group": "build",
             "presentation": {

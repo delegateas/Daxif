@@ -4,9 +4,9 @@ open System.IO
 open DG.Daxif.Common
 open InternalUtility
 open Microsoft.Crm.Sdk.Messages
-open Microsoft.Xrm.Sdk
+open Microsoft.Xrm.Sdk.Client
 
-let export' (proxyGen: unit -> IOrganizationService) solution location =
+let export' (proxyGen: unit -> OrganizationServiceProxy) solution location =
   let req = ExportTranslationRequest()
   req.SolutionName <- solution
 
@@ -23,7 +23,7 @@ let export' (proxyGen: unit -> IOrganizationService) solution location =
 
   log.Verbose "Solution translations saved to local disk"
   
-let import' (proxyGen: unit -> IOrganizationService) solution location =
+let import' (proxyGen: unit -> OrganizationServiceProxy) solution location =
   let p = proxyGen()
   
   let zipFile = File.ReadAllBytes(location)
