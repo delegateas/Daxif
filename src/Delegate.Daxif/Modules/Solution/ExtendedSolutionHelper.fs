@@ -318,16 +318,25 @@ let importExtendedSolution org ac solutionName zipPath =
       (webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, None)
       (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
     |> Array.iter(fun (ln, source, target, fieldCompFunc, preDeleteAction) ->   
+
         
       let s = source |> Seq.map fieldCompFunc |> Set.ofSeq
       let t = target |> Seq.map fieldCompFunc |> Set.ofSeq
       let diff = t - s
 
+      
       match preDeleteAction with
       | None   -> ()
       | Some action -> action p ln target diff log
         
       log.Verbose "Found %d '%s' entities to be deleted " diff.Count ln
+
+      let s1 = Set.ofSeq source
+      let t1 = Set.ofSeq target
+      let diffWebres = s1 - t1 
+      
+      Seq.toList diffWebres |> List.map (fun (x,y) -> (x.ToString(), y)) |> List.iter (fun (x,y) -> log.Verbose "Deleted Guid %s with name %s" x y)
+
       match diff.Count with
       | 0 -> ()
       | _ -> 
@@ -339,7 +348,9 @@ let importExtendedSolution org ac solutionName zipPath =
         |> Seq.toArray
         |> fun req -> 
           try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
-          with _ -> errors <- true;
-      )
+          with _ -> errors <- true
+      )  
+
+            
     if errors then
       failwith "There were errors"
