@@ -131,16 +131,14 @@ let getPluginsIds p solution =
 
   asmName, types, stepsName, images
 
-let deactivateWorkflows p ln target (diff: Set<string>) log =
-  match diff.Count with
+let deactivateWorkflows p ln (diff: (Guid*String)[]) (log:ConsoleLogger) =
+  match diff.Length with 
   | 0 -> ()
-  | _ -> 
+  | _ ->
     diff
-    |> Set.toSeq
-    |> lookup target takeGuid
-    |> Seq.map( fun (x,_) ->
-      CrmDataInternal.Entities.updateStateReq ln x 0 1 :> OrganizationRequest )
-    |> Seq.toArray
+    |> Array.map (fun (id,name) ->
+      CrmDataInternal.Entities.updateStateReq ln id 0 1 :> OrganizationRequest
+    )
     |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
 
 
@@ -326,29 +324,26 @@ let importExtendedSolution org ac solutionName zipPath =
           let identifier = fieldCompFunc (id,name)
           sourceIdentifiers.Contains identifier |> not
         )
-        |> Set.ofSeq
-
-      let diffIdentifier = diff |> Set.map fieldCompFunc
+        |> Array.ofSeq
       
       match preDeleteAction with
       | None   -> ()
-      | Some action -> action p ln target diffIdentifier log
+      | Some action -> action p ln diff log
         
-      log.Verbose "Found %d '%s' entities to be deleted " diff.Count ln
-
-      match diff.Count with
+      log.Verbose "Found %d '%s' entities to be deleted " diff.Length ln
+      
+      match diff.Length with 
       | 0 -> ()
-      | _ -> 
-        diff
-        |> Set.toArray
+      | _ ->
+        diff 
         |> Array.map (fun (id,name) ->
           log.Verbose "Deleting '%s' with name '%s' and GUID '%s'" ln name (id.ToString())
-          CrmData.CRUD.deleteReq ln id :> OrganizationRequest)
+          CrmData.CRUD.deleteReq ln id :> OrganizationRequest
+        )
         |> fun req -> 
-          try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
-          with _ -> errors <- true
+        try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
+        with _ -> errors <- true
       )  
-
             
     if errors then
       failwith "There were errors"
