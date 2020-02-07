@@ -311,19 +311,21 @@ let importExtendedSolution org ac solutionName zipPath =
     let targetWorkflows = getWorkflows p solutionId |> getEntityIds
     let targetWebRes = getWebresources p solutionId |> getEntityIds
 
-    [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
-      (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
-      (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)
-      (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, None)
-      (webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, None)
-      (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
-    |> Array.iter(fun (ln, source, target, fieldCompFunc, preDeleteAction) ->   
+    [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, false, None)
+      (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, false, None)
+      (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, true, None)
+      (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, true, None)
+      (webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, false, None)
+      (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, false, Some(deactivateWorkflows))|]
+    |> Array.iter(fun (ln, source, target, fieldCompFunc, name, preDeleteAction) ->   
 
-        
       let s = source |> Seq.map fieldCompFunc |> Set.ofSeq
       let t = target |> Seq.map fieldCompFunc |> Set.ofSeq
       let diff = t - s
 
+      let s1 = Set.map (fun (x,y) -> (x.ToString(), y)) (Set.ofSeq source)
+      let t1 = Set.map (fun (x,y) -> (x.ToString(), y)) (Set.ofSeq target)
+      let resMap = Map.ofList (Set.toList (Set.union s1 t1))
       
       match preDeleteAction with
       | None   -> ()
@@ -331,11 +333,9 @@ let importExtendedSolution org ac solutionName zipPath =
         
       log.Verbose "Found %d '%s' entities to be deleted " diff.Count ln
 
-      let s1 = Set.ofSeq source
-      let t1 = Set.ofSeq target
-      let diffWebres = s1 - t1 
-      
-      Seq.toList diffWebres |> List.map (fun (x,y) -> (x.ToString(), y)) |> List.iter (fun (x,y) -> log.Verbose "Deleted Guid %s with name %s" x y)
+      Set.iter (fun x -> match name with 
+                         | true -> log.Verbose "Deleted '%s' with name %s" ln x
+                         | _ -> log.Verbose "Deleted '%s' with name %s and GUID '%s'" ln (Option.defaultValue "" (resMap.TryFind x)) x) diff
 
       match diff.Count with
       | 0 -> ()
