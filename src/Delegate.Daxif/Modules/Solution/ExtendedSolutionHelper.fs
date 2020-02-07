@@ -311,41 +311,39 @@ let importExtendedSolution org ac solutionName zipPath =
     let targetWorkflows = getWorkflows p solutionId |> getEntityIds
     let targetWebRes = getWebresources p solutionId |> getEntityIds
 
-    [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, false, None)
-      (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, false, None)
-      (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, true, None)
-      (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, true, None)
-      (webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, false, None)
-      (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, false, Some(deactivateWorkflows))|]
-    |> Array.iter(fun (ln, source, target, fieldCompFunc, name, preDeleteAction) ->   
+    [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
+      (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
+      (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)
+      (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, None)
+      (webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, None)
+      (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
+    |> Array.iter(fun (ln, source, target, fieldCompFunc, preDeleteAction) ->   
 
-      let s = source |> Seq.map fieldCompFunc |> Set.ofSeq
-      let t = target |> Seq.map fieldCompFunc |> Set.ofSeq
-      let diff = t - s
+      let sourceIdentifiers = source |> Seq.map fieldCompFunc |> Set.ofSeq
+      let diff = 
+        target
+        |> Seq.filter(fun (id,name) ->
+          let identifier = fieldCompFunc (id,name)
+          sourceIdentifiers.Contains identifier |> not
+        )
+        |> Set.ofSeq
 
-      let s1 = Set.map (fun (x,y) -> (x.ToString(), y)) (Set.ofSeq source)
-      let t1 = Set.map (fun (x,y) -> (x.ToString(), y)) (Set.ofSeq target)
-      let resMap = Map.ofList (Set.toList (Set.union s1 t1))
+      let diffIdentifier = diff |> Set.map fieldCompFunc
       
       match preDeleteAction with
       | None   -> ()
-      | Some action -> action p ln target diff log
+      | Some action -> action p ln target diffIdentifier log
         
       log.Verbose "Found %d '%s' entities to be deleted " diff.Count ln
-
-      Set.iter (fun x -> match name with 
-                         | true -> log.Verbose "Deleted '%s' with name %s" ln x
-                         | _ -> log.Verbose "Deleted '%s' with name %s and GUID '%s'" ln (Option.defaultValue "" (resMap.TryFind x)) x) diff
 
       match diff.Count with
       | 0 -> ()
       | _ -> 
         diff
-        |> Set.toSeq
-        |> lookup target fieldCompFunc
-        |> Seq.map (fun (x, _) ->
-          CrmData.CRUD.deleteReq ln x :> OrganizationRequest)
-        |> Seq.toArray
+        |> Set.toArray
+        |> Array.map (fun (id,name) ->
+          log.Verbose "Deleting '%s' with name '%s' and GUID '%s'" ln name (id.ToString())
+          CrmData.CRUD.deleteReq ln id :> OrganizationRequest)
         |> fun req -> 
           try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
           with _ -> errors <- true
