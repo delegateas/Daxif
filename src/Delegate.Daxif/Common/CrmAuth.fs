@@ -6,6 +6,7 @@ open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
 open System
 open Microsoft.Xrm.Tooling.Connector
+open System.IO
 
 
 // Get credentials based on provider, username, password and domain
@@ -52,11 +53,22 @@ let authenticate org ap username password domain =
   let at = m.Authenticate(getCredentials ap username password domain)
   m,at
 
+let ensureClientIsReady (client: CrmServiceClient) =
+  match client.IsReady with
+  | false ->
+    let s = sprintf "Client could not authenticate. If the application user was just created, it might take a while before it is available.\n%s" client.LastCrmError 
+    in failwith s
+  | true -> client
+
 let internal getCrmServiceClient userName password (orgUrl:Uri) mfaAppId mfaReturnUrl =
   let mutable orgName = ""
   let mutable region = ""
   let mutable isOnPrem = false
   Utilities.GetOrgnameAndOnlineRegionFromServiceUri(orgUrl, &region, &orgName, &isOnPrem)
   let cacheFileLocation = System.IO.Path.Combine(System.IO.Path.GetTempPath(), orgName, "oauth-cache.txt")
-  let mutable serviceClient = new CrmServiceClient(userName, CrmServiceClient.MakeSecureString(password), region, orgName, false, null, null, mfaAppId, Uri(mfaReturnUrl), cacheFileLocation, null)
-  serviceClient;
+  new CrmServiceClient(userName, CrmServiceClient.MakeSecureString(password), region, orgName, false, null, null, mfaAppId, Uri(mfaReturnUrl), cacheFileLocation, null)
+  |> ensureClientIsReady
+
+let internal getCrmServiceClientClientSecret (org: Uri) appId clientSecret =
+  new CrmServiceClient(org, appId, CrmServiceClient.MakeSecureString(clientSecret), true, Path.Combine(Path.GetTempPath(), appId, "oauth-cache.txt"))
+  |> ensureClientIsReady

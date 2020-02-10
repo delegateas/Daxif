@@ -4,13 +4,13 @@ open System
 open System.IO
 open System.Text
 open Microsoft.Crm.Sdk
-open Microsoft.Crm.Tools.SolutionPackager
 open Microsoft.Xrm.Sdk
 open DG.Daxif
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.CrmDataInternal
 open DG.Daxif.Modules.Serialization
+open Microsoft.Crm.Tools.SolutionPackager
 
 let createPublisher' org ac name display prefix 
     (log : ConsoleLogger) = 
@@ -569,57 +569,89 @@ let updateServiceContext' (org:Uri) location ap usr pwd domain exe lcid (log:Con
   postProcess (csu'()) log "MS CrmSvcUtil SDK (Option Sets)"
 
 
-let updateCustomServiceContext' org location ap usr pwd domain exe log 
+let addIfSome (key: string) (v: string option) (list: (string * string) list) =
+  match v with
+  | None -> list
+  | Some v' -> (key,v') :: list
+
+let updateCustomServiceContext' org location (env:Environment) usr pwd domain exe log 
     (solutions : string list) (entities : string list) extraArgs = 
   let ccs() = 
-    let args = 
+    let baseArgs = 
       [ "url", org.ToString()
-        "username", usr
-        "password", pwd
-        "domain", domain
-        "ap", ap.ToString()
+        "ap", env.ap.ToString()
         "out", location
+        "method", env.method.ToString()
         "solutions", (solutions |> fun ss -> String.Join(",", ss))
         "entities", (entities |> fun es -> String.Join(",", es))
         "servicecontextname", "Xrm"
         "namespace", "DG.XrmFramework.BusinessDomain.ServiceContext" ]
-      
-    let args = args @ extraArgs
+    
+    let optionalArgs =
+      baseArgs
+      |>(
+        addIfSome "username" usr >>
+        addIfSome "password" pwd >>
+        addIfSome "domain" domain >>
+        addIfSome "mfaAppId" env.clientId >>
+        addIfSome "mfaReturnUrl" env.returnUrl >>
+        addIfSome "mfaClientSecret" env.clientSecret
+      )
+     
+    let args = optionalArgs @ extraArgs
     Utility.executeProcess (exe, args |> toArgStringDefault)
   postProcess (ccs()) log "DG XrmContext"
 
-let updateXrmMockupMetadata' org location ap usr pwd domain exe log 
+let updateXrmMockupMetadata' org location (env: Environment) usr pwd dmn exe log 
     (solutions : string list) (entities : string list) extraArgs = 
   let ccs() = 
-    let args = 
+    let baseArgs = 
       [ "url", org.ToString()
-        "username", usr
-        "password", pwd
-        "domain", domain
-        "ap", ap.ToString()
-        "out", location
-        "solutions", (solutions |> fun ss -> String.Join(",", ss))
-        "entities", (entities |> fun es -> String.Join(",", es))]
-      
-    let args = args @ extraArgs
-    Utility.executeProcess (exe, args |> toArgStringDefault)
-  postProcess (ccs()) log "DG XrmMockup"
-    
-let updateTypeScriptContext' org location ap usr pwd domain exe log 
-    (solutions : string list) (entities : string list) extraArgs = 
-  let dts() = 
-    let args = 
-      [ "url", org.ToString()
-        "username", usr
-        "password", pwd
-        "domain", domain
-        "ap", ap.ToString()
+        "ap", env.ap.ToString()
+        "method", env.method.ToString()
         "out", location
         "solutions", (solutions |> fun ss -> String.Join(",", ss))
         "entities", (entities |> fun es -> String.Join(",", es)) ]
+
+    let optionalArgs =
+      baseArgs
+      |>(
+        addIfSome "username" usr >>
+        addIfSome "password" pwd >>
+        addIfSome "domain" dmn >>
+        addIfSome "mfaAppId" env.clientId >>
+        addIfSome "mfaReturnUrl" env.returnUrl >>
+        addIfSome "mfaClientSecret" env.clientSecret
+      )
       
-    let args = args @ extraArgs
-    Utility.executeProcess (exe, args |> toArgStringDefault)
+    let finalArgs = optionalArgs @ extraArgs
+    Utility.executeProcess (exe, finalArgs |> toArgStringDefault)
+  postProcess (ccs()) log "DG XrmMockup"
+    
+let updateTypeScriptContext' org location (env: Environment) usr pwd dmn exe log 
+    (solutions : string list) (entities : string list) extraArgs = 
+  let dts() = 
+    let baseArgs = 
+      [ "url", org.ToString()
+        "ap", env.ap.ToString()
+        "method", env.method.ToString()
+        "out", location
+        "solutions", (solutions |> fun ss -> String.Join(",", ss))
+        "entities", (entities |> fun es -> String.Join(",", es)) ]
+
+    let optionalArgs =
+      baseArgs
+      |>(
+        addIfSome "username" usr >>
+        addIfSome "password" pwd >>
+        addIfSome "domain" dmn >>
+        addIfSome "mfaAppId" env.clientId >>
+        addIfSome "mfaReturnUrl" env.returnUrl >>
+        addIfSome "mfaClientSecret" env.clientSecret
+      )
+      
+    let finalArgs = optionalArgs @ extraArgs
+    Utility.executeProcess (exe, finalArgs |> toArgStringDefault)
   postProcess (dts()) log "Delegate XrmDefinitelyTyped"
 
 let count' org solutionName ac = 

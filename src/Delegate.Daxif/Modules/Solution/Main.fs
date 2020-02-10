@@ -83,7 +83,7 @@ let enablePluginSteps (env: Environment) solutionName enable logLevel =
   let logLevel = logLevel ?| LogLevel.Verbose
   let enable = enable ?| true
 
-  pluginSteps env.url solutionName enable env.apToUse usr pwd dmn logLevel
+  pluginSteps env.url solutionName enable env.ap usr pwd dmn logLevel
 
 let workflow org solution enable ap usr pwd domain log = 
   let ac = CrmAuth.getCredentials ap usr pwd domain
@@ -156,7 +156,7 @@ let exportStandard (env: Environment) solutionName outputDirectory managed exten
   match extended with
   | true  -> exportWithExtendedSolution 
   | false -> export
-  |> fun f -> f env.url solutionName outputDirectory managed env.apToUse usr pwd dmn logLevel
+  |> fun f -> f env.url solutionName outputDirectory managed env.ap usr pwd dmn logLevel
 
 let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) = 
   log.Info "Starting diff export"
@@ -179,7 +179,7 @@ let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.D
   let id = DiffAdder.createSolution devProxy temporarySolutionName publisherId
   
   try
-    SolutionDiffHelper.diff devProxy temporarySolutionName devSolution prodSolution|> ignore
+    SolutionDiffHelper.diff devProxy temporarySolutionName devSolution prodSolution |> ignore
     // Export [partial solution] from DEV
     log.Verbose "Exporting solution '%s' from %s" temporarySolutionName dev.name;
     DiffFetcher.downloadSolution dev (fileLocation + "/") temporarySolutionName |> ignore
@@ -246,12 +246,12 @@ let importStandard (env: Environment) (activatePluginSteps: bool option) extende
   match extended with
   | true  -> importWithExtendedSolution
   | false -> import
-  |> fun f -> f env.url pathToSolutionZip env.apToUse usr pwd dmn logLevel
+  |> fun f -> f env.url pathToSolutionZip env.ap usr pwd dmn logLevel
       
   match activatePluginSteps with
   | Some true -> 
     let solutionName, _ = CrmUtility.getSolutionInformationFromFile pathToSolutionZip
-    pluginSteps env.url solutionName true env.apToUse usr pwd dmn logLevel
+    pluginSteps env.url solutionName true env.ap usr pwd dmn logLevel
   | _ -> ()
 
 // TODO: 
@@ -285,51 +285,74 @@ let updateServiceContext org location ap usr pwd domain exe lcid log =
     lcid log
   log.Info @"The service context was updated successfully"
   
-let updateCustomServiceContext org outputDirectory ap usr (pwd: string) domain pathToExe log 
+let updateCustomServiceContext (env: Environment) outputDirectory pathToExe log 
     solutions entities extraArgs = 
-  let org' : Uri = org
+  let org' : Uri = env.url
   let logger = ConsoleLogger log
-  let pwd' = String.replicate pwd.Length "*"
   logger.Info "%s" daxifVersion
-  logger.Info "Organization: %O" org
+  logger.Info "Organization: %O" env.url
   logger.Info "Path to output dir: %s" (Path.GetFullPath outputDirectory)
-  logAuthentication ap usr pwd' domain logger
+  let usr, pwd, dmn =
+    match env.method with
+    | ClientSecret -> None,None,None
+    | Proxy
+    | OAuth ->
+      let usr, pwd, dmn = env.getCreds()
+      let pwd' = String.replicate pwd.Length "*"
+      logAuthentication env.ap usr pwd' dmn logger
+      Some usr, Some pwd, Some dmn
+
   logger.Info "Updating the C# context..."
 
-  SolutionHelper.updateCustomServiceContext' org' outputDirectory ap usr pwd domain 
+  SolutionHelper.updateCustomServiceContext' org' outputDirectory env usr pwd dmn 
     pathToExe logger solutions entities extraArgs
   logger.Info "The C# context was updated successfully"
 
 
-let updateXrmMockupMetadata org outputDirectory ap usr (pwd: string) domain pathToExe log 
+let updateXrmMockupMetadata (env: Environment) outputDirectory pathToExe log 
     solutions entities extraArgs = 
-  let org' : Uri = org
+  let org' : Uri = env.url
   let logger = ConsoleLogger log
-  let pwd' = String.replicate pwd.Length "*"
   logger.Info "%s" daxifVersion
-  logger.Info "Organization: %O" org
+  logger.Info "Organization: %O" env.url
   logger.Info "Path to output dir: %s" (Path.GetFullPath outputDirectory)
-  logAuthentication ap usr pwd' domain logger
+  let usr, pwd, dmn =
+    match env.method with
+    | ClientSecret -> None,None,None
+    | Proxy
+    | OAuth ->
+      let usr, pwd, dmn = env.getCreds()
+      let pwd' = String.replicate pwd.Length "*"
+      logAuthentication env.ap usr pwd' dmn logger
+      Some usr, Some pwd, Some dmn
+
   logger.Info "Updating XrmMockup Metadata..."
 
-  SolutionHelper.updateXrmMockupMetadata' org' outputDirectory ap usr pwd domain 
+  SolutionHelper.updateXrmMockupMetadata' org' outputDirectory env usr pwd dmn 
     pathToExe logger solutions entities extraArgs
   logger.Info "XrmMockup Metadata was updated successfully"
   
 
-let updateTypeScriptContext org outputDirectory ap usr (pwd: string) domain pathToExe log solutions 
-    entities extraArgs = 
-  let org' : Uri = org
+let updateTypeScriptContext (env: Environment) outputDirectory pathToExe log solutions entities extraArgs = 
+  let org' : Uri = env.url
   let logger = ConsoleLogger log
-  let pwd' = String.replicate pwd.Length "*"
   logger.Info "%s" daxifVersion
-  logger.Info "Organization: %O" org
+  logger.Info "Organization: %O" env.url
   logger.Info "Path to output dir: %s" (Path.GetFullPath outputDirectory)
-  logAuthentication ap usr pwd' domain logger
-  logger.Info "Updating the TypeScript context..."
+  let usr, pwd, dmn =
+    match env.method with
+    | ClientSecret -> None,None,None
+    | Proxy
+    | OAuth ->
+      let usr, pwd, dmn = env.getCreds()
+      let pwd' = String.replicate pwd.Length "*"
+      logAuthentication env.ap usr pwd' dmn logger
+      Some usr, Some pwd, Some dmn
 
-  SolutionHelper.updateTypeScriptContext' org' outputDirectory ap usr pwd domain 
+  logger.Info "Updating the TypeScript context..."
+  SolutionHelper.updateTypeScriptContext' org' outputDirectory env usr pwd dmn
     pathToExe logger solutions entities extraArgs
+
   logger.Info "The TypeScript context was updated successfully"
 
 // Counts all the components in the solution.

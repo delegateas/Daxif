@@ -34,38 +34,35 @@ type Solution private () =
   /// <summary>Generates TypeScript context from a given environment and settings using XrmDefinitelyTyped</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member GenerateTypeScriptContext(env: Environment, pathToXDT, outputDir, ?solutions, ?entities, ?extraArguments, ?logLevel) =
-    let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
     
     let solutions = solutions ?| []
     let entities = entities ?| []
     let extraArguments = extraArguments ?| []
 
-    Main.updateTypeScriptContext env.url outputDir env.apToUse usr pwd dmn pathToXDT logLevel solutions entities extraArguments
+    Main.updateTypeScriptContext env outputDir pathToXDT logLevel solutions entities extraArguments
     
   /// <summary>Generates C# context from a given environment and settings using XrmContext</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member GenerateCSharpContext(env: Environment, pathToXrmContext, outputDir, ?solutions, ?entities, ?extraArguments, ?logLevel) =
-    let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
     
     let solutions = solutions ?| []
     let entities = entities ?| []
     let extraArguments = extraArguments ?| []
 
-    Main.updateCustomServiceContext env.url outputDir env.apToUse usr pwd dmn pathToXrmContext logLevel solutions entities extraArguments
+    Main.updateCustomServiceContext env outputDir pathToXrmContext logLevel solutions entities extraArguments
 
   /// <summary>Generates XrmMockup Metadata from a given environment and settings using XrmMockup's MetadataGenerator</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member GenerateXrmMockupMetadata(env: Environment, pathToXrmMockupGenerator, outputDir, ?solutions, ?entities, ?extraArguments, ?logLevel) =
-    let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
     
     let solutions = solutions ?| []
     let entities = entities ?| []
     let extraArguments = extraArguments ?| []
 
-    Main.updateXrmMockupMetadata env.url outputDir env.apToUse usr pwd dmn pathToXrmMockupGenerator logLevel solutions entities extraArguments
+    Main.updateXrmMockupMetadata env outputDir pathToXrmMockupGenerator logLevel solutions entities extraArguments
 
 
   /// <summary>Counts the amount of entities in a solution</summary>
@@ -74,7 +71,7 @@ type Solution private () =
     let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
     
-    Main.count env.url solutionName env.apToUse usr pwd dmn logLevel
+    Main.count env.url solutionName env.ap usr pwd dmn logLevel
 
 
   /// <summary>Activates or deactivates all plugin steps of a solution</summary>
@@ -89,7 +86,7 @@ type Solution private () =
     let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
     
-    Main.create env.url name displayName publisherPrefix env.apToUse usr pwd dmn logLevel
+    Main.create env.url name displayName publisherPrefix env.ap usr pwd dmn logLevel
 
 
   /// <summary>Creates a publish in the given environment</summary>
@@ -98,7 +95,7 @@ type Solution private () =
     let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
     
-    Main.createPublisher env.url name displayName prefix env.apToUse usr pwd dmn logLevel
+    Main.createPublisher env.url name displayName prefix env.ap usr pwd dmn logLevel
 
   /// <summary>Extracts a solution package using the SolutionPackager</summary>
   static member Extract(solutionFile, customizationsFolder, xmlMappingFile, projectFile, ?logLevel) =

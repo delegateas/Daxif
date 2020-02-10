@@ -3,6 +3,8 @@ Sets up all the necessary variables and functions to be used for the other scrip
 *)
 #r @"bin\Microsoft.Xrm.Sdk.dll"
 #r @"bin\Microsoft.Crm.Sdk.Proxy.dll"
+#r @"bin\Microsoft.IdentityModel.Clients.ActiveDirectory.dll"
+#r @"bin\Microsoft.Xrm.Tooling.Connector.dll"
 #r @"bin\Delegate.Daxif.dll"
 open System
 open Microsoft.Xrm.Sdk.Client

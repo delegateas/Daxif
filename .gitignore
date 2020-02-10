@@ -201,3 +201,5 @@ docs/content/*.fs*
 
 # Ionide
 .ionide
+/src/Delegate.Daxif/ScriptTemplates/solutions
+*.daxif

@@ -28,7 +28,7 @@ type Data private () =
     let additionalAttributes = additionalAttributes ?| Map.empty
     let guidRemapping = guidRemapping ?| Map.empty
 
-    Main.import env.url pathToData env.apToUse usr pwd dmn logLevel serialize additionalAttributes guidRemapping includeAttributes includeReferences referenceFilter
+    Main.import env.url pathToData env.ap usr pwd dmn logLevel serialize additionalAttributes guidRemapping includeAttributes includeReferences referenceFilter
 
 
   /// <summary>Exports data from given entities to a file.</summary>
@@ -38,5 +38,5 @@ type Data private () =
     let logLevel = logLevel ?| LogLevel.Verbose
 
     match deltaFromDate with
-    | Some date -> Main.exportDelta env.url pathToOutputFile entityNames date env.apToUse usr pwd dmn logLevel
-    | None      -> Main.export env.url pathToOutputFile entityNames env.apToUse usr pwd dmn logLevel
+    | Some date -> Main.exportDelta env.url pathToOutputFile entityNames date env.ap usr pwd dmn logLevel
+    | None      -> Main.export env.url pathToOutputFile entityNames env.ap usr pwd dmn logLevel

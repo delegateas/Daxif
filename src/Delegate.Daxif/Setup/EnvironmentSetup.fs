@@ -9,38 +9,17 @@ open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 
-type ConnectionMethod = 
-  | Proxy of IServiceManagement<IOrganizationService> * AuthenticationCredentials 
-  | CrmServiceClient of Uri * string * string * string * string
-
-/// Used to get new proxy connections to a CRM environment
-type Connection = {
-  method: ConnectionMethod
-} with
-
-  /// Creates a connection with the given credentials
-  static member Connect(org, ap, usr, pwd, dmn) =
-    let m, at = CrmAuth.authenticate org ap usr pwd dmn
-    { method = ConnectionMethod.Proxy(m,at) }
-  
-  static member Connect(org,usr,pwd,appId,returnUrl) =
-    { method = ConnectionMethod.CrmServiceClient(org,usr,pwd,appId,returnUrl)}
-
-  /// Connects to the environment and returns an IOrganizationServiceProxy
-  member x.GetProxy() = 
-    match x.method with
-    | ConnectionMethod.Proxy(m,at) -> 
-      CrmAuth.getOrganizationServiceProxy m at
-    | ConnectionMethod.CrmServiceClient(org,usr,pwd,appId,returnUrl) ->
-      CrmAuth.getCrmServiceClient usr pwd org appId returnUrl
-      |> fun x -> x.OrganizationServiceProxy
-
-  member x.GetCrmServiceClient() =
-    match x.method with
-    | ConnectionMethod.Proxy(m,at) -> 
-      failwith "Unable to get CrmServiceClient with Proxy method"
-    | ConnectionMethod.CrmServiceClient(org,usr,pwd,appId,returnUrl) ->
-      CrmAuth.getCrmServiceClient usr pwd org appId returnUrl
+type Proxy = {serviceManager: IServiceManagement<IOrganizationService>; credentials: AuthenticationCredentials }
+and CrmServiceClientOAuth = {orgUrl: Uri; username: string; password: string; clientId: string; returnUrl: string}
+and CrmServiceClientClientSecret = {orgUrl: Uri; clientId: string; clientSecret: string}
+and ConnectionMethod =
+  | Proxy of Proxy
+  | CrmServiceClientOAuth of CrmServiceClientOAuth
+  | CrmServiceClientClientSecret of CrmServiceClientClientSecret
+type ConnectionType = 
+  | Proxy
+  | OAuth
+  | ClientSecret
 
 /// Manages credentials used for connecting to a CRM environment
 type Credentials = {
@@ -79,14 +58,71 @@ type Credentials = {
       x.domain ?| ""
 
 
+/// Used to get new proxy connections to a CRM environment
+type Connection = {
+  method: ConnectionMethod
+} with
+
+  /// Creates a connection with the given credentials
+  static member Connect(env: Environment) =
+    match env.method with
+    | Proxy ->
+      let usr, pwd, dmn = env.getCreds()
+      let m, at = CrmAuth.authenticate env.url env.ap usr pwd dmn
+      { method = ConnectionMethod.Proxy({serviceManager = m; credentials = at}) }
+    | OAuth ->
+      let usr, pwd, _ = env.getCreds()
+      match env.clientId, env.returnUrl with
+      | None,_
+      | _,None -> let s = sprintf "Unable to connect using OAuth without client id and return url" in failwith s
+      | Some appId, Some returnUrl ->
+        { method = ConnectionMethod.CrmServiceClientOAuth({
+          orgUrl = env.url
+          username = usr
+          password = pwd
+          clientId = appId
+          returnUrl = returnUrl
+        })}
+    | ClientSecret ->
+      match env.clientId, env.clientSecret with
+      | None,_
+      | _,None -> let s = sprintf "Unable to connect using Client Secret without client id and client secret" in failwith s
+      | Some appId, Some secret ->
+        { method = ConnectionMethod.CrmServiceClientClientSecret({
+          orgUrl = env.url
+          clientId = appId
+          clientSecret = secret
+        })}
+
+  /// Connects to the environment and returns an IOrganizationServiceProxy
+  member x.GetProxy() = 
+    match x.method with
+    | ConnectionMethod.Proxy proxy -> 
+      CrmAuth.getOrganizationServiceProxy proxy.serviceManager proxy.credentials
+    | ConnectionMethod.CrmServiceClientOAuth _
+    | ConnectionMethod.CrmServiceClientClientSecret _ ->
+      failwith "Not possible to get an OrganizationProxy usign OAuth or Client Secret. Get a CrmServiceClient instead"
+
+  /// Connects to the environment and returns a CrmServiceClient
+  member x.GetCrmServiceClient() =
+    match x.method with
+    | ConnectionMethod.Proxy _ -> 
+      failwith "Unable to get CrmServiceClient with Proxy method"
+    | ConnectionMethod.CrmServiceClientOAuth oauth ->
+      CrmAuth.getCrmServiceClient oauth.username oauth.password oauth.orgUrl oauth.clientId oauth.returnUrl
+    | ConnectionMethod.CrmServiceClientClientSecret clientSecret ->
+      CrmAuth.getCrmServiceClientClientSecret clientSecret.orgUrl clientSecret.clientId clientSecret.clientSecret
+
 /// Describes a connection to a Dynamics 365/CRM environment
-type Environment = {
+and Environment = {
   name: string
   url: Uri
+  method: ConnectionType
   creds: Credentials option
-  ap: AuthenticationProviderType option
-  mfaAppId: string option
-  mfaReturnUrl: string option
+  ap: AuthenticationProviderType
+  clientId: string option
+  returnUrl: string option
+  clientSecret: string option
 } with 
   override x.ToString() = sprintf "%A (%A)" x.name x.url
  
@@ -94,31 +130,29 @@ type Environment = {
   static member Get(name) = EnvironmentHelper.get name
 
   /// Creates a new environment using the credentials and arguments given
-  static member Create(name, url, ?ap, ?creds, ?mfaAppId, ?mfaReturnUrl, ?args) =
+  static member Create(name, url, ?method: ConnectionType, ?ap, ?creds, ?mfaAppId, ?mfaReturnUrl, ?mfaClientSecret, ?args) =
+    let argMap = args ?|> parseArgs
     let credsToUse = 
-      match args ?|> parseArgs with
-      | None        -> creds
-      | Some argMap ->
-        let usr = tryFindArg ["username"; "usr"; "u"] argMap ?| ""
-        let pwd = tryFindArg ["password"; "pwd"; "p"] argMap ?| ""
-        let dmn = tryFindArg ["domain";   "dmn"; "d"] argMap ?| ""
-        match (usr + pwd + dmn).Length > 0 with
-        | true  -> Credentials.Create(usr, pwd, dmn) |> Some
-        | false -> creds
-     
+      let usr = tryFindArg ["username"; "usr"; "u"] argMap ?| ""
+      let pwd = tryFindArg ["password"; "pwd"; "p"] argMap ?| ""
+      let dmn = tryFindArg ["domain";   "dmn"; "d"] argMap ?| ""
+      match (usr + pwd + dmn).Length > 0 with
+      | true  -> Credentials.Create(usr, pwd, dmn) |> Some
+      | false -> creds
+
     let env = {
       name = name
       url = Uri(url)
+      method = method ?| ConnectionType.Proxy
       creds = credsToUse
-      ap = ap
-      mfaAppId = mfaAppId
-      mfaReturnUrl = mfaReturnUrl
+      ap = ap ?| AuthenticationProviderType.OnlineFederation
+      clientId = tryFindArg ["mfaAppId"] argMap ?|? mfaAppId
+      returnUrl = tryFindArg ["mfaReturnUrl"] argMap ?|? mfaReturnUrl
+      clientSecret = tryFindArg ["mfaClientSecret"] argMap ?|? mfaClientSecret 
     }
 
     EnvironmentHelper.add name env
     env
-  
-  member x.apToUse = x.ap ?| AuthenticationProviderType.OnlineFederation
 
   /// Gets credentials for the given environment
   member x.getCreds() = 
@@ -129,23 +163,13 @@ type Environment = {
 
   /// Connects to the given environment
   member x.connect(?logger: ConsoleLogger) =
-    let usr, pwd, dmn = x.getCreds()
-
     // Log connection info if logger provided
     logger ?|>+ (fun log ->
       log.Info "Environment: %O" x
-      log.Info "User: %s" usr
     )
 
     try
-      match x.mfaAppId, x.mfaReturnUrl with
-      | None,_
-      | _,None
-      | Some "",_
-      | _,Some "" ->
-        Connection.Connect(x.url, x.apToUse, usr, pwd, dmn)
-      | Some appId, Some returnUrl ->
-        Connection.Connect(x.url, usr, pwd, appId, returnUrl)
+      Connection.Connect(x)
     with 
       ex -> 
         logger ?|>+ (fun log -> log.Error "Unable to connect to CRM.")
@@ -170,7 +194,7 @@ type Environment = {
         usrParam ?|> fun k -> k, usr
         pwdParam ?|> fun k -> k, pwd
         dmnParam ?|> fun k -> k, dmn
-        apParam ?|> fun k -> k, x.apToUse.ToString()
+        apParam ?|> fun k -> k, x.ap.ToString()
       ] |> List.choose id
     
     let paramStringFunc = paramToString ?| Utility.toArg

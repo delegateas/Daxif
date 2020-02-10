@@ -193,9 +193,11 @@ let parseArgs =
   >> Map.ofArray
 
 /// Tries to find an argument that matches one of the specified strings in the toFind parameter
-let tryFindArg toFind argMap =
-  toFind
-  |> Seq.tryPick (fun arg -> Map.tryFind arg argMap)
+let tryFindArg toFind argMapOpt =
+  argMapOpt
+  ?>> fun argMap ->
+    toFind
+    |> Seq.tryPick (fun arg -> Map.tryFind arg argMap)
 
 /// Alters a given filename of a path with the mapping function
 let alterFilenameInPath path mapper =
