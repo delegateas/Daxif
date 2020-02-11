@@ -1,4 +1,7 @@
 # Release Notes
+### 4.5.0 - February 11 2020
+* Added support for client secret authentication
+
 ### 4.4.0 - January 24 2020
 * Added export/import dynamic diff
 
