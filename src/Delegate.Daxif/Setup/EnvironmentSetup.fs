@@ -139,16 +139,25 @@ and Environment = {
       match (usr + pwd + dmn).Length > 0 with
       | true  -> Credentials.Create(usr, pwd, dmn) |> Some
       | false -> creds
+    
+    let argMethod =
+      tryFindArg ["method"] argMap ?>> 
+      (fun method ->
+        match method with
+        | "OAuth" -> Some ConnectionType.OAuth
+        | "ClientSecret" -> Some ConnectionType.ClientSecret
+        | "Proxy" -> Some ConnectionType.Proxy
+        | _ -> None)
 
     let env = {
       name = name
       url = Uri(url)
-      method = method ?| ConnectionType.Proxy
+      method = argMethod ?|? method ?| ConnectionType.Proxy
       creds = credsToUse
       ap = ap ?| AuthenticationProviderType.OnlineFederation
-      clientId = tryFindArg ["mfaAppId"] argMap ?|? mfaAppId
-      returnUrl = tryFindArg ["mfaReturnUrl"] argMap ?|? mfaReturnUrl
-      clientSecret = tryFindArg ["mfaClientSecret"] argMap ?|? mfaClientSecret 
+      clientId = tryFindArg ["mfaappid"] argMap ?|? mfaAppId
+      returnUrl = tryFindArg ["mfareturnurl"] argMap ?|? mfaReturnUrl
+      clientSecret = tryFindArg ["mfaclientsecret"] argMap ?|? mfaClientSecret 
     }
 
     EnvironmentHelper.add name env
