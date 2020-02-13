@@ -12,20 +12,20 @@ type View private () =
   /// <summary>Generates the files needed for View Extender</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member GenerateFiles(env: Environment, daxifRoot: string, ?entities: string[], ?solutions: string[], ?logLevel: LogLevel) =
-    let proxyGen = env.connect(log).GetProxy
+    let proxyGen = env.connect(log).GetService
     log.setLevelOption logLevel
     Main.generateFiles proxyGen daxifRoot entities solutions
   
   static member UpdateView (env: Environment) (view: TypeDeclarations.View) =
-    let proxyGen = env.connect(log).GetProxy
+    let proxyGen = env.connect(log).GetService
     Main.updateView proxyGen view
 
   static member UpdateViewList (env: Environment) (views: TypeDeclarations.View list) = 
-    let proxyGen = env.connect(log).GetProxy
+    let proxyGen = env.connect(log).GetService
     Main.updateViewList proxyGen views
 
   static member Parse (env: Environment) (guid: System.Guid) =
-   let proxyGen = env.connect(log).GetProxy
+   let proxyGen = env.connect(log).GetService
    Main.parse proxyGen guid
 
   static member AddColumn (column: IEntityAttribute) width index (view: TypeDeclarations.View) = 

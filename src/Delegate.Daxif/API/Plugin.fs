@@ -12,7 +12,7 @@ type Plugin private () =
   /// <summary>Updates plugin registrations in CRM based on the plugins found in your local assembly.</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member Sync(env: Environment, assemblyPath: string, projectPath: string, solutionName: string, ?dryRun: bool, ?isolationMode: AssemblyIsolationMode, ?ignoreOutdatedAssembly: bool, ?logLevel: LogLevel) =
-    let proxyGen = env.connect(log).GetProxy
+    let proxyGen = env.connect(log).GetService
     log.setLevelOption logLevel
 
     let dryRun = dryRun ?| false

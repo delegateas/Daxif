@@ -94,7 +94,16 @@ type Connection = {
           clientSecret = secret
         })}
 
-  /// Connects to the environment and returns an IOrganizationServiceProxy
+  /// Connects to the environment and returns IOrganizationService
+  member x.GetService() =
+    match x.method with
+    | ConnectionMethod.Proxy _ -> 
+      x.GetProxy() :> IOrganizationService
+    | ConnectionMethod.CrmServiceClientOAuth _
+    | ConnectionMethod.CrmServiceClientClientSecret _ -> 
+      x.GetCrmServiceClient() :> IOrganizationService
+
+  /// Connects to the environment and returns an OrganizationServiceProxy
   member x.GetProxy() = 
     match x.method with
     | ConnectionMethod.Proxy proxy -> 

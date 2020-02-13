@@ -10,6 +10,6 @@ type Info private () =
   /// <summary>Retrieves the CRM version of the targeted environment.</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member RetrieveVersion(env: Environment, ?logLevel: LogLevel) =
-    let proxyGen = env.connect(log).GetProxy
+    let proxyGen = env.connect(log).GetService
     log.setLevelOption logLevel
     Main.version proxyGen

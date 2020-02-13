@@ -166,7 +166,7 @@ let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.D
     [| dev; prod |]
     |> Array.Parallel.map (fun env -> 
       log.Verbose "Connecting to %s" env.name;
-      let proxy = env.connect().GetProxy()
+      let proxy = env.connect().GetService()
       Directory.CreateDirectory(fileLocation + "/" + env.name) |> ignore;
 
       log.Verbose "Exporting solution '%s' from %s" completeSolutionName env.name;
@@ -196,7 +196,7 @@ let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.D
 
 let importDiff solutionZipPath completeSolutionName tempSolutionName (env:DG.Daxif.Environment) = 
   log.Verbose "Connecting to environment %s" env.name;
-  let proxy = env.connect().GetProxy()
+  let proxy = env.connect().GetService()
   let fileBytes = File.ReadAllBytes(solutionZipPath + "/" + tempSolutionName + ".zip")
   let stopWatch = System.Diagnostics.Stopwatch.StartNew()
   

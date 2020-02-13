@@ -114,7 +114,7 @@ type Solution private () =
   static member UpdateVersionNumber(env: Environment, solutionName, ?increment) =
     let increment = increment ?| Revision
     
-    let proxy = env.connect(log).GetProxy()
+    let proxy = env.connect(log).GetService()
     
     log.Info "Updating version number of CRM solution (%A)." increment
     let solId, version = Versioning.getSolutionVersionNumber proxy solutionName

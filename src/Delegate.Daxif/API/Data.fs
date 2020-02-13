@@ -10,7 +10,7 @@ type Data private () =
   /// <summary>Counts the amount of records for the given entity logical names.</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member Count(env: Environment, entityNames, ?logLevel) =
-    let proxyGen = env.connect(log).GetProxy
+    let proxyGen = env.connect(log).GetService
     log.setLevelOption logLevel
     Main.count proxyGen entityNames
 
