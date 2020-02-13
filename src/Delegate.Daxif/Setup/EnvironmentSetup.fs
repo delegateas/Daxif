@@ -142,15 +142,15 @@ and Environment = {
   static member Create(name, url, ?method: ConnectionType, ?ap, ?creds, ?mfaAppId, ?mfaReturnUrl, ?mfaClientSecret, ?args) =
     let argMap = args ?|> parseArgs
     let credsToUse = 
-      let usr = tryFindArg ["username"; "usr"; "u"] argMap ?| ""
-      let pwd = tryFindArg ["password"; "pwd"; "p"] argMap ?| ""
-      let dmn = tryFindArg ["domain";   "dmn"; "d"] argMap ?| ""
+      let usr = tryFindArgOpt ["username"; "usr"; "u"] argMap ?| ""
+      let pwd = tryFindArgOpt ["password"; "pwd"; "p"] argMap ?| ""
+      let dmn = tryFindArgOpt ["domain";   "dmn"; "d"] argMap ?| ""
       match (usr + pwd + dmn).Length > 0 with
       | true  -> Credentials.Create(usr, pwd, dmn) |> Some
       | false -> creds
     
     let argMethod =
-      tryFindArg ["method"] argMap ?>> 
+      tryFindArgOpt ["method"] argMap ?>> 
       (fun method ->
         match method with
         | "OAuth" -> Some ConnectionType.OAuth
@@ -164,9 +164,9 @@ and Environment = {
       method = argMethod ?|? method ?| ConnectionType.Proxy
       creds = credsToUse
       ap = ap ?| AuthenticationProviderType.OnlineFederation
-      clientId = tryFindArg ["mfaappid"] argMap ?|? mfaAppId
-      returnUrl = tryFindArg ["mfareturnurl"] argMap ?|? mfaReturnUrl
-      clientSecret = tryFindArg ["mfaclientsecret"] argMap ?|? mfaClientSecret 
+      clientId = tryFindArgOpt ["mfaappid"] argMap ?|? mfaAppId
+      returnUrl = tryFindArgOpt ["mfareturnurl"] argMap ?|? mfaReturnUrl
+      clientSecret = tryFindArgOpt ["mfaclientsecret"] argMap ?|? mfaClientSecret 
     }
 
     EnvironmentHelper.add name env
@@ -221,7 +221,27 @@ and Environment = {
     let exeName = System.IO.Path.GetFileName exeLocation
     Utility.postProcess (Utility.executeProcess(exeLocation, argString)) log exeName
 
+    
+  member x.logAuthentication (log: ConsoleLogger) =
+      match x.method with 
+      | Proxy -> 
+        let usr,pwd,dmn = x.getCreds()
+        log.Verbose "Authentication Provider: %O" x.ap
+        log.Verbose "User: %s" usr
+        log.Verbose "Password: %s" (String.replicate pwd.Length "*")
+        log.Verbose "Domain: %s" dmn
+      | OAuth ->
+        let usr,pwd,dmn = x.getCreds()
+        log.Verbose "Authentication Provider: %O" x.ap
+        log.Verbose "User: %s" usr
+        log.Verbose "Password: %s" (String.replicate pwd.Length "*")
+        log.Verbose "Domain: %s" dmn
+        log.Verbose "AppId: %O" x.clientId
+        log.Verbose "ReturnUrl: %O" x.returnUrl
+      | ClientSecret ->
+        log.Verbose "AppId: %O" x.clientId 
 
+    
   
 and internal EnvironmentHelper private() =
 

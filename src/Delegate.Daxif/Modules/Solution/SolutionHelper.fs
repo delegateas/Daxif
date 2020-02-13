@@ -12,47 +12,39 @@ open DG.Daxif.Common.CrmDataInternal
 open DG.Daxif.Modules.Serialization
 open Microsoft.Crm.Tools.SolutionPackager
 
-let createPublisher' org ac name display prefix 
+let createPublisher' (env: Environment) name display prefix 
     (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-
+  let service = env.connect().GetService()
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let pid = CrmDataInternal.Entities.createPublisher p name display prefix
+  let pid = CrmDataInternal.Entities.createPublisher service name display prefix
   let msg = 
     @"Publisher was created successfully (Publisher ID: " + pid.ToString() 
     + @")"
 
   log.WriteLine(LogLevel.Verbose, msg)
 
-let create' org ac name display pubPrefix (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
+let create' (env: Environment) name display pubPrefix (log : ConsoleLogger) = 
+  let service = env.connect().GetService()
 
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let sid = CrmDataInternal.Entities.createSolution p name display pubPrefix
+  let sid = CrmDataInternal.Entities.createSolution service name display pubPrefix
   let msg = 
     @"Solution was created successfully (Solution ID: " + sid.ToString() + @")"
 
   log.WriteLine(LogLevel.Verbose, msg)
 
 
-let delete' org ac solution (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-
+let delete' (env: Environment) solution (log : ConsoleLogger) = 
+  let service = env.connect().GetService()
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solution
-  CrmData.CRUD.delete p "solution" solutionId |> ignore
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId service solution
+  CrmData.CRUD.delete service "solution" solutionId |> ignore
   let msg = 
     @"Solution was deleted successfully (Solution ID: " + solutionId.ToString() + @")"
 
@@ -61,7 +53,7 @@ let delete' org ac solution (log : ConsoleLogger) =
 // TODO: Make compatible with CRM 2016 service pack 1. 
 // 2016 service pack 1 cause problem due to patching function changing the way
 // solution components are defined
-let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
+let merge' (env: Environment) sourceSolution targetSolution (log : ConsoleLogger) =
     
   let getName (x:Entity) = x.Attributes.["uniquename"] :?> string
 
@@ -75,24 +67,21 @@ let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
       (uid, ct.Value))
     |> Set.ofSeq
 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-
+  let service = env.connect().GetService()
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")    
 
   // fail if 2016 service pack 1 is used
-  let v, _ = CrmDataInternal.Info.version p 
+  let v, _ = CrmDataInternal.Info.version service 
   match v.[0], v.[2] with
   | '8','2' -> failwith "Not supported in CRM 2016 Service Pack 1" 
   | _, _ ->
 
     // Retrieve solutions
     let source =
-      CrmDataInternal.Entities.retrieveSolutionAllAttributes p sourceSolution
+      CrmDataInternal.Entities.retrieveSolutionAllAttributes service sourceSolution
     let target =
-      CrmDataInternal.Entities.retrieveSolutionAllAttributes p targetSolution
+      CrmDataInternal.Entities.retrieveSolutionAllAttributes service targetSolution
     let sourceName = getName source
     let targetName = getName target
 
@@ -107,12 +96,12 @@ let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
     | _,_ ->
 
       // Retrieve entities in target and source
-      let guidSource = getSolutionComponents p source
-      let guidTarget = getSolutionComponents p target
+      let guidSource = getSolutionComponents service source
+      let guidTarget = getSolutionComponents service target
 
       // Creating a mapping from objectid to the entity logicname
       let uidToLogicNameMap = 
-        CrmData.Metadata.allEntities p
+        CrmData.Metadata.allEntities service
         |> Seq.map(fun x -> x.MetadataId, x.LogicalName)
         |> Seq.filter(fun (mid,_) -> mid.HasValue)
         |> Seq.map(fun (mid,ln) -> mid.Value, ln)
@@ -144,9 +133,9 @@ let merge' org ac sourceSolution targetSolution (log : ConsoleLogger) =
           req :> OrganizationRequest
           )
         |> Seq.toArray
-        |> CrmDataInternal.CRUD.performAsBulkWithOutput p log
+        |> CrmDataInternal.CRUD.performAsBulkWithOutput service log
 
-let pluginSteps' org ac solutionname enable (log : ConsoleLogger) = 
+let pluginSteps' (env: Environment) solutionname enable (log : ConsoleLogger) = 
   // Plugin: stateCode = 1 and statusCode = 2 (inactive), 
   //         stateCode = 0 and statusCode = 1 (active) 
   // Remark: statusCode = -1, will default the statuscode for the given statecode
@@ -154,24 +143,20 @@ let pluginSteps' org ac solutionname enable (log : ConsoleLogger) =
     enable |> function 
     | false -> 1, (-1)
     | true -> 0, (-1)
-      
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-
+  
+  let service = env.connect().GetService()
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solutionname
-  CrmDataInternal.Entities.retrieveAllPluginProcessingSteps p solutionId
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId service solutionname
+  CrmDataInternal.Entities.retrieveAllPluginProcessingSteps service solutionId
   |> Seq.toArray
   |> Array.Parallel.iter 
         (fun e -> 
-        use p' = ServiceProxy.getOrganizationServiceProxy m tc
         let en' = e.LogicalName
         let ei' = e.Id.ToString()
         try 
-          CrmDataInternal.Entities.updateState p' en' e.Id state status
+          CrmDataInternal.Entities.updateState service en' e.Id state status
           log.WriteLine
             (LogLevel.Verbose, sprintf "%s:%s state was updated" en' ei')
         with ex -> 
@@ -187,7 +172,7 @@ let pluginSteps' org ac solutionname enable (log : ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, msg)
 
 
-let workflow' org ac solutionname enable (log : ConsoleLogger) = 
+let workflow' (env: Environment) solutionname enable (log : ConsoleLogger) = 
   // Workflow: stateCode = 0 and statusCode = 1 (inactive), 
   //           stateCode = 1 and statusCode = 2 (active)
   // Remark: statusCode = -1, will default the statuscode for the given statecode
@@ -196,15 +181,12 @@ let workflow' org ac solutionname enable (log : ConsoleLogger) =
     | false -> 0, (-1), 2
     | true -> 1, (-1), 1
       
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-
+  let service = env.connect().GetService()
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
-  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solutionname
-  CrmDataInternal.Entities.retrieveWorkflowsOfStatus p solutionId retrievedStatus
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId service solutionname
+  CrmDataInternal.Entities.retrieveWorkflowsOfStatus service solutionId retrievedStatus
   |> Seq.toArray
   |> fun w -> 
     match w.Length with
@@ -212,11 +194,10 @@ let workflow' org ac solutionname enable (log : ConsoleLogger) =
     | _ -> 
       w 
       |> Array.Parallel.iter (fun e -> 
-            use p' = ServiceProxy.getOrganizationServiceProxy m tc
             let en' = e.LogicalName
             let ei' = e.Id.ToString()
             try 
-              CrmDataInternal.Entities.updateState p' en' e.Id state status
+              CrmDataInternal.Entities.updateState service en' e.Id state status
               log.WriteLine
                 (LogLevel.Verbose, sprintf "%s:%s state was updated" en' ei')
             with ex -> 
@@ -233,11 +214,8 @@ let workflow' org ac solutionname enable (log : ConsoleLogger) =
       log.WriteLine(LogLevel.Verbose, msg)
 
 
-let export' org ac solution location managed (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  do p.Timeout <- new TimeSpan(0, 59, 0) // 59 minutes timeout
+let export' (env: Environment) solution location managed (log : ConsoleLogger) = 
+  let service = env.connect().GetService()
   let req = new Messages.ExportSolutionRequest()
 
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
@@ -249,7 +227,7 @@ let export' org ac solution location managed (log : ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, @"Proxy timeout set to 1 hour")
   log.WriteLine(LogLevel.Verbose, @"Export solution")
 
-  let resp = p.Execute(req) :?> Messages.ExportSolutionResponse
+  let resp = service.Execute(req) :?> Messages.ExportSolutionResponse
 
   log.WriteLine(LogLevel.Verbose, @"Solution was exported successfully")
 
@@ -265,13 +243,8 @@ let export' org ac solution location managed (log : ConsoleLogger) =
 
   log.WriteLine(LogLevel.Verbose, @"Solution saved to local disk")
 
-let import' org ac solution location managed (log : ConsoleLogger) = 
-  
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  do p.Timeout <- new TimeSpan(0, 59, 0) // 59 minutes timeout
-
+let import' (env: Environment) solution location managed (log : ConsoleLogger) = 
+  let service = env.connect().GetService()
   log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
   log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
 
@@ -368,30 +341,29 @@ let import' org ac solution location managed (log : ConsoleLogger) =
 
   let rec importHelper' exists completed progress aJobId = 
     async { 
-      use p' = ServiceProxy.getOrganizationServiceProxy m tc
       match exists, completed with
       | false, _ -> 
-        checkJobHasStarted p' aJobId |> ignore
+        checkJobHasStarted service aJobId |> ignore
         let exists' =
-          CrmDataInternal.Entities.existCrm p' @"importjob" jobId None
+          CrmDataInternal.Entities.existCrm service @"importjob" jobId None
         do! importHelper' exists' completed progress aJobId
       | true, true -> ()
       | true, false -> 
         do! Async.Sleep 10000 // Wait 10 seconds
         let (pct, completed') = 
           try 
-            getAsyncJobStatus p' jobId aJobId
+            getAsyncJobStatus service jobId aJobId
           with _ -> (progress, false)
         match completed' with
         | false -> 
           sprintf @"Import solution: %s (%i%%)" solution (pct |> int)
           |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
         | true -> 
-          getImportJobStatus p' jobId aJobId
-          |> printImportResult p' aJobId
+          getImportJobStatus service jobId aJobId
+          |> printImportResult service aJobId
           if not managed then
             log.WriteLine(LogLevel.Verbose, @"Publishing solution")
-            CrmDataHelper.publishAll p'
+            CrmDataHelper.publishAll service
             log.WriteLine
               (LogLevel.Verbose, @"The solution was successfully published")
           return ()
@@ -403,7 +375,7 @@ let import' org ac solution location managed (log : ConsoleLogger) =
     // Messages.ExecuteAsyncRequest Type for MS CRM 2011 (legacy)
     let areq = new Messages.ExecuteAsyncRequest()
     areq.Request <- req
-    p.Execute(areq) :?> Messages.ExecuteAsyncResponse 
+    service.Execute(areq) :?> Messages.ExecuteAsyncResponse 
     |> fun r -> r.AsyncJobId
     
   let importHelper() = 
@@ -411,11 +383,11 @@ let import' org ac solution location managed (log : ConsoleLogger) =
       log.WriteLine(LogLevel.Debug,"Starting Import Job - check 1")
       let aJobId = 
         log.WriteLine(LogLevel.Debug,"Starting Import Job - check 2")
-        let version = CrmDataInternal.Info.version p
+        let version = CrmDataInternal.Info.version service
         log.WriteLine(LogLevel.Debug,"Starting Import Job - check 3 " + fst version)
         match version with
         | (_, CrmReleases.CRM2011) -> 
-          p.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
+          service.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
           log.WriteLine(LogLevel.Verbose,@"Import job Started")
           None
         | (_, _) -> 
@@ -442,7 +414,7 @@ let import' org ac solution location managed (log : ConsoleLogger) =
     let req' = new Messages.RetrieveFormattedImportJobResultsRequest()
     req'.ImportJobId <- jobId
     let resp' = 
-      p.Execute(req') :?> Messages.RetrieveFormattedImportJobResultsResponse
+      service.Execute(req') :?> Messages.RetrieveFormattedImportJobResultsResponse
     let xml = resp'.FormattedResults
     let bytes = Encoding.UTF8.GetBytes(xml)
     let bytes' = SerializationHelper.xmlPrettyPrinterHelper' bytes
@@ -462,8 +434,8 @@ let import' org ac solution location managed (log : ConsoleLogger) =
   | Choice2Of2 exn -> raise exn
   | _ -> excel
 
-let exportWithExtendedSolution' org ac ac' solution location managed (log : ConsoleLogger) = 
-  export' org ac solution location managed log
+let exportWithExtendedSolution' (env: Environment) solution location managed (log : ConsoleLogger) = 
+  export' env solution location managed log
   let filename =
     let managed' =
       match managed with
@@ -471,12 +443,12 @@ let exportWithExtendedSolution' org ac ac' solution location managed (log : Cons
       | false -> ""
     sprintf "%s%s.zip" solution managed'
   log.WriteLine(LogLevel.Info, @"Exporting extended solution")
-  ExtendedSolutionHelper.exportExtendedSolution org ac' solution (location ++ filename) log
+  ExtendedSolutionHelper.exportExtendedSolution env solution (location ++ filename) log
 
-let importWithExtendedSolution' org ac ac' solution location managed (log : ConsoleLogger) = 
-  import' org ac solution location managed log |> ignore
+let importWithExtendedSolution' (env: Environment) solution location managed (log : ConsoleLogger) = 
+  import' env solution location managed log |> ignore
   log.WriteLine(LogLevel.Info, @"Importing extended solution")
-  ExtendedSolutionHelper.importExtendedSolution org ac' solution location
+  ExtendedSolutionHelper.importExtendedSolution env solution location
 
 //TODO:
 let extract' location (customizations : string) (map : string) project 
@@ -527,21 +499,21 @@ let pack' location customizations map managed (log : ConsoleLogger) (logl : LogL
   log.WriteLine(LogLevel.Info, "End output from SolutionPackager")
 
 
-let updateServiceContext' (org:Uri) location ap usr pwd domain exe lcid (log:ConsoleLogger) =
+let updateServiceContext' (env: Environment) location exe lcid (log:ConsoleLogger) =
   let lcid : int option = lcid
   let lcid' = 
     match lcid with
     | Some v -> string v
     | None -> System.String.Empty
   
-  let orgString = org.ToString()
+  let orgString = env.url.ToString()
   let csu() =
     let args = 
       [ "/metadataproviderservice:\"DG.MetadataProvider.IfdMetadataProviderService, Delegate.MetadataProvider\""
         sprintf "/url:\"%s\"" orgString
-        sprintf "/username:\"%s\"" usr
-        sprintf "/password:\"%s\"" pwd
-        sprintf "/domain:\"%s\"" domain
+        //sprintf "/username:\"%s\"" usr
+        //sprintf "/password:\"%s\"" pwd
+        //sprintf "/domain:\"%s\"" domain
         "/language:cs"
         "/namespace:DG.XrmFramework.BusinessDomain.ServiceContext"
         "/serviceContextName:Xrm"
@@ -550,19 +522,19 @@ let updateServiceContext' (org:Uri) location ap usr pwd domain exe lcid (log:Con
     Utility.executeProcess(exe,args)
 
   let csu'() =
-    let args =
-      (sprintf "/metadataproviderservice:\"DG.MetadataProvider.IfdMetadataProviderService, Delegate.MetadataProvider\" \
-                /codewriterfilter:\"Microsoft.Crm.Sdk.Samples.FilteringService, Delegate.GeneratePicklistEnums\" \
-                /codecustomization:\"Microsoft.Crm.Sdk.Samples.CodeCustomizationService, Delegate.GeneratePicklistEnums\" \
-                /namingservice:\"Microsoft.Crm.Sdk.Samples.NamingService%s, Delegate.GeneratePicklistEnums\" \
-                /url:\"%s\" \
-                /username:\"%s\" \
-                /password:\"%s\" \
-                /domain:\"%s\" \
-                /language:\"cs\" \
-                /namespace:\"DG.XrmFramework.BusinessDomain.ServiceContext.OptionSets\" \
-                /serviceContextName:\"XrmOptionSets\" \
-                /out:\"%s\\XrmOptionSets.cs\"" lcid' (org.ToString()) usr pwd domain location)
+    let args = ""
+      //(sprintf "/metadataproviderservice:\"DG.MetadataProvider.IfdMetadataProviderService, Delegate.MetadataProvider\" \
+      //          /codewriterfilter:\"Microsoft.Crm.Sdk.Samples.FilteringService, Delegate.GeneratePicklistEnums\" \
+      //          /codecustomization:\"Microsoft.Crm.Sdk.Samples.CodeCustomizationService, Delegate.GeneratePicklistEnums\" \
+      //          /namingservice:\"Microsoft.Crm.Sdk.Samples.NamingService%s, Delegate.GeneratePicklistEnums\" \
+      //          /url:\"%s\" \
+      //          /username:\"%s\" \
+      //          /password:\"%s\" \
+      //          /domain:\"%s\" \
+      //          /language:\"cs\" \
+      //          /namespace:\"DG.XrmFramework.BusinessDomain.ServiceContext.OptionSets\" \
+      //          /serviceContextName:\"XrmOptionSets\" \
+      //          /out:\"%s\\XrmOptionSets.cs\"" lcid' (env.url.ToString()) usr pwd domain location)
     Utility.executeProcess(exe,args)
 
   postProcess (csu()) log "MS CrmSvcUtil SDK"
@@ -574,11 +546,19 @@ let addIfSome (key: string) (v: string option) (list: (string * string) list) =
   | None -> list
   | Some v' -> (key,v') :: list
 
-let updateCustomServiceContext' org location (env:Environment) usr pwd domain exe log 
+let getOptionalUsrPwdDmn (env: Environment) =
+  match env.method with
+  | ClientSecret -> None,None,None
+  | Proxy
+  | OAuth ->
+    let usr, pwd, dmn = env.getCreds()
+    Some usr, Some pwd, Some dmn
+
+let updateCustomServiceContext' (env: Environment) location exe log 
     (solutions : string list) (entities : string list) extraArgs = 
   let ccs() = 
     let baseArgs = 
-      [ "url", org.ToString()
+      [ "url", env.url.ToString()
         "ap", env.ap.ToString()
         "out", location
         "method", env.method.ToString()
@@ -587,12 +567,13 @@ let updateCustomServiceContext' org location (env:Environment) usr pwd domain ex
         "servicecontextname", "Xrm"
         "namespace", "DG.XrmFramework.BusinessDomain.ServiceContext" ]
     
+    let usr,pwd,dmn = getOptionalUsrPwdDmn env
     let optionalArgs =
       baseArgs
       |>(
         addIfSome "username" usr >>
         addIfSome "password" pwd >>
-        addIfSome "domain" domain >>
+        addIfSome "domain" dmn >>
         addIfSome "mfaAppId" env.clientId >>
         addIfSome "mfaReturnUrl" env.returnUrl >>
         addIfSome "mfaClientSecret" env.clientSecret
@@ -602,17 +583,18 @@ let updateCustomServiceContext' org location (env:Environment) usr pwd domain ex
     Utility.executeProcess (exe, args |> toArgStringDefault)
   postProcess (ccs()) log "DG XrmContext"
 
-let updateXrmMockupMetadata' org location (env: Environment) usr pwd dmn exe log 
+let updateXrmMockupMetadata' (env: Environment) location exe log 
     (solutions : string list) (entities : string list) extraArgs = 
   let ccs() = 
     let baseArgs = 
-      [ "url", org.ToString()
+      [ "url", env.url.ToString()
         "ap", env.ap.ToString()
         "method", env.method.ToString()
         "out", location
         "solutions", (solutions |> fun ss -> String.Join(",", ss))
         "entities", (entities |> fun es -> String.Join(",", es)) ]
 
+    let usr,pwd,dmn = getOptionalUsrPwdDmn env
     let optionalArgs =
       baseArgs
       |>(
@@ -628,17 +610,18 @@ let updateXrmMockupMetadata' org location (env: Environment) usr pwd dmn exe log
     Utility.executeProcess (exe, finalArgs |> toArgStringDefault)
   postProcess (ccs()) log "DG XrmMockup"
     
-let updateTypeScriptContext' org location (env: Environment) usr pwd dmn exe log 
+let updateTypeScriptContext' (env: Environment) location exe log 
     (solutions : string list) (entities : string list) extraArgs = 
   let dts() = 
     let baseArgs = 
-      [ "url", org.ToString()
+      [ "url", env.url.ToString()
         "ap", env.ap.ToString()
         "method", env.method.ToString()
         "out", location
         "solutions", (solutions |> fun ss -> String.Join(",", ss))
         "entities", (entities |> fun es -> String.Join(",", es)) ]
 
+    let usr,pwd,dmn = getOptionalUsrPwdDmn env
     let optionalArgs =
       baseArgs
       |>(
@@ -654,9 +637,7 @@ let updateTypeScriptContext' org location (env: Environment) usr pwd dmn exe log
     Utility.executeProcess (exe, finalArgs |> toArgStringDefault)
   postProcess (dts()) log "Delegate XrmDefinitelyTyped"
 
-let count' org solutionName ac = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solutionName
-  CrmDataInternal.Entities.countEntities p solutionId
+let count' (env: Environment) solutionName = 
+  let service = env.connect().GetService()
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId service solutionName
+  CrmDataInternal.Entities.countEntities service solutionId

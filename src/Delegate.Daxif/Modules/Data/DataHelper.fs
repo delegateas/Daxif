@@ -32,11 +32,9 @@ let maxConcurrentMultipleRequest = function
 let maxRequestInRequestCollection = 1000
     
 /// TODO:
-let exists' org ac entityName filter (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  CrmDataInternal.Entities.existCrmGuid p entityName filter
+let exists' (env: Environment) entityName filter (log : ConsoleLogger) = 
+  let service = env.connect().GetService()
+  CrmDataInternal.Entities.existCrmGuid service entityName filter
     
 let count' proxyGen entityNames =
   entityNames 
@@ -47,23 +45,20 @@ let count' proxyGen entityNames =
           log.Warn "%s: %s" en ex.Message
     )
 // @deprecated
-let updateState' org ac entityName filter (state, status) 
+let updateState' (env: Environment) entityName filter (state, status) 
     (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
+  let service = env.connect().GetService()
   // TODO: Would be nice with TypeProviders based on target system
-  CrmDataInternal.Entities.retrieveEntitiesLight p entityName filter
-  |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
+  CrmDataInternal.Entities.retrieveEntitiesLight service entityName filter
+  |> FSharpCoreExt.Seq.split (1000)
   |> Seq.iter 
         (fun xs -> 
         xs 
         |> Array.Parallel.iter (fun e -> 
-            use p' = ServiceProxy.getOrganizationServiceProxy m tc
             let en' = entityName
             let ei' = e.Id.ToString()
             try 
-              CrmDataInternal.Entities.updateState p' en' e.Id state status
+              CrmDataInternal.Entities.updateState service en' e.Id state status
               log.WriteLine
                 (LogLevel.Verbose, sprintf "%s:%s state was updated" en' ei')
             with ex -> 
@@ -71,13 +66,11 @@ let updateState' org ac entityName filter (state, status)
                 (LogLevel.Warning, sprintf "%s:%s %s" en' ei' ex.Message)))
 
 /// TODO:
-let updateState'' org ac entityName filter (state, status) 
+let updateState'' (env: Environment) entityName filter (state, status) 
     (log : ConsoleLogger) = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  CrmDataInternal.Entities.retrieveEntitiesLight p entityName filter
-  |> FSharpCoreExt.Seq.split (maxRequestInRequestCollection * (maxConcurrentMultipleRequest m.AuthenticationType))
+  let service = env.connect().GetService()
+  CrmDataInternal.Entities.retrieveEntitiesLight service entityName filter
+  |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
   |> Seq.iter (fun xs -> 
         xs
         |> Array.toSeq
@@ -96,8 +89,7 @@ let updateState'' org ac entityName filter (state, status)
             em, es)
         |> Array.Parallel.map (fun (em, es) -> 
             try 
-              use p' = ServiceProxy.getOrganizationServiceProxy m tc
-              (p'.Execute(em) :?> ExecuteMultipleResponse, es) |> Some
+              (service.Execute(em) :?> ExecuteMultipleResponse, es) |> Some
             with ex -> 
               log.WriteLine(LogLevel.Warning, sprintf "%s" ex.Message)
               None)
@@ -121,13 +113,11 @@ let updateState'' org ac entityName filter (state, status)
 
 
 // @deprecated
-let reassignAllRecords' org ac userFrom userTo 
+let reassignAllRecords' (env: Environment) userFrom userTo 
     (log : ConsoleLogger) = 
   let (userFrom : Guid) = userFrom
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  CrmData.Metadata.allEntities p
+  let service = env.connect().GetService()
+  CrmData.Metadata.allEntities service
   |> Seq.filter (fun x -> 
         let ot = 
           match x.OwnershipType.HasValue with
@@ -137,17 +127,15 @@ let reassignAllRecords' org ac userFrom userTo
   |> Seq.map (fun x -> x.LogicalName)
   |> Seq.toArray
   |> Array.Parallel.iter (fun y -> 
-        use p' = ServiceProxy.getOrganizationServiceProxy m tc
-        CrmDataInternal.Entities.retrieveEntitiesLight p' y 
+        CrmDataInternal.Entities.retrieveEntitiesLight service y 
           (Map.empty |> Map.add (@"ownerid") (userFrom :> obj))
         |> Seq.toArray
-        |> Array.Parallel.iter (fun z -> 
-            use p'' = ServiceProxy.getOrganizationServiceProxy m tc
+        |> Array.Parallel.iter (fun z ->
             let en' = y
             let ei = z.Id
             let ei' = ei.ToString()
             try 
-              CrmDataInternal.Entities.assign p'' userTo en' ei
+              CrmDataInternal.Entities.assign service userTo en' ei
               log.WriteLine
                 (LogLevel.Verbose, 
                   sprintf "%s:%s record was assigned from:%A to:%A " en' ei' 
@@ -157,13 +145,11 @@ let reassignAllRecords' org ac userFrom userTo
                 (LogLevel.Warning, sprintf "%s:%s %s" en' ei' ex.Message)))
 
 /// TODO:
-let reassignAllRecords'' org ac userFrom userTo 
+let reassignAllRecords'' (env: Environment) userFrom userTo 
     (log : ConsoleLogger) = 
   let (userFrom : Guid) = userFrom
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-  CrmData.Metadata.allEntities p
+  let service = env.connect().GetService()
+  CrmData.Metadata.allEntities service
   |> Seq.filter (fun x -> 
         let ot = 
           match x.OwnershipType.HasValue with
@@ -172,10 +158,9 @@ let reassignAllRecords'' org ac userFrom userTo
         ot = OwnershipTypes.UserOwned)
   |> Seq.map (fun x -> x.LogicalName)
   |> Seq.iter (fun entityName -> 
-        use p' = ServiceProxy.getOrganizationServiceProxy m tc
         let filter = (Map.empty |> Map.add (@"ownerid") (userFrom :> obj))
-        CrmDataInternal.Entities.retrieveEntitiesLight p' entityName filter
-        |> FSharpCoreExt.Seq.split (maxRequestInRequestCollection * (maxConcurrentMultipleRequest m.AuthenticationType))
+        CrmDataInternal.Entities.retrieveEntitiesLight service entityName filter
+        |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
         |> Seq.iter (fun xs -> 
             xs
             |> Array.toSeq
@@ -194,8 +179,7 @@ let reassignAllRecords'' org ac userFrom userTo
                   em, es)
             |> Array.Parallel.map (fun (em, es) -> 
                   try 
-                    use p' = ServiceProxy.getOrganizationServiceProxy m tc
-                    (p'.Execute(em) :?> ExecuteMultipleResponse, es) |> Some
+                    (service.Execute(em) :?> ExecuteMultipleResponse, es) |> Some
                   with ex -> 
                     log.WriteLine(LogLevel.Warning, sprintf "%s" ex.Message)
                     None)
@@ -221,19 +205,17 @@ let reassignAllRecords'' org ac userFrom userTo
 
 
 /// TODO:
-let export' org ac location entityNames (log : ConsoleLogger) 
+let export' (env: Environment) location entityNames (log : ConsoleLogger) 
     serialize = 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
+  let service = env.connect().GetService()
   ensureDirectory location
   let ext = (@"." + Utility.unionToString serialize).ToLower()
   entityNames 
   |> Array.Parallel.iter (fun en -> 
-        use p = ServiceProxy.getOrganizationServiceProxy m tc
         let eLoc = location + Path.DirectorySeparatorChar.ToString() + en
         ensureDirectory eLoc
-        CrmDataInternal.Entities.retrieveAllEntities p en
-        |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
+        CrmDataInternal.Entities.retrieveAllEntities service en
+        |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
         |> Seq.iter (fun xs -> 
             xs 
             |> Array.Parallel.iter (fun e -> 
@@ -252,21 +234,18 @@ let export' org ac location entityNames (log : ConsoleLogger)
 
 
 /// TODO:
-let exportDelta' org ac location entityNames date (log:ConsoleLogger) serialize =
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-
+let exportDelta' (env: Environment) location entityNames date (log:ConsoleLogger) serialize =
+  let service = env.connect().GetService()
   ensureDirectory location
 
   entityNames 
   |> Array.Parallel.iter(fun en ->
-    use p = ServiceProxy.getOrganizationServiceProxy m tc
     let eLoc = location + en
 
     ensureDirectory eLoc
 
-    CrmDataInternal.Entities.retrieveEntitiesDelta p en date
-    |> FSharpCoreExt.Seq.split (1000 * (throttle m.AuthenticationType))
+    CrmDataInternal.Entities.retrieveEntitiesDelta service en date
+    |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
     |> Seq.iter(fun xs ->
       xs
       |> Array.Parallel.iter(fun e ->
@@ -290,13 +269,10 @@ let exportDelta' org ac location entityNames date (log:ConsoleLogger) serialize 
 
 
 /// TODO:
-let exportView' org ac location view user (log:ConsoleLogger) serialize =
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
+let exportView' (env: Environment) location view user (log:ConsoleLogger) serialize =
+  let service = env.connect().GetService()
 
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-
-  CrmDataInternal.Entities.retrieveFromView p view user
+  CrmDataInternal.Entities.retrieveFromView service view user
   |> Seq.toArray
   |> Array.Parallel.iter(fun e ->
     let en = e.LogicalName
@@ -325,12 +301,10 @@ let exportView' org ac location view user (log:ConsoleLogger) serialize =
 
 
 // @deprecated
-let import' org ac location (log:ConsoleLogger) serialize attribs data =
+let import' (env: Environment) location (log:ConsoleLogger) serialize attribs data =
     let imported = location + @"..\imported\"
 
-    let m = ServiceManager.createOrgService org
-    let tc = m.Authenticate(ac)
-
+    let service = env.connect().GetService()
     let i = Activator.CreateInstance<Entity>()
     let t = Type.GetType (i.GetType().AssemblyQualifiedName)
 
@@ -349,7 +323,7 @@ let import' org ac location (log:ConsoleLogger) serialize attribs data =
         Directory.GetDirectories(location)
         |> Array.map(fun x ->
             let x' = Path.GetFileName(x)
-            dCache(ServiceProxy.getOrganizationServiceProxy m tc, x'))
+            dCache(service, x'))
         |> ignore
 
         // Add memoization to avoid to many network queries (concurrent thread-safe)
@@ -363,12 +337,11 @@ let import' org ac location (log:ConsoleLogger) serialize attribs data =
           Directory.EnumerateFiles(location', "*" + ext, SearchOption.AllDirectories)
           |> Seq.toArray
           |> Array.Parallel.iter(fun f ->
-              use p = ServiceProxy.getOrganizationServiceProxy m tc
               let e = SerializationHelper.deserializeFileToObject<Entity>
                         serialize f
 
               let en = e.LogicalName
-              let em = dCache(p, en)
+              let em = dCache(service, en)
               let ei = e.Id
               let ei' = ei.ToString()
 
@@ -379,12 +352,12 @@ let import' org ac location (log:ConsoleLogger) serialize attribs data =
                       match x.Value with
                       | :? EntityReference as er ->
                           let ern = er.LogicalName
-                          let erm = dCache(p, ern)
+                          let erm = dCache(service, ern)
                           let eri = dMapLookup data ern er.Id ?| er.Id
                                
                           let eri' = eri.ToString()
 
-                          let et = dMem (p, (ern, eri, erm.PrimaryIdAttribute |> Some))
+                          let et = dMem (service, (ern, eri, erm.PrimaryIdAttribute |> Some))
 
                           match et with
                           | false -> 
@@ -441,16 +414,16 @@ let import' org ac location (log:ConsoleLogger) serialize attribs data =
               | true -> File.Delete(f')
 
               try
-                match CrmDataInternal.Entities.existCrm p en ei (em.PrimaryIdAttribute |> Some) with
+                match CrmDataInternal.Entities.existCrm service en ei (em.PrimaryIdAttribute |> Some) with
                 | true ->   
-                    CrmData.CRUD.update p e |> ignore
+                    CrmData.CRUD.update service e |> ignore
                       
                     File.Move(f,f')
 
                     log.WriteLine(LogLevel.Verbose, 
                         sprintf "%s:%s was updated" en ei')
                 | false ->  
-                    let guid = CrmData.CRUD.create p e (ParameterCollection())
+                    let guid = CrmData.CRUD.create service e (ParameterCollection())
 
                     File.Move(f,f')
 
@@ -461,13 +434,11 @@ let import' org ac location (log:ConsoleLogger) serialize attribs data =
                                   sprintf "%s:%s %s" en ei' ex.Message)))
 
 /// TODO: 
-let import'' org ac location (log:ConsoleLogger) serialize 
+let import'' (env: Environment) location (log:ConsoleLogger) serialize 
   includeAttributes includeReferences referenceFilter additionalAttributes guidRemapping =
   let imported = location + @"..\imported\"
 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-
+  let service = env.connect().GetService()
 //    let i = Activator.CreateInstance<Entity>()
 //    let t = Type.GetType (i.GetType().AssemblyQualifiedName)
 
@@ -486,7 +457,7 @@ let import'' org ac location (log:ConsoleLogger) serialize
     Directory.GetDirectories(location)
     |> Array.map(fun x ->
       let x' = Path.GetFileName(x)
-      dCache(ServiceProxy.getOrganizationServiceProxy m tc, x'))
+      dCache(service, x'))
     |> ignore
 
     // Add memoization to avoid to many network queries (concurrent thread-safe)
@@ -498,7 +469,7 @@ let import'' org ac location (log:ConsoleLogger) serialize
     Directory.GetDirectories(location)
     |> Array.iter(fun location' ->
       Directory.EnumerateFiles(location', "*" + ext, SearchOption.AllDirectories)
-      |> FSharpCoreExt.Seq.split (maxRequestInRequestCollection * (maxConcurrentMultipleRequest m.AuthenticationType))
+      |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
       |> Seq.iter(fun xs ->
         xs
         |> Array.toSeq 
@@ -513,12 +484,11 @@ let import'' org ac location (log:ConsoleLogger) serialize
 
           files 
           |> Array.Parallel.map(fun f ->
-            use p = ServiceProxy.getOrganizationServiceProxy m tc
             let e = SerializationHelper.deserializeFileToObject<Entity>
                       serialize f
 
             let en = e.LogicalName
-            let em' = dCache(p, en)
+            let em' = dCache(service, en)
             let ei = e.Id
             let ei' = ei.ToString()
 
@@ -534,12 +504,12 @@ let import'' org ac location (log:ConsoleLogger) serialize
                     | false, false -> ()
                     | true, _ | false, true ->
                       let ern = er.LogicalName
-                      let erm = dCache(p, ern)
+                      let erm = dCache(service, ern)
                       let eri = dMapLookup guidRemapping ern er.Id ?| er.Id
                                
                       let eri' = eri.ToString()
 
-                      let et = dMem (p, (ern,eri,erm.PrimaryIdAttribute |> Some))
+                      let et = dMem (service, (ern,eri,erm.PrimaryIdAttribute |> Some))
 
                       match et with
                       | false -> 
@@ -611,7 +581,7 @@ let import'' org ac location (log:ConsoleLogger) serialize
 
             // check if create or update
             try
-              match CrmDataInternal.Entities.existCrm p en ei (em'.PrimaryIdAttribute |> Some) with
+              match CrmDataInternal.Entities.existCrm service en ei (em'.PrimaryIdAttribute |> Some) with
                 | true ->
                   CrmData.CRUD.updateReq e :> OrganizationRequest
                 | false -> 
@@ -628,8 +598,7 @@ let import'' org ac location (log:ConsoleLogger) serialize
           em,files)
       |> Array.Parallel.map(fun (em,files) ->
         try
-          use p = ServiceProxy.getOrganizationServiceProxy m tc
-          (p.Execute(em) :?> ExecuteMultipleResponse,files) |> Some
+          (service.Execute(em) :?> ExecuteMultipleResponse,files) |> Some
         with ex ->
           log.WriteLine(LogLevel.Warning, sprintf "%s" ex.Message); None)
       |> Array.Parallel.choose (id)
@@ -668,12 +637,9 @@ let import'' org ac location (log:ConsoleLogger) serialize
                 
 
 /// TODO:
-let associationImport' org ac location (log:ConsoleLogger) serialize guidRemapping =
+let associationImport' (env: Environment) location (log:ConsoleLogger) serialize guidRemapping =
   let aImported = location + @"..\associationImported\"
-
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-
+  let service = env.connect().GetService()
   let i = Activator.CreateInstance<Entity>()
   let t = Type.GetType (i.GetType().AssemblyQualifiedName)
 
@@ -697,12 +663,12 @@ let associationImport' org ac location (log:ConsoleLogger) serialize guidRemappi
     Directory.GetDirectories(location)
     |> Array.map(fun x ->
         let x' = Path.GetFileName(x)
-        dCache(ServiceProxy.getOrganizationServiceProxy m tc, x'),
-        dCacheRel(ServiceProxy.getOrganizationServiceProxy m tc, x'))
+        dCache(service, x'),
+        dCacheRel(service, x'))
     |> ignore
 
     Directory.EnumerateFiles(location, "*" + ext, SearchOption.AllDirectories)
-    |> FSharpCoreExt.Seq.split (maxRequestInRequestCollection * (maxConcurrentMultipleRequest m.AuthenticationType))
+    |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
     |> Seq.iter(fun xs ->
       xs
       |> Array.toSeq 
@@ -717,15 +683,14 @@ let associationImport' org ac location (log:ConsoleLogger) serialize guidRemappi
 
         files 
         |> Array.Parallel.map(fun file ->
-          use p = ServiceProxy.getOrganizationServiceProxy m tc
           let e = SerializationHelper.deserializeFileToObject<Entity>
                     serialize file
 
           let en = e.LogicalName
-          let em = dCache(p, en)
+          let em = dCache(service, en)
           let sn = 
             let a' =
-              dCacheRel(p, en)
+              dCacheRel(service, en)
               |> Array.filter (fun x -> x.IntersectEntityName = em.LogicalName)
             match a'.Length > 0 with
             | true -> a'.[0].SchemaName
@@ -755,8 +720,7 @@ let associationImport' org ac location (log:ConsoleLogger) serialize guidRemappi
         em,files)
       |> Array.Parallel.map(fun (em,files) ->
         try
-          use p = ServiceProxy.getOrganizationServiceProxy m tc
-          (p.Execute(em) :?> ExecuteMultipleResponse,files) |> Some
+          (service.Execute(em) :?> ExecuteMultipleResponse,files) |> Some
         with ex ->
           log.WriteLine(LogLevel.Warning, sprintf "%s" ex.Message); None)
       |> Array.Parallel.choose (id)
@@ -810,11 +774,10 @@ let associationImport' org ac location (log:ConsoleLogger) serialize guidRemappi
               sprintf "%s:%s %s" en ei' error))))
 
 // @deprecated
-let reassignOwner' org ac location (log : ConsoleLogger) serialize 
+let reassignOwner' (env: Environment) location (log : ConsoleLogger) serialize 
     data = 
   let reassigned = location + @"..\reassigned\"
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
+  let service = env.connect().GetService()
   let i = Activator.CreateInstance<Entity>()
   let t = Type.GetType(i.GetType().AssemblyQualifiedName)
   match Directory.Exists(location) with
@@ -824,7 +787,6 @@ let reassignOwner' org ac location (log : ConsoleLogger) serialize
     Directory.EnumerateFiles(location, "*" + ext, SearchOption.AllDirectories)
     |> Seq.toArray
     |> Array.Parallel.iter (fun f -> 
-          use p = ServiceProxy.getOrganizationServiceProxy m tc
           let e = SerializationHelper.deserializeFileToObject<Entity> serialize f
           let en = e.LogicalName
           let ei = e.Id
@@ -846,7 +808,7 @@ let reassignOwner' org ac location (log : ConsoleLogger) serialize
               | false -> None
             match owner with
             | Some v -> 
-              CrmDataInternal.Entities.assign p v e.LogicalName e.Id
+              CrmDataInternal.Entities.assign service v e.LogicalName e.Id
               File.Move(f, f')
               log.WriteLine
                 (LogLevel.Verbose, sprintf "%s:%s was reassigned" en ei')
@@ -856,12 +818,11 @@ let reassignOwner' org ac location (log : ConsoleLogger) serialize
 
 
 /// TODO: 
-let reassignOwner'' org ac location (log : ConsoleLogger) 
+let reassignOwner'' (env: Environment) location (log : ConsoleLogger) 
     serialize data = 
   let reassigned = location + @"..\reassigned\"
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-//    let i = Activator.CreateInstance<Entity>()
+  let service = env.connect().GetService()
+//  let i = Activator.CreateInstance<Entity>()
 //    let t = Type.GetType(i.GetType().AssemblyQualifiedName)
   // let t = typeof<Entity> // TODO: replace with this?
   match Directory.Exists(location) with
@@ -876,7 +837,7 @@ let reassignOwner'' org ac location (log : ConsoleLogger)
         let logicalName' = reassigned + logicalName + @"\"
         ensureDirectory logicalName')
     Directory.EnumerateFiles(location, "*" + ext, SearchOption.AllDirectories)
-    |> FSharpCoreExt.Seq.split (maxRequestInRequestCollection * (maxConcurrentMultipleRequest m.AuthenticationType))
+    |> FSharpCoreExt.Seq.split maxRequestInRequestCollection
     |> Seq.iter (fun xs -> 
           xs
           |> Array.toSeq
@@ -913,8 +874,7 @@ let reassignOwner'' org ac location (log : ConsoleLogger)
               em, files)
           |> Array.Parallel.map (fun (em, files) -> 
               try 
-                use p = ServiceProxy.getOrganizationServiceProxy m tc
-                (p.Execute(em) :?> ExecuteMultipleResponse, files) |> Some
+                (service.Execute(em) :?> ExecuteMultipleResponse, files) |> Some
               with ex -> 
                 log.WriteLine(LogLevel.Warning, sprintf "%s" ex.Message)
                 None)
@@ -994,10 +954,10 @@ let changeServerTime (dt : DateTime) =
     System.Threading.Monitor.Exit threadSafe
 
 /// @deprecated
-let migrate' org ac location (log : ConsoleLogger) serialize map = 
+let migrate' (env: Environment) location (log : ConsoleLogger) serialize map = 
   // TODO: Mimic what is done for imported ...
   let migrateded = location + @"..\migrateded\"
-      
+  let service = env.connect().GetService()
   let services = 
     ServiceController.GetServices()
     |> Array.map (fun x -> x.ServiceName)
@@ -1017,9 +977,7 @@ let migrate' org ac location (log : ConsoleLogger) serialize map =
     | Some v -> 
       v.Stop()
       v.WaitForStatus(ServiceControllerStatus.Stopped)
-    let m = ServiceManager.createOrgService org
-    let tc = m.Authenticate(ac)
-    use p = ServiceProxy.getOrganizationServiceProxy m tc
+    
     match Directory.Exists(location) with
     | false -> ()
     | true -> 
@@ -1034,7 +992,7 @@ let migrate' org ac location (log : ConsoleLogger) serialize map =
               SerializationHelper.deserializeFileToObject<Entity> serialize f
             // HACK: callerID for created by
             let cb = e.Attributes.["createdby"] :?> EntityReference
-            p.CallerId <- cb.Id
+            //service.CallerId <- cb.Id
             // HACK: set server date for created on
             let co = e.Attributes.["createdon"] :?> DateTime
             changeServerTime co
@@ -1053,7 +1011,7 @@ let migrate' org ac location (log : ConsoleLogger) serialize map =
                     let eri = er.Id
                     let eri' = eri.ToString()
                     // if not, add for later removal
-                    let et = CrmDataInternal.Entities.existCrm p ern eri None
+                    let et = CrmDataInternal.Entities.existCrm service ern eri None
                     match et with
                     | false -> 
                       log.WriteLine
@@ -1072,13 +1030,13 @@ let migrate' org ac location (log : ConsoleLogger) serialize map =
             // add extra attributes
             map |> Map.iter (fun k v -> e.Attributes.Add(k, v))
             try 
-              match CrmDataInternal.Entities.existCrm p en ei None with
+              match CrmDataInternal.Entities.existCrm service en ei None with
               | true -> 
-                CrmData.CRUD.update p e |> ignore
+                CrmData.CRUD.update service e |> ignore
                 log.WriteLine
                   (LogLevel.Verbose, sprintf "%s:%s was updated" en ei')
               | false -> 
-                CrmData.CRUD.create p e (ParameterCollection()) |> ignore
+                CrmData.CRUD.create service e (ParameterCollection()) |> ignore
                 log.WriteLine
                   (LogLevel.Verbose, sprintf "%s:%s was created" en ei')
             with ex -> 
@@ -1091,7 +1049,7 @@ let migrate' org ac location (log : ConsoleLogger) serialize map =
               SerializationHelper.deserializeFileToObject<Entity> serialize f
             // HACK: callerID for modified by
             let cb = e.Attributes.["modifiedby"] :?> EntityReference
-            p.CallerId <- cb.Id
+            //p.CallerId <- cb.Id
             // HACK: set server date for modified on
             let co = e.Attributes.["modifiedon"] :?> DateTime
             changeServerTime co
@@ -1110,7 +1068,7 @@ let migrate' org ac location (log : ConsoleLogger) serialize map =
                     let eri = er.Id
                     let eri' = eri.ToString()
                     // if not, add for later removal
-                    let et = CrmDataInternal.Entities.existCrm p ern eri None
+                    let et = CrmDataInternal.Entities.existCrm service ern eri None
                     match et with
                     | false -> 
                       log.WriteLine
@@ -1129,13 +1087,13 @@ let migrate' org ac location (log : ConsoleLogger) serialize map =
             // add extra attributes
             map |> Map.iter (fun k v -> e.Attributes.Add(k, v))
             try 
-              match CrmDataInternal.Entities.existCrm p en ei None with
+              match CrmDataInternal.Entities.existCrm service en ei None with
               | true -> 
-                CrmData.CRUD.update p e |> ignore
+                CrmData.CRUD.update service e |> ignore
                 log.WriteLine
                   (LogLevel.Verbose, sprintf "%s:%s was updated" en ei')
               | false -> 
-                CrmData.CRUD.create p e (ParameterCollection()) |> ignore
+                CrmData.CRUD.create service e (ParameterCollection()) |> ignore
                 log.WriteLine
                   (LogLevel.Verbose, sprintf "%s:%s was created" en ei')
             with ex -> 
@@ -1167,22 +1125,20 @@ module DuplicateDetectionRules =
     q.Criteria <- f
     CrmDataHelper.retrieveMultiple proxy q
 
-  let publish org ac (dupRules:(string)[]) (log:ConsoleLogger) =
+  let publish (env: Environment) (dupRules:(string)[]) (log:ConsoleLogger) =
 
     match dupRules.Length with
     | 0 -> log.WriteLine(LogLevel.Info, "No Published Duplicate Detection Rules found in exported data")
     | _ -> 
-      let m = ServiceManager.createOrgService org
-      let tc = m.Authenticate(ac)
-      use p = ServiceProxy.getOrganizationServiceProxy m tc
-      
-      retrieveDR p
+      let service = env.connect().GetService()
+
+      retrieveDR service
       |> Seq.filter (fun x -> dupRules |> Array.contains (x.Attributes.["name"].ToString()))
       |> Array.ofSeq
       |> Array.map (fun x ->
         log.WriteLine(LogLevel.Verbose, sprintf "Publishing rule '%s' " (x.Attributes.["name"].ToString()))
         makePublishDupRuleRequest (Guid(x.Attributes.["duplicateruleid"].ToString())))
-      |> CrmDataHelper.performAsBulk p
+      |> CrmDataHelper.performAsBulk service
       |> Array.filter (fun x -> x.Fault = null)
       |> Array.length
       |> fun count -> log.WriteLine(LogLevel.Verbose, sprintf "Done publishing %d duplicate detection rules" count)

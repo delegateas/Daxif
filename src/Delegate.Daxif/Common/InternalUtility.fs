@@ -118,11 +118,5 @@ let syncDescription () =
     Environment.UserName
     (DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss \"GMT\"zzz"))
 
-let logAuthentication ap usr pwd domain (log: ConsoleLogger) =
-  log.Verbose "Authentication Provider: %O" ap
-  log.Verbose "User: %s" usr
-  log.Verbose "Password: %s" pwd
-  log.Verbose "Domain: %s" domain
-
 let logVersion (log: ConsoleLogger) =
   log.Info "%s" daxifVersion

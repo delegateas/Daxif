@@ -146,13 +146,10 @@ let deactivateWorkflows p ln target (diff: Set<string>) log =
 
 // Stores entities statecode and statuscode in a seperate file to be
 // implemented on import
-let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
+let exportExtendedSolution (env: Environment) solutionName zipPath (log:ConsoleLogger) =
+  let service = env.connect().GetService()
 
-  let m = ServiceManager.createOrgService org
-  let tc = m.Authenticate(ac)
-  use p = ServiceProxy.getOrganizationServiceProxy m tc
-
-  let solutionId = CrmDataInternal.Entities.retrieveSolutionId p solutionName
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId service solutionName
 
   // Retriev Customization.xml file from the solution package and store it in 
   // a temp folder
@@ -169,8 +166,8 @@ let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, "Finding entities to be persisted")
 
   // find the entities to be persisted
-  let views = getViews p xmlFile
-  let workflows = getWorkflows p solutionId
+  let views = getViews service xmlFile
+  let workflows = getWorkflows service solutionId
 
   let entities =
     [ ("Views",views)
@@ -201,7 +198,7 @@ let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, "Finding plugins to be persisted")
 
   // Find assemblies, plugin types, active plugin steps, and plugin images 
-  let asmsIds, typesIds, stepsIds, imgsIds = getPluginsIds p solutionId
+  let asmsIds, typesIds, stepsIds, imgsIds = getPluginsIds service solutionId
 
   [|("Assemblies", asmsIds); ("Plugin Types", typesIds) 
     ("Plugin Steps", stepsIds); ("Step Images", imgsIds)|]
@@ -210,7 +207,7 @@ let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
     )
 
   let workflowsIds = workflows |> getEntityIds
-  let webResIds = getWebresources p solutionId |> getEntityIds
+  let webResIds = getWebresources service solutionId |> getEntityIds
 
   let delegateSolution = 
     { states=states
@@ -241,7 +238,7 @@ let exportExtendedSolution org ac solutionName zipPath (log:ConsoleLogger) =
 
 
 /// Import solution
-let importExtendedSolution org ac solutionName zipPath =
+let importExtendedSolution (env: Environment) solutionName zipPath =
   use zipToOpen = new FileStream(zipPath, FileMode.Open)
   use archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update)
 
@@ -255,10 +252,8 @@ let importExtendedSolution org ac solutionName zipPath =
   | true -> 
     // Run everything then fail if errors
     let mutable errors = false in
-    let m = ServiceManager.createOrgService org
-    let tc = m.Authenticate(ac)
-    use p = ServiceProxy.getOrganizationServiceProxy m tc
-    let solutionId = CrmDataInternal.Entities.retrieveSolutionId p zipSolName
+    let service = env.connect().GetService()
+    let solutionId = CrmDataInternal.Entities.retrieveSolutionId service zipSolName
 
     // Fetch the ExtendedSolution.xml file and unserialize it
     let entry = archive.GetEntry("ExtendedSolution.xml")
@@ -278,7 +273,7 @@ let importExtendedSolution org ac solutionName zipPath =
       |> Array.Parallel.map(fun (_,guidState) -> 
           CrmData.CRUD.retrieveReq guidState.logicalName guidState.id 
           :> OrganizationRequest )
-      |> CrmDataHelper.performAsBulk p
+      |> CrmDataHelper.performAsBulk service
       |> Array.Parallel.map(fun resp -> 
         let resp' = resp.Response :?> Messages.RetrieveResponse 
         resp'.Entity)
@@ -301,15 +296,15 @@ let importExtendedSolution org ac solutionName zipPath =
         CrmDataInternal.Entities.updateStateReq x'.logicalName x'.id
           x'.stateCode x'.statusCode :> OrganizationRequest )
       |> fun req -> 
-        try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
+        try CrmDataInternal.CRUD.performAsBulkWithOutput service log req
         with _ -> errors <- true;
 
     log.Verbose "Synching plugins"
 
     // Sync Plugins and Webresources
-    let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds p solutionId
-    let targetWorkflows = getWorkflows p solutionId |> getEntityIds
-    let targetWebRes = getWebresources p solutionId |> getEntityIds
+    let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds service solutionId
+    let targetWorkflows = getWorkflows service solutionId |> getEntityIds
+    let targetWebRes = getWebresources service solutionId |> getEntityIds
 
     [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
       (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
@@ -325,7 +320,7 @@ let importExtendedSolution org ac solutionName zipPath =
 
       match preDeleteAction with
       | None   -> ()
-      | Some action -> action p ln target diff log
+      | Some action -> action service ln target diff log
         
       log.Verbose "Found %d '%s' entities to be deleted " diff.Count ln
       match diff.Count with
@@ -338,7 +333,7 @@ let importExtendedSolution org ac solutionName zipPath =
           CrmData.CRUD.deleteReq ln x :> OrganizationRequest)
         |> Seq.toArray
         |> fun req -> 
-          try CrmDataInternal.CRUD.performAsBulkWithOutput p log req
+          try CrmDataInternal.CRUD.performAsBulkWithOutput service log req
           with _ -> errors <- true;
       )
     if errors then

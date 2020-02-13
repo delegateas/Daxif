@@ -68,10 +68,8 @@ type Solution private () =
   /// <summary>Counts the amount of entities in a solution</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member Count(env: Environment, solutionName, ?logLevel) =
-    let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
-    
-    Main.count env.url solutionName env.ap usr pwd dmn logLevel
+    Main.count env solutionName logLevel
 
 
   /// <summary>Activates or deactivates all plugin steps of a solution</summary>
@@ -83,19 +81,17 @@ type Solution private () =
   /// <summary>Creates a solution in the given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member Create(env: Environment, name, displayName, publisherPrefix, ?logLevel) =
-    let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
     
-    Main.create env.url name displayName publisherPrefix env.ap usr pwd dmn logLevel
+    Main.create env name displayName publisherPrefix logLevel
 
 
   /// <summary>Creates a publish in the given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   static member CreatePublisher(env: Environment, name, displayName, prefix, ?logLevel) =
-    let usr, pwd, dmn = env.getCreds()
     let logLevel = logLevel ?| LogLevel.Verbose
     
-    Main.createPublisher env.url name displayName prefix env.ap usr pwd dmn logLevel
+    Main.createPublisher env name displayName prefix logLevel
 
   /// <summary>Extracts a solution package using the SolutionPackager</summary>
   static member Extract(solutionFile, customizationsFolder, xmlMappingFile, projectFile, ?logLevel) =
