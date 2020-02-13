@@ -1,4 +1,7 @@
 # Release Notes
+### 4.5.3 - February 13 2020
+* Fixed errors where proxy authentication was assumed for internal methods
+
 ### 4.5.2 - February 13 2020
 * Fixed error when using new Auth methods with DAXIF functions
 
