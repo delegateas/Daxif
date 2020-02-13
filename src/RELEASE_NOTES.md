@@ -1,4 +1,7 @@
 # Release Notes
+### 4.5.1 - February 13 2020
+* Fixed casing error when reading fsi arguments
+
 ### 4.5.0 - February 11 2020
 * Added support for client secret authentication
 
