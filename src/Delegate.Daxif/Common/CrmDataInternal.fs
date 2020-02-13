@@ -64,10 +64,11 @@ module CrmDataInternal =
       req.Status <- OptionSetValue(status)
       req
     
-    let updateState proxy logicalName guid state status = 
-      let (proxy : IOrganizationService) = proxy
-      let req = updateStateReq logicalName guid state status
-      proxy.Execute(req) :?> Messages.SetStateResponse |> ignore
+    let updateState (proxy: IOrganizationService) (logicalName: string) (guid: Guid) state status = 
+      let e = Entity(logicalName, guid)
+      e.Attributes.Add("statecode", OptionSetValue(state))
+      e.Attributes.Add("statuscode", OptionSetValue(status))
+      proxy.Update(e)
     
     let assignReq userid logicalName guid = 
       let req = Messages.AssignRequest()
