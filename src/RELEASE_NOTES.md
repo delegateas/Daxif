@@ -1,4 +1,7 @@
 # Release Notes
+### 4.5.2 - February 13 2020
+* Fixed error when using new Auth methods with DAXIF functions
+
 ### 4.5.1 - February 13 2020
 * Fixed casing error when reading fsi arguments
 
