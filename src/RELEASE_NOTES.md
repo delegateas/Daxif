@@ -1,4 +1,7 @@
 # Release Notes
+### 4.5.4 - February 14 2020
+* Added more verbose logging when deleting things with extended solution
+
 ### 4.5.3 - February 13 2020
 * Fixed errors where proxy authentication was assumed for internal methods
 
