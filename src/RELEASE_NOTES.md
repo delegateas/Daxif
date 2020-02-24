@@ -1,4 +1,7 @@
 # Release Notes
+### 4.5.5 - February 24 2020
+* Changed timeout for CrmServiceClient to 1 hour
+
 ### 4.5.4 - February 14 2020
 * Added more verbose logging when deleting things with extended solution
 
