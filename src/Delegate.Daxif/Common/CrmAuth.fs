@@ -66,9 +66,11 @@ let internal getCrmServiceClient userName password (orgUrl:Uri) mfaAppId mfaRetu
   let mutable isOnPrem = false
   Utilities.GetOrgnameAndOnlineRegionFromServiceUri(orgUrl, &region, &orgName, &isOnPrem)
   let cacheFileLocation = System.IO.Path.Combine(System.IO.Path.GetTempPath(), orgName, "oauth-cache.txt")
+  CrmServiceClient.MaxConnectionTimeout <- TimeSpan(1,0,0)
   new CrmServiceClient(userName, CrmServiceClient.MakeSecureString(password), region, orgName, false, null, null, mfaAppId, Uri(mfaReturnUrl), cacheFileLocation, null)
   |> ensureClientIsReady
 
 let internal getCrmServiceClientClientSecret (org: Uri) appId clientSecret =
+  CrmServiceClient.MaxConnectionTimeout <- TimeSpan(1,0,0)
   new CrmServiceClient(org, appId, CrmServiceClient.MakeSecureString(clientSecret), true, Path.Combine(Path.GetTempPath(), appId, "oauth-cache.txt"))
   |> ensureClientIsReady
