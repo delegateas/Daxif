@@ -1,4 +1,7 @@
 # Release Notes
+### 4.5.6 - March 12 2020
+* Fixed issue where extended solution failed to delete plugins before import of new assembly
+
 ### 4.5.5 - February 24 2020
 * Changed timeout for CrmServiceClient to 1 hour
 
