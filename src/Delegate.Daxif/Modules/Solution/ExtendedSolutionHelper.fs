@@ -234,13 +234,9 @@ let exportExtendedSolution (env: Environment) solutionName zipPath (log:ConsoleL
 
   log.WriteLine(LogLevel.Info, @"Extended solution exported successfully")
 
-
-/// Import solution
-let importExtendedSolution (env: Environment) solutionName zipPath =
+let getExtendedSolutionAndId (service: IOrganizationService) solutionName zipPath = 
   use zipToOpen = new FileStream(zipPath, FileMode.Open)
   use archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update)
-
-  let zipSolName = getSolutionNameFromSolution solutionName archive log
 
   log.Verbose @"Attempting to retrieve ExtendedSolution.xml file from solution package"
   match archive.Entries |> Seq.exists(fun e -> e.Name = "ExtendedSolution.xml") with                                        
@@ -248,96 +244,137 @@ let importExtendedSolution (env: Environment) solutionName zipPath =
     failwith @"ExtendedSolution import failed. No ExtendedSolution.xml file found in solution package"
 
   | true -> 
-    // Run everything then fail if errors
-    let mutable errors = false in
-    let service = env.connect().GetService()
-    let solutionId = CrmDataInternal.Entities.retrieveSolutionId service zipSolName
-
-    // Fetch the ExtendedSolution.xml file and unserialize it
     let entry = archive.GetEntry("ExtendedSolution.xml")
     use writer = new StreamReader(entry.Open())
 
     let xmlContent = writer.ReadToEnd()
       
     let extSol = SerializationHelper.deserializeXML<ExtendedSolution> xmlContent
+    
+    let zipSolName = getSolutionNameFromSolution solutionName archive log
+    let solutionId = CrmDataInternal.Entities.retrieveSolutionId service zipSolName
       
-    // Read the status and statecode of the entities and update them in crm
-    log.Verbose @"Finding states of entities to be updated"
+    solutionId,extSol
 
-    // Find the source entities that have different code values than target
-    let diffExtSol =
-      extSol.states
-      |> Map.toArray
-      |> Array.Parallel.map(fun (_,guidState) -> 
-          CrmData.CRUD.retrieveReq guidState.logicalName guidState.id 
-          :> OrganizationRequest )
-      |> CrmDataHelper.performAsBulk service
-      |> Array.Parallel.map(fun resp -> 
-        let resp' = resp.Response :?> Messages.RetrieveResponse 
-        resp'.Entity)
-      |> Array.filter(fun target -> 
-        let source = extSol.states.[target.Id.ToString()]
-        getCodeValue "statecode" target <> source.stateCode ||
-        getCodeValue "statuscode" target <> source.statusCode)
 
+let tryGetExtendedSolutionAndId (service: IOrganizationService) solutionName zipPath =
+  try
+    getExtendedSolutionAndId service solutionName zipPath |> Some
+  with _ -> None
+
+
+let deleteElements service elementGroup =
+  let ln, source, target, fieldCompFunc, preDeleteAction = elementGroup
+  let sourceIdentifiers = source |> Seq.map fieldCompFunc |> Set.ofSeq
+  let diff = 
+    target
+    |> Seq.filter(fun (id,name) ->
+      let identifier = fieldCompFunc (id,name)
+      sourceIdentifiers.Contains identifier |> not
+    )
+    |> Array.ofSeq
       
-    log.Verbose @"Found %d entity states to be updated" diffExtSol.Length
+  match preDeleteAction with
+  | None   -> ()
+  | Some action -> action service ln diff log
+        
+  log.Verbose "Found %d '%s' entities to be deleted " diff.Length ln
+      
+  match diff.Length with 
+  | 0 -> true
+  | _ ->
+    diff 
+    |> Array.map (fun (id,name) ->
+      log.Verbose "Deleting '%s' with name '%s' and GUID '%s'" ln name (id.ToString())
+      CrmData.CRUD.deleteReq ln id :> OrganizationRequest
+    )
+    |> fun req -> 
+      try 
+        CrmDataInternal.CRUD.performAsBulkWithOutput service log req
+        true
+      with _ -> 
+        false;
 
-    // Update the entities states
-    match diffExtSol |> Seq.length with
-    | 0 -> ()
-    | _ ->
-      log.WriteLine(LogLevel.Verbose, @"Updating entity states")
-      diffExtSol
-      |> Array.map(fun x -> 
-        let x' = extSol.states.[x.Id.ToString()]
-        CrmDataInternal.Entities.updateStateReq x'.logicalName x'.id
-          x'.stateCode x'.statusCode :> OrganizationRequest )
-      |> fun req -> 
-        try CrmDataInternal.CRUD.performAsBulkWithOutput service log req
-        with _ -> errors <- true;
 
-    log.Verbose "Synching plugins"
-
-    // Sync Plugins and Webresources
+let preImportExtendedSolution (env: Environment) solutionName zipPath =
+  let service = env.connect().GetService()
+  
+  match tryGetExtendedSolutionAndId service solutionName zipPath with
+  | None -> 
+    log.Verbose "No solution exists yet, skipping pre steps"
+    ()
+  | Some(solutionId,extSol) -> 
+    let mutable errors = false in
+    // Sync plugins and workflows
     let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds service solutionId
     let targetWorkflows = getWorkflows service solutionId |> getEntityIds
-    let targetWebRes = getWebresources service solutionId |> getEntityIds
+    
+    let deletionError =
+      [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
+        (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
+        (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)
+        (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, None)
+        (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
+      |> Array.map (fun x -> deleteElements service x)
+      |> Array.exists (fun x -> not x)
 
-    [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
-      (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
-      (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)
-      (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, None)
-      (webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, None)
-      (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
-    |> Array.iter(fun (ln, source, target, fieldCompFunc, preDeleteAction) ->   
+    if deletionError then errors <- true
 
-      let sourceIdentifiers = source |> Seq.map fieldCompFunc |> Set.ofSeq
-      let diff = 
-        target
-        |> Seq.filter(fun (id,name) ->
-          let identifier = fieldCompFunc (id,name)
-          sourceIdentifiers.Contains identifier |> not
-        )
-        |> Array.ofSeq
-      
-      match preDeleteAction with
-      | None   -> ()
-      | Some action -> action service ln diff log
-        
-      log.Verbose "Found %d '%s' entities to be deleted " diff.Length ln
-      
-      match diff.Length with 
-      | 0 -> ()
-      | _ ->
-        diff 
-        |> Array.map (fun (id,name) ->
-          log.Verbose "Deleting '%s' with name '%s' and GUID '%s'" ln name (id.ToString())
-          CrmData.CRUD.deleteReq ln id :> OrganizationRequest
-        )
-        |> fun req -> 
-          try CrmDataInternal.CRUD.performAsBulkWithOutput service log req
-          with _ -> errors <- true;
-      )
     if errors then
-      failwith "There were errors"
+      failwith "There were errors during the pre steps of extended solution"
+
+let postImportExtendedSolution (env: Environment) solutionName zipPath =
+  let service = env.connect().GetService()
+  let solutionId,extSol = getExtendedSolutionAndId service solutionName zipPath
+  
+  let mutable errors = false in
+  // Read the status and statecode of the entities and update them in crm
+  log.Verbose @"Finding states of entities to be updated"
+
+  // Find the source entities that have different code values than target
+  let diffExtSol =
+    extSol.states
+    |> Map.toArray
+    |> Array.Parallel.map(fun (_,guidState) -> 
+        CrmData.CRUD.retrieveReq guidState.logicalName guidState.id 
+        :> OrganizationRequest )
+    |> CrmDataHelper.performAsBulk service
+    |> Array.Parallel.map(fun resp -> 
+      let resp' = resp.Response :?> Messages.RetrieveResponse 
+      resp'.Entity)
+    |> Array.filter(fun target -> 
+      let source = extSol.states.[target.Id.ToString()]
+      getCodeValue "statecode" target <> source.stateCode ||
+      getCodeValue "statuscode" target <> source.statusCode)
+
+      
+  log.Verbose @"Found %d entity states to be updated" diffExtSol.Length
+
+  // Update the entities states
+  match diffExtSol |> Seq.length with
+  | 0 -> ()
+  | _ ->
+    log.WriteLine(LogLevel.Verbose, @"Updating entity states")
+    diffExtSol
+    |> Array.map(fun x -> 
+      let x' = extSol.states.[x.Id.ToString()]
+      CrmDataInternal.Entities.updateStateReq x'.logicalName x'.id
+        x'.stateCode x'.statusCode :> OrganizationRequest )
+    |> fun req -> 
+      try CrmDataInternal.CRUD.performAsBulkWithOutput service log req
+      with _ -> errors <- true;
+
+  log.Verbose "Synching plugins"
+
+  // Sync Webresources
+  let targetWebRes = getWebresources service solutionId |> getEntityIds
+
+  let deletionError =
+    [|(webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, None)|]
+    |> Array.map (fun x -> deleteElements service x)
+    |> Array.exists (fun x -> not x)
+
+  if deletionError then errors <- true
+
+  if errors then
+    failwith "There were errors during the post steps of extended solution"

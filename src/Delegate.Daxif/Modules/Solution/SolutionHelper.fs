@@ -446,9 +446,12 @@ let exportWithExtendedSolution' (env: Environment) solution location managed (lo
   ExtendedSolutionHelper.exportExtendedSolution env solution (location ++ filename) log
 
 let importWithExtendedSolution' (env: Environment) solution location managed (log : ConsoleLogger) = 
+  log.WriteLine(LogLevel.Info, @"Preforming pre steps of extended solution")
+  ExtendedSolutionHelper.preImportExtendedSolution env solution location
+  log.WriteLine(LogLevel.Info, @"Importing solution")
   import' env solution location managed log |> ignore
   log.WriteLine(LogLevel.Info, @"Importing extended solution")
-  ExtendedSolutionHelper.importExtendedSolution env solution location
+  ExtendedSolutionHelper.postImportExtendedSolution env solution location
 
 //TODO:
 let extract' location (customizations : string) (map : string) project 
