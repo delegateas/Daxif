@@ -203,4 +203,5 @@ docs/content/*.fs*
 
 # Daxif solution specifics
 /src/Delegate.Daxif/ScriptTemplates/solutions
-**/*.daxif
+*.daxif
+!*.daxif/
