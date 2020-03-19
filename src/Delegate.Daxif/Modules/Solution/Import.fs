@@ -39,7 +39,7 @@ let getImportJobStatus service (jobInfo: ImportJobInfo) =
   let jobExist = CrmDataInternal.Entities.existCrm service @"importjob" jobInfo.jobId None
   match jobExist with
   | false -> 
-    (jobInfo.status, jobInfo.progress)
+    (ImportStatus.Starting, jobInfo.progress)
   | true ->
     let j = CrmDataInternal.Entities.retrieveImportJobWithXML service jobInfo.jobId
     let progress' = j.GetAttributeValue<double>("progress")
@@ -49,17 +49,16 @@ let getImportJobStatus service (jobInfo: ImportJobInfo) =
       let status =
         match j.Attributes.Contains("completedon") with
         | true -> ImportStatus.Completed
-        | false -> jobInfo.status
+        | false -> ImportStatus.InProgress
       (status, progress')
     | Some id ->
       try
         match Info.retrieveAsyncJobState service id with
         | AsyncJobState.Succeeded 
         | AsyncJobState.Failed 
-        | AsyncJobState.Canceled ->
-        (ImportStatus.Completed, progress')
-        | _ -> (jobInfo.status, progress')
-      with _ -> (jobInfo.status, progress')
+        | AsyncJobState.Canceled -> (ImportStatus.Completed, progress')
+        | _ -> (ImportStatus.InProgress, progress')
+      with _ -> (ImportStatus.InProgress, progress')
 
 let getImportJobResult service (jobInfo: ImportJobInfo) =
   try
