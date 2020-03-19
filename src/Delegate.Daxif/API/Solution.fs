@@ -15,13 +15,20 @@ type DiffExportCallingInfo = {
 
 type Solution private () =
 
+  /// <summary>Publish all customization. Not necessary after a import of an managed solution</summary>
+  /// <param name="env">Environment the action should be performed against.</param>
+  static member PublishCustomization(env: Environment, ?logLevel) =
+    log.setLevelOption logLevel
+    Main.PublishCustomization env
+
   /// <summary>Imports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   /// <param name="diffCallingInfo">[Experimental] When specified, a diff import will be performed. Assumes exportdiff has been used prior.</param>
-  static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel, ?diffCallingInfo) =    
+  static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel, ?diffCallingInfo, ?publishAfterImport) =    
+    let publishAfterImport = publishAfterImport ?| true
     match diffCallingInfo with
     | Some dci -> Main.importDiff pathToSolutionZip dci.SolutionName Domain.partialSolutionName env
-    | _ -> Main.importStandard env activatePluginSteps extended pathToSolutionZip logLevel
+    | _ -> Main.importStandard env activatePluginSteps extended publishAfterImport pathToSolutionZip logLevel
 
   /// <summary>Exports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>

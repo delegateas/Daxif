@@ -144,9 +144,9 @@ let deactivateWorkflows p ln (diff: (Guid*String)[]) (log:ConsoleLogger) =
 
 // Stores entities statecode and statuscode in a seperate file to be
 // implemented on import
-let exportExtendedSolution (env: Environment) solutionName zipPath (log:ConsoleLogger) =
+let exportExtendedSolution (env: Environment) solutionName location managed =
   let service = env.connect().GetService()
-
+  let zipPath = location ++ generateSolutioZipFilename solutionName managed
   let solutionId = CrmDataInternal.Entities.retrieveSolutionId service solutionName
 
   // Retriev Customization.xml file from the solution package and store it in 
@@ -296,8 +296,9 @@ let deleteElements service elementGroup =
         false;
 
 
-let preImportExtendedSolution (env: Environment) solutionName zipPath =
+let preImportExtendedSolution (env: Environment) solutionName location managed =
   let service = env.connect().GetService()
+  let zipPath = location ++ generateSolutioZipFilename solutionName managed
   
   match tryGetExtendedSolutionAndId service solutionName zipPath with
   | None -> 
@@ -323,8 +324,9 @@ let preImportExtendedSolution (env: Environment) solutionName zipPath =
     if errors then
       failwith "There were errors during the pre steps of extended solution"
 
-let postImportExtendedSolution (env: Environment) solutionName zipPath =
+let postImportExtendedSolution (env: Environment) solutionName location managed =
   let service = env.connect().GetService()
+  let zipPath = location ++ generateSolutioZipFilename solutionName managed
   let solutionId,extSol = getExtendedSolutionAndId service solutionName zipPath
   
   let mutable errors = false in

@@ -92,6 +92,12 @@ let getSolutionInformationFromFile path =
   use archive = new ZipArchive(zipStream, ZipArchiveMode.Read)
   getSolutionInformation archive
 
+let generateSolutioZipFilename solution managed =
+  let managed' =
+    match managed with
+    | true -> "_managed"
+    | false -> ""
+  sprintf "%s%s.zip" solution managed'
 
 /// Takes a QueryExpression and outputs it as a formatted string
 let queryExpressionToString (query: QueryExpression) = 

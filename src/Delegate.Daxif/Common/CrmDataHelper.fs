@@ -153,19 +153,16 @@ let retrieveFirstMatch (proxy: IOrganizationService) (query: QueryExpression) =
 let retrieveAndMakeMap proxy keyFunc =
   retrieveMultiple proxy >> makeMap keyFunc
 
-
 /// Publish all
 let publishAll (proxy: IOrganizationService) = 
   let req = Messages.PublishAllXmlRequest()
   getResponse<Messages.PublishAllXmlResponse> proxy req |> ignore
-
 
 /// Retrieve current user id
 let whoAmI proxy =
   let req = WhoAmIRequest()
   let resp = getResponse<WhoAmIResponse> proxy req
   resp.UserId
-
 
 /// Retrieves the solution with the given name
 let retrieveSolution proxy (solutionName: string) (retrieveSelect: RetrieveSelect) =

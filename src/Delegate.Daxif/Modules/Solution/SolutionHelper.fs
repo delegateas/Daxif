@@ -2,14 +2,13 @@
 
 open System
 open System.IO
-open System.Text
 open Microsoft.Crm.Sdk
 open Microsoft.Xrm.Sdk
 open DG.Daxif
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
-open DG.Daxif.Common.CrmDataInternal
-open DG.Daxif.Modules.Serialization
+open DG.Daxif.Common.InternalUtility
+open DG.Daxif.Common.CrmUtility
 open Microsoft.Crm.Tools.SolutionPackager
 
 let createPublisher' (env: Environment) name display prefix 
@@ -214,7 +213,7 @@ let workflow' (env: Environment) solutionname enable (log : ConsoleLogger) =
       log.WriteLine(LogLevel.Verbose, msg)
 
 
-let export' (env: Environment) solution location managed (log : ConsoleLogger) = 
+let export (env: Environment) solution location managed (log : ConsoleLogger) = 
   let service = env.connect().GetService()
   let req = new Messages.ExportSolutionRequest()
 
@@ -232,224 +231,32 @@ let export' (env: Environment) solution location managed (log : ConsoleLogger) =
   log.WriteLine(LogLevel.Verbose, @"Solution was exported successfully")
 
   let zipFile = resp.ExportSolutionFile
-  let filename =
-    let managed' =
-      match managed with
-      | true -> "_managed"
-      | false -> ""
-    sprintf "%s%s.zip" solution managed'
-
+  let filename = generateSolutioZipFilename solution managed
   File.WriteAllBytes(location ++ filename, zipFile)
 
   log.WriteLine(LogLevel.Verbose, @"Solution saved to local disk")
 
-let import' (env: Environment) solution location managed (log : ConsoleLogger) = 
+let import (env: Environment) solution location managed =
+  Import.import env solution location managed |> ignore
+
+let PublishCustomizations (env: Environment) =
   let service = env.connect().GetService()
-  log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
-  log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
+  log.WriteLine(LogLevel.Verbose, @"Publishing solution")
+  CrmDataHelper.publishAll service
+  log.WriteLine(LogLevel.Verbose, @"The solution was successfully published")
 
-  let zipFile = File.ReadAllBytes(location)
-
-  log.WriteLine(LogLevel.Verbose, @"Solution file loaded successfully")
-
-  let jobId = Guid.NewGuid()
-  let req = new Messages.ImportSolutionRequest()
-
-  req.CustomizationFile <- zipFile
-  req.ImportJobId <- jobId
-  req.ConvertToManaged <- managed
-  req.OverwriteUnmanagedCustomizations <- true
-  req.PublishWorkflows <- true
-
-  log.WriteLine(LogLevel.Verbose, @"Proxy timeout set to 1 hour")
-
-  let checkJobHasStarted p aJobId = 
-    // Check to ensure that the async job is started at all
-    match aJobId with
-    | None -> ()
-    | Some id ->
-        match Info.retrieveAsyncJobState p id with
-        | AsyncJobState.Failed | AsyncJobState.Canceled ->
-        log.WriteLine(LogLevel.Verbose, "Asynchronous import job failed")
-        let systemJob = CrmData.CRUD.retrieve p "asyncoperation" id
-        let msg = 
-            match systemJob.Attributes.ContainsKey "message" with
-            | true -> systemJob.Attributes.["message"] :?> string
-            | false -> "No failure message"
-        msg
-        |> sprintf "Failed with message: %s"
-        |> failwith 
-        | _ -> ()
-
-  let getAsyncJobStatus p' importJob asyncJobId =
-    let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' importJob
-    let progress' = j.Attributes.["progress"] :?> double
-
-    match asyncJobId with
-    | None ->
-    (progress', j.Attributes.Contains("completedon"))
-    | Some id ->
-      try
-          match Info.retrieveAsyncJobState p' id with
-          | AsyncJobState.Succeeded 
-          | AsyncJobState.Failed 
-          | AsyncJobState.Canceled ->
-          (progress', true)
-          | _ -> (progress', false)
-      with _ -> (progress', false)
-    
-  let getImportJobStatus p' importJob asyncJobId =
-    try
-      let j = CrmDataInternal.Entities.retrieveImportJobWithXML p' importJob
-      let progress' = j.Attributes.["progress"] :?> double
-
-      match asyncJobId with
-      | None -> 
-        log.WriteLine(LogLevel.Verbose,@"Import job completed")
-        let data = j.Attributes.["data"] :?> string
-        let success = not (data.Contains("<result result=\"failure\""))
-
-        (progress' = 100.) || success
-      | Some id -> 
-        log.WriteLine(LogLevel.Verbose,@"Asynchronous import job completed")
-        let success = 
-          match Info.retrieveAsyncJobState p' id with
-          | AsyncJobState.Succeeded -> true
-          | _ -> false
-
-        (progress' = 100.) || success
-     with _ -> false
-
-  let printImportResult p' aJobId = function
-    | true -> 
-      sprintf  @"Solution import succeeded (ImportJob ID: %A)" jobId 
-      |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
-    | false ->
-      let msg =
-        match aJobId with
-        | None -> 
-          (sprintf @"Solution import failed (ImportJob ID: %A)" jobId)
-        | Some(id) ->
-          let systemJob = CrmData.CRUD.retrieve p' "asyncoperation" id
-          let msg = 
-            match systemJob.Attributes.ContainsKey "message" with
-            | true -> systemJob.Attributes.["message"] :?> string
-            | false -> "No failure message"
-          (jobId, msg)
-          ||> sprintf "Solution import failed (ImportJob ID: %A) with message %s"
-      failwith msg
-
-  let rec importHelper' exists completed progress aJobId = 
-    async { 
-      match exists, completed with
-      | false, _ -> 
-        checkJobHasStarted service aJobId |> ignore
-        let exists' =
-          CrmDataInternal.Entities.existCrm service @"importjob" jobId None
-        do! importHelper' exists' completed progress aJobId
-      | true, true -> ()
-      | true, false -> 
-        do! Async.Sleep 10000 // Wait 10 seconds
-        let (pct, completed') = 
-          try 
-            getAsyncJobStatus service jobId aJobId
-          with _ -> (progress, false)
-        match completed' with
-        | false -> 
-          sprintf @"Import solution: %s (%i%%)" solution (pct |> int)
-          |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
-        | true -> 
-          getImportJobStatus service jobId aJobId
-          |> printImportResult service aJobId
-          if not managed then
-            log.WriteLine(LogLevel.Verbose, @"Publishing solution")
-            CrmDataHelper.publishAll service
-            log.WriteLine
-              (LogLevel.Verbose, @"The solution was successfully published")
-          return ()
-        do! importHelper' exists completed' pct aJobId
-    }
-      
-  let importHelperAsync() = 
-    // Added helper function in order to not having to look for the 
-    // Messages.ExecuteAsyncRequest Type for MS CRM 2011 (legacy)
-    let areq = new Messages.ExecuteAsyncRequest()
-    areq.Request <- req
-    service.Execute(areq) :?> Messages.ExecuteAsyncResponse 
-    |> fun r -> r.AsyncJobId
-    
-  let importHelper() = 
-    async { 
-      log.WriteLine(LogLevel.Debug,"Starting Import Job - check 1")
-      let aJobId = 
-        log.WriteLine(LogLevel.Debug,"Starting Import Job - check 2")
-        let version = CrmDataInternal.Info.version service
-        log.WriteLine(LogLevel.Debug,"Starting Import Job - check 3 " + fst version)
-        match version with
-        | (_, CrmReleases.CRM2011) -> 
-          service.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
-          log.WriteLine(LogLevel.Verbose,@"Import job Started")
-          None
-        | (_, _) -> 
-          log.WriteLine(LogLevel.Verbose,@"Asynchronous import job started")
-          Some (importHelperAsync())
-      log.WriteLine(LogLevel.Verbose, @"Import solution: " + solution + @" (0%)")
-
-      let! progress = importHelper' false false 0. aJobId
-      progress
-    }
-      
-  let status = 
-    log.WriteLine(LogLevel.Debug,"Starting Import Job - check 0")
-    importHelper()
-    |> Async.Catch
-    |> Async.RunSynchronously
-    
-      
-  // Save the XML file
-  log.WriteLine(LogLevel.Verbose, @"Fetching import job result")
-  let location' = location.Replace(@".zip", "")
-  let excel = location' + @"_" + Utility.timeStamp'() + @".xml"
-  try  
-    let req' = new Messages.RetrieveFormattedImportJobResultsRequest()
-    req'.ImportJobId <- jobId
-    let resp' = 
-      service.Execute(req') :?> Messages.RetrieveFormattedImportJobResultsResponse
-    let xml = resp'.FormattedResults
-    let bytes = Encoding.UTF8.GetBytes(xml)
-    let bytes' = SerializationHelper.xmlPrettyPrinterHelper' bytes
-    let xml' = "<?xml version=\"1.0\"?>\n" + (Encoding.UTF8.GetString(bytes'))
-    File.WriteAllText(excel, xml')
-    log.WriteLine(LogLevel.Verbose, @"Import solution results saved to: " + excel)
-  with 
-  | ex -> 
-    match status with
-    | Choice2Of2 exn -> 
-      log.WriteLine(LogLevel.Error, exn.Message)
-      raise ex
-    | _ -> raise ex
-    
-  // Rethrow exception in case of failure
-  match status with
-  | Choice2Of2 exn -> raise exn
-  | _ -> excel
-
-let exportWithExtendedSolution' (env: Environment) solution location managed (log : ConsoleLogger) = 
-  export' env solution location managed log
-  let filename =
-    let managed' =
-      match managed with
-      | true -> "_managed"
-      | false -> ""
-    sprintf "%s%s.zip" solution managed'
+let exportWithExtendedSolution' (env: Environment) solution location managed = 
+  export env solution location managed log
   log.WriteLine(LogLevel.Info, @"Exporting extended solution")
-  ExtendedSolutionHelper.exportExtendedSolution env solution (location ++ filename) log
+  ExtendedSolutionHelper.exportExtendedSolution env solution location managed
 
-let importWithExtendedSolution' (env: Environment) solution location managed (log : ConsoleLogger) = 
+let importWithExtendedSolution' (env: Environment) solution location managed = 
   log.WriteLine(LogLevel.Info, @"Preforming pre steps of extended solution")
-  ExtendedSolutionHelper.preImportExtendedSolution env solution location
+  ExtendedSolutionHelper.preImportExtendedSolution env solution location managed
   log.WriteLine(LogLevel.Info, @"Importing solution")
-  import' env solution location managed log |> ignore
+  Import.import env solution location managed |> ignore
+  if not managed then
+     PublishCustomizations env
   log.WriteLine(LogLevel.Info, @"Importing extended solution")
   ExtendedSolutionHelper.postImportExtendedSolution env solution location
 

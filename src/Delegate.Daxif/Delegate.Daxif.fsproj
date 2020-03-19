@@ -120,11 +120,13 @@
     <Compile Include="Modules\Serialization\SerializationHelper.fs" />
     <Compile Include="Modules\Serialization\Main.fs" />
     <Compile Include="Modules\Solution\Domain.fs" />
+    <Compile Include="Modules\Solution\Import.fs" />
     <Compile Include="Modules\Solution\ExtendedSolutionHelper.fs" />
     <Compile Include="Modules\Solution\SolutionHelper.fs" />
     <Compile Include="Modules\Solution\DiffFetcher.fs" />
     <Compile Include="Modules\Solution\DiffAdder.fs" />
     <Compile Include="Modules\Solution\SolutionDiffHelper.fs" />
+    <Compile Include="Modules\Solution\ExtendedSolution.fs" />
     <Compile Include="Modules\Solution\Main.fs" />
     <Compile Include="Modules\Solution\Versioning.fs" />
     <Compile Include="Modules\Data\DataHelper.fs" />
@@ -148,6 +150,7 @@
     <Compile Include="API\Data.fs" />
     <Compile Include="API\Plugin.fs" />
     <Compile Include="API\Solution.fs" />
+    <Compile Include="API\ExtendSolution.fs" />
     <Compile Include="API\Translations.fs" />
     <Compile Include="API\WebResource.fs" />
     <Compile Include="API\Workflow.fs" />
