@@ -24,16 +24,21 @@ let createImportRequest zipFile jobId managed =
   req.ConvertToManaged <- managed
   req.OverwriteUnmanagedCustomizations <- true
   req.PublishWorkflows <- true
+  req.RequestId <- new Nullable<Guid>(Guid.NewGuid())
   req
 
 let executeImportSync (service: IOrganizationService) (req:ImportSolutionRequest) =
+  log.Debug @"Execution import request (RequestId: %A)" req.RequestId.Value
   service.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
     
 let executeImportAsync (service: IOrganizationService) (req:ImportSolutionRequest) = 
   let areq = new Messages.ExecuteAsyncRequest()
   areq.Request <- req
-  service.Execute(areq) :?> Messages.ExecuteAsyncResponse 
-  |> fun r -> r.AsyncJobId
+  let asyncJobId = 
+    service.Execute(areq) :?> Messages.ExecuteAsyncResponse 
+    |> fun r -> r.AsyncJobId
+  log.Debug @"Execution import request asyncrunously (AsyncJobId: %A, RequestId: %A)" asyncJobId req.RequestId.Value
+  asyncJobId
 
 let getImportJobStatus service (jobInfo: ImportJobInfo) =
   let jobExist = CrmDataInternal.Entities.existCrm service @"importjob" jobInfo.jobId None
@@ -104,10 +109,9 @@ let checkJobHasStarted service (jobInfo: ImportJobInfo) =
     | _ -> ()
 
 let printImportResult service (jobInfo: ImportJobInfo) =
-  log.WriteLine(LogLevel.Verbose, @"Fetching import job result")
   match jobInfo.result with
   | Some(ImportResult.Success) -> 
-    sprintf  @"Solution import succeeded (ImportJob ID: %A)" jobInfo.jobId 
+    sprintf  @"Solution was imported successfully (ImportJob ID: %A)" jobInfo.jobId 
     |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
   | None
   | Some(ImportResult.Failure) ->
@@ -172,18 +176,19 @@ let saveImportJobResult (service: IOrganizationService) jobResult (excelLocation
     log.WriteLine(LogLevel.Error, ex.Message)
     raise ex
 
-let import (env: Environment) solution location managed = 
-  let service = env.connect().GetService()
-  log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
-  log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
+let publish service managed =
+  if not managed then
+    log.WriteLine(LogLevel.Verbose, @"Publishing customizations")
+    CrmDataHelper.publishAll service
+    log.WriteLine(LogLevel.Verbose, @"The solution was successfully published")
 
+let execute service solution location managed = 
+  log.WriteLine(LogLevel.Info, @"Importing solution")
   let zipFile = File.ReadAllBytes(location)
   log.WriteLine(LogLevel.Verbose, @"Solution file loaded successfully")
 
   let jobId = Guid.NewGuid()
   let req = createImportRequest zipFile jobId managed
-
-  log.WriteLine(LogLevel.Verbose, @"Proxy timeout set to 1 hour")
     
   let startImport () = 
     async { 
@@ -214,7 +219,6 @@ let import (env: Environment) solution location managed =
     }
       
   let jobResult = 
-    log.WriteLine(LogLevel.Debug,"Starting Import Job - check 0")
     startImport()
     |> Async.Catch
     |> Async.RunSynchronously
@@ -228,6 +232,5 @@ let import (env: Environment) solution location managed =
   printImportResult service jobResult
 
   // Save the XML file
-  log.WriteLine(LogLevel.Verbose, @"Fetching import job result")
   generateExcelResultLocation  location
   |> saveImportJobResult service jobResult

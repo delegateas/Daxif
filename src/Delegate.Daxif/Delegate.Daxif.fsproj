@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\xunit.core.2.4.1\build\xunit.core.props" Condition="Exists('..\packages\xunit.core.2.4.1\build\xunit.core.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -19,7 +20,8 @@
     <SccLocalPath>SAK</SccLocalPath>
     <TargetFSharpCoreVersion>4.3.0.0</TargetFSharpCoreVersion>
     <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>f6a39c8f</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -121,12 +123,12 @@
     <Compile Include="Modules\Serialization\Main.fs" />
     <Compile Include="Modules\Solution\Domain.fs" />
     <Compile Include="Modules\Solution\Import.fs" />
-    <Compile Include="Modules\Solution\ExtendedSolutionHelper.fs" />
+    <Compile Include="Modules\Solution\Export.fs" />
+    <Compile Include="Modules\Solution\Extend.fs" />
     <Compile Include="Modules\Solution\SolutionHelper.fs" />
     <Compile Include="Modules\Solution\DiffFetcher.fs" />
     <Compile Include="Modules\Solution\DiffAdder.fs" />
     <Compile Include="Modules\Solution\SolutionDiffHelper.fs" />
-    <Compile Include="Modules\Solution\ExtendedSolution.fs" />
     <Compile Include="Modules\Solution\Main.fs" />
     <Compile Include="Modules\Solution\Versioning.fs" />
     <Compile Include="Modules\Data\DataHelper.fs" />
@@ -150,7 +152,7 @@
     <Compile Include="API\Data.fs" />
     <Compile Include="API\Plugin.fs" />
     <Compile Include="API\Solution.fs" />
-    <Compile Include="API\ExtendSolution.fs" />
+    <Compile Include="API\ExtendedSolution.fs" />
     <Compile Include="API\Translations.fs" />
     <Compile Include="API\WebResource.fs" />
     <Compile Include="API\Workflow.fs" />
@@ -251,5 +253,25 @@
     <Reference Include="System.Xml" />
     <Reference Include="mscorlib" />
     <Reference Include="System.Xml.Linq" />
+    <Reference Include="xunit.abstractions">
+      <HintPath>..\packages\xunit.abstractions.2.0.3\lib\net35\xunit.abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="xunit.assert">
+      <HintPath>..\packages\xunit.assert.2.4.1\lib\netstandard1.1\xunit.assert.dll</HintPath>
+    </Reference>
+    <Reference Include="xunit.core">
+      <HintPath>..\packages\xunit.extensibility.core.2.4.1\lib\net452\xunit.core.dll</HintPath>
+    </Reference>
+    <Reference Include="xunit.execution.desktop">
+      <HintPath>..\packages\xunit.extensibility.execution.2.4.1\lib\net452\xunit.execution.desktop.dll</HintPath>
+    </Reference>
   </ItemGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\xunit.core.2.4.1\build\xunit.core.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\xunit.core.2.4.1\build\xunit.core.props'))" />
+    <Error Condition="!Exists('..\packages\xunit.core.2.4.1\build\xunit.core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\xunit.core.2.4.1\build\xunit.core.targets'))" />
+  </Target>
+  <Import Project="..\packages\xunit.core.2.4.1\build\xunit.core.targets" Condition="Exists('..\packages\xunit.core.2.4.1\build\xunit.core.targets')" />
 </Project>

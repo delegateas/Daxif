@@ -23,8 +23,7 @@ let fetchSolution proxy (solution: string) =
 
 let downloadSolution (env: DG.Daxif.Environment) file_location sol_name =
   log.Verbose "Exporting extended solution %A" (file_location + sol_name)
-  SolutionHelper.exportWithExtendedSolution' env sol_name file_location false
-  file_location + sol_name
+  SolutionHelper.exportWithExtendedSolution env sol_name file_location false
 
 let unzip file =
   log.Verbose "Unpacking zip '%s' to '%s'" (file + ".zip") file;

@@ -1,4 +1,4 @@
-﻿module internal DG.Daxif.Modules.Solution.ExtendedSolutionHelper
+﻿module internal DG.Daxif.Modules.Solution.Extend
 
 open System
 open System.IO
@@ -144,10 +144,9 @@ let deactivateWorkflows p ln (diff: (Guid*String)[]) (log:ConsoleLogger) =
 
 // Stores entities statecode and statuscode in a seperate file to be
 // implemented on import
-let exportExtendedSolution (env: Environment) solutionName location managed =
-  let service = env.connect().GetService()
-  let zipPath = location ++ generateSolutioZipFilename solutionName managed
-  let solutionId = CrmDataInternal.Entities.retrieveSolutionId service solutionName
+let export service solution solutionPath =
+  log.Info @"Exporting extended solution"
+  let solutionId = CrmDataInternal.Entities.retrieveSolutionId service solution
 
   // Retriev Customization.xml file from the solution package and store it in 
   // a temp folder
@@ -155,7 +154,7 @@ let exportExtendedSolution (env: Environment) solutionName location managed =
 
   log.WriteLine(LogLevel.Verbose, @"Extracting customization.xml from solution")
 
-  use zipToOpen = new FileStream(zipPath, FileMode.Open)
+  use zipToOpen = new FileStream(solutionPath, FileMode.Open)
   use archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update)
   let xmlFile = Path.Combine(tempFolder, "customizations.xml")
   let entry = archive.GetEntry("customizations.xml")
@@ -296,8 +295,8 @@ let deleteElements service elementGroup =
         false;
 
 
-let preImportExtendedSolution (env: Environment) solutionName location managed =
-  let service = env.connect().GetService()
+let preImport service solutionName location managed =
+  log.Info @"Performing pre-steps for importing extended solution"
   let zipPath = location ++ generateSolutioZipFilename solutionName managed
   
   match tryGetExtendedSolutionAndId service solutionName zipPath with
@@ -322,12 +321,14 @@ let preImportExtendedSolution (env: Environment) solutionName location managed =
     if deletionError then errors <- true
 
     if errors then
-      failwith "There were errors during the pre steps of extended solution"
+      failwith "There were errors during the pre-steps of extended solution"
+    else
+      log.WriteLine(LogLevel.Info, @"Extend pre-steps completed")
 
-let postImportExtendedSolution (env: Environment) solutionName location managed =
-  let service = env.connect().GetService()
+let postImport service solutionName location managed =
+  log.Info @"Performing post-steps for importing extended solution"
   let zipPath = location ++ generateSolutioZipFilename solutionName managed
-  let solutionId,extSol = getExtendedSolutionAndId service solutionName zipPath
+  let solutionId, extSol = getExtendedSolutionAndId service solutionName zipPath
   
   let mutable errors = false in
   // Read the status and statecode of the entities and update them in crm
@@ -348,7 +349,6 @@ let postImportExtendedSolution (env: Environment) solutionName location managed 
       let source = extSol.states.[target.Id.ToString()]
       getCodeValue "statecode" target <> source.stateCode ||
       getCodeValue "statuscode" target <> source.statusCode)
-
       
   log.Verbose @"Found %d entity states to be updated" diffExtSol.Length
 
@@ -379,4 +379,6 @@ let postImportExtendedSolution (env: Environment) solutionName location managed 
   if deletionError then errors <- true
 
   if errors then
-    failwith "There were errors during the post steps of extended solution"
+    failwith "There were errors during the post-steps of extended solution"
+  else
+    log.WriteLine(LogLevel.Info, @"Extend post-steps completed")

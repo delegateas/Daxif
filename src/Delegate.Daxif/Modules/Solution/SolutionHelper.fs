@@ -212,53 +212,22 @@ let workflow' (env: Environment) solutionname enable (log : ConsoleLogger) =
         + solutionId.ToString() + @")"
       log.WriteLine(LogLevel.Verbose, msg)
 
-
-let export (env: Environment) solution location managed (log : ConsoleLogger) = 
+let exportWithExtendedSolution (env: Environment) solution location managed = 
   let service = env.connect().GetService()
-  let req = new Messages.ExportSolutionRequest()
+  let solutionPath = Export.execute service solution location managed log
+  Extend.export service solution solutionPath
+  solutionPath
 
-  log.WriteLine(LogLevel.Verbose, @"Service Manager instantiated")
-  log.WriteLine(LogLevel.Verbose, @"Service Proxy instantiated")
-
-  req.Managed <- managed
-  req.SolutionName <- solution
-
-  log.WriteLine(LogLevel.Verbose, @"Proxy timeout set to 1 hour")
-  log.WriteLine(LogLevel.Verbose, @"Export solution")
-
-  let resp = service.Execute(req) :?> Messages.ExportSolutionResponse
-
-  log.WriteLine(LogLevel.Verbose, @"Solution was exported successfully")
-
-  let zipFile = resp.ExportSolutionFile
-  let filename = generateSolutioZipFilename solution managed
-  File.WriteAllBytes(location ++ filename, zipFile)
-
-  log.WriteLine(LogLevel.Verbose, @"Solution saved to local disk")
-
-let import (env: Environment) solution location managed =
-  Import.import env solution location managed |> ignore
-
-let PublishCustomizations (env: Environment) =
+let importWithExtendedSolution (env: Environment) solution location managed = 
   let service = env.connect().GetService()
-  log.WriteLine(LogLevel.Verbose, @"Publishing solution")
-  CrmDataHelper.publishAll service
-  log.WriteLine(LogLevel.Verbose, @"The solution was successfully published")
-
-let exportWithExtendedSolution' (env: Environment) solution location managed = 
-  export env solution location managed log
-  log.WriteLine(LogLevel.Info, @"Exporting extended solution")
-  ExtendedSolutionHelper.exportExtendedSolution env solution location managed
-
-let importWithExtendedSolution' (env: Environment) solution location managed = 
-  log.WriteLine(LogLevel.Info, @"Preforming pre steps of extended solution")
-  ExtendedSolutionHelper.preImportExtendedSolution env solution location managed
-  log.WriteLine(LogLevel.Info, @"Importing solution")
-  Import.import env solution location managed |> ignore
-  if not managed then
-     PublishCustomizations env
-  log.WriteLine(LogLevel.Info, @"Importing extended solution")
-  ExtendedSolutionHelper.postImportExtendedSolution env solution location
+  Extend.preImport service solution location managed
+  Import.execute service solution location managed
+  |> fun jobInfo -> jobInfo.result
+  |> function
+    | Some (Domain.ImportResult.Success) ->
+      Import.publish service managed
+      Extend.postImport service solution location managed
+    | _ -> ()
 
 //TODO:
 let extract' location (customizations : string) (map : string) project 

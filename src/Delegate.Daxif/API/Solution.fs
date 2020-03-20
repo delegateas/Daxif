@@ -35,8 +35,8 @@ type Solution private () =
   /// <param name="diffCallingInfo">[Experimental] When specified, a diff export happens with env as source and diffCallingInfo.TargetEnv as target</param
   static member Export(env: Environment, solutionName, outputDirectory, managed, ?extended, ?deltaFromDate, ?logLevel, ?diffCallingInfo) =
     match diffCallingInfo with
-    | Some dci -> Main.exportDiff outputDirectory solutionName Domain.partialSolutionName env dci.TargetEnv |> ignore
-    | _ -> Main.exportStandard env solutionName outputDirectory managed extended logLevel
+    | Some dci -> Main.exportDiff outputDirectory solutionName Domain.partialSolutionName env dci.TargetEnv
+    | _ -> Main.exportStandard env solutionName outputDirectory managed extended
     
   /// <summary>Generates TypeScript context from a given environment and settings using XrmDefinitelyTyped</summary>
   /// <param name="env">Environment the action should be performed against.</param>
