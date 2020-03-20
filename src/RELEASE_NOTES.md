@@ -1,4 +1,14 @@
 # Release Notes
+
+### 4.6.0 - Martch 20 2020
+* Now possible to perform extended solution export and import across multiple scripts
+* Update Solution.Import with new option to not publish customizations after import
+* Exposed steps that are nested within the Solution.Import
+    * ExtendedSolution.Export - Extend an existing exported solution with extended informationer from an instance
+    * ExtendedSolution.Pre-import - Deletes depricated/replaced customizations that will block a normal import
+    * ExtendedSolution.Post-import - Deletes any remaining 
+    * Solution.PublishAll - Publish all customizations
+
 ### 4.5.6 - March 12 2020
 * Fixed issue where extended solution failed to delete plugins before import of new assembly
 
