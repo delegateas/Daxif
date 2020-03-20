@@ -17,9 +17,9 @@ type Solution private () =
 
   /// <summary>Publish all customization. Not necessary after a import of an managed solution</summary>
   /// <param name="env">Environment the action should be performed against.</param>
-  static member PublishCustomization(env: Environment, ?logLevel) =
+  static member PublishAll(env: Environment, ?logLevel) =
     log.setLevelOption logLevel
-    Main.PublishCustomization env
+    Main.PublishAll env
 
   /// <summary>Imports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>

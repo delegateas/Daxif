@@ -90,14 +90,14 @@ let workflow (env: Environment) solution enable log =
     (LogLevel.Info, 
       @"The solution workflow activities was successfully " + msg')
 
-let PublishCustomization (env: Environment) =
+let PublishAll (env: Environment) =
   logVersion log
-  log.Info @"Publish Customizations"
+  log.Info @"Publish all customizations"
   log.Verbose @"Organization: %O" env.url
   let service = env.connect().GetService()
-  log.WriteLine(LogLevel.Verbose, @"Publishing solution")
+  log.WriteLine(LogLevel.Verbose, @"Publishing customization")
   CrmDataHelper.publishAll service
-  log.WriteLine(LogLevel.Verbose, @"The solution was successfully published")
+  log.WriteLine(LogLevel.Verbose, @"All customizations was successfully published")
   
 let export (env: Environment) solution location managed = 
   logVersion log
