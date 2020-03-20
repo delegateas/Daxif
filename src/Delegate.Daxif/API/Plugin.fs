@@ -1,10 +1,8 @@
 ﻿namespace DG.Daxif
 
-open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 open DG.Daxif.Modules.Plugin
-open Domain
 module SolutionMain = DG.Daxif.Modules.Solution.Main
 
 type Plugin private () =
@@ -20,7 +18,6 @@ type Plugin private () =
     let ignoreOutdatedAssembly = ignoreOutdatedAssembly ?| false
     
     Main.syncSolution proxyGen projectPath assemblyPath solutionName isolationMode ignoreOutdatedAssembly dryRun |> ignore
-
 
   /// <summary>Activates or deactivates all plugin steps of a solution</summary>
   /// <param name="env">Environment the action should be performed against.</param>

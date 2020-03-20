@@ -4,6 +4,8 @@ open System
 open System.Reflection
 open Microsoft.Xrm.Sdk
 
+let partialSolutionName = "DAXIFPartialSolution"
+
 // Record for holding the state of an entity
 type EntityState =
   { id: Guid
@@ -24,7 +26,26 @@ type ExtendedSolution =
     keepWebresources: seq<Guid*string>
   }
 
-let partialSolutionName = "DAXIFPartialSolution"
+type ImportResult = 
+  | Failure
+  | Success
+
+type ImportStatus = 
+  | Starting
+  | InProgress 
+  | Completed 
+
+type ImportJobInfo =
+  {
+    solution: string
+    managed: bool
+    jobId: Guid
+    asyncJobId: Option<Guid>
+    status: ImportStatus
+    progress: double
+    result: Option<ImportResult>
+    excelFile: Option<string>
+  }
 
 type EntityComponent = 
   | EntityMetaData = 1

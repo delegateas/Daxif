@@ -89,9 +89,17 @@ let workflow (env: Environment) solution enable log =
   log.WriteLine
     (LogLevel.Info, 
       @"The solution workflow activities was successfully " + msg')
+
+let PublishAll (env: Environment) =
+  logVersion log
+  log.Info @"Publish all customizations"
+  log.Verbose @"Organization: %O" env.url
+  let service = env.connect().GetService()
+  log.WriteLine(LogLevel.Verbose, @"Publishing customization")
+  CrmDataHelper.publishAll service
+  log.WriteLine(LogLevel.Verbose, @"All customizations was successfully published")
   
-let export (env: Environment) solution location managed log = 
-  let log = ConsoleLogger log
+let export (env: Environment) solution location managed = 
   logVersion log
   log.Info @"Export solution: %s" solution
   log.Verbose @"Organization: %O" env.url
@@ -99,11 +107,10 @@ let export (env: Environment) solution location managed log =
   log.Verbose @"Path to folder: %s" location
   log.Verbose @"Managed solution: %O" managed
   env.logAuthentication log
-  SolutionHelper.export' env solution location managed log
-  log.Info @"The solution was exported successfully"
+  let service = env.connect().GetService()
+  Export.execute service solution location managed log
   
-let import (env: Environment) location log = 
-  let log = ConsoleLogger log
+let import publishAfterImport (env: Environment) location = 
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
   logVersion log
   log.Info @"Import solution: %s" solution
@@ -111,31 +118,89 @@ let import (env: Environment) location log =
   log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to file: %s" location
   log.Verbose @"Managed solution: %O" managed
+  log.Verbose @"Publish after Import: %O" publishAfterImport
   env.logAuthentication log
-  SolutionHelper.import' env solution location managed log |> ignore
-  log.Info @"The solution was imported successfully"
+  let service = env.connect().GetService()
+  Import.execute service solution location managed |> ignore
+  if not publishAfterImport then
+    Import.publish service managed
 
-
-let exportWithExtendedSolution (env: Environment) solution location managed log = 
-  let log = ConsoleLogger log
+let extendSolution (env: Environment) solutionPath = 
+  let solution, _ = CrmUtility.getSolutionInformationFromFile solutionPath
   logVersion log
-  log.Info @"Export solution: %s" solution
+  log.Info @"Extend solution: %s" solution
+  log.Verbose @"Organization: %O" env.url
+  log.Verbose @"Solution: %s" solution
+  log.Verbose @"Path to file: %s" solutionPath
+  env.logAuthentication log
+  let service = env.connect().GetService()
+  Extend.export service solution solutionPath
+
+let preImportExtendedSolution (env: Environment) location = 
+  let solution, managed = CrmUtility.getSolutionInformationFromFile location
+  logVersion log
+  log.Info @"Pre-import extend solution: %s" solution
+  log.Verbose @"Organization: %O" env.url
+  log.Verbose @"Solution: %s" solution
+  log.Verbose @"Path to file: %s" location
+  env.logAuthentication log
+  let service = env.connect().GetService()
+  Extend.preImport service solution location managed
+
+let postImportExtendedSolution (env: Environment) location = 
+  let solution, managed = CrmUtility.getSolutionInformationFromFile location
+  logVersion log
+  log.Info @"Post-import extend solution: %s" solution
+  log.Verbose @"Organization: %O" env.url
+  log.Verbose @"Solution: %s" solution
+  log.Verbose @"Path to file: %s" location
+  env.logAuthentication log
+  let service = env.connect().GetService()
+  Extend.postImport service solution location managed
+
+let exportWithExtendedSolution (env: Environment) solution location managed = 
+  logVersion log
+  log.Info @"Export extended solution: %s" solution
   log.Verbose @"Organization: %O" env.url
   log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to folder: %s" location
   log.Verbose @"Managed solution: %O" managed
   env.logAuthentication log
-  SolutionHelper.exportWithExtendedSolution' env solution location managed log
-  log.Info @"The extended solution was exported successfully"
+  SolutionHelper.exportWithExtendedSolution env solution location managed
 
-let exportStandard (env: Environment) solutionName outputDirectory managed extended logLevel =
+let importWithExtendedSolution (env: Environment) location = 
+  let solution, managed = CrmUtility.getSolutionInformationFromFile location
+  logVersion log
+  log.Info @"Import extended solution: %s" solution
+  log.Verbose @"Organization: %O" env.url
+  log.Verbose @"Solution: %s" solution
+  log.Verbose @"Path to file: %s" location
+  log.Verbose @"Managed solution: %O" managed
+  env.logAuthentication log
+  SolutionHelper.importWithExtendedSolution env solution location managed |> ignore
+
+let importStandard (env: Environment) (activatePluginSteps: bool option) extended publishAfterImport pathToSolutionZip logLevel =
   let logLevel = logLevel ?| LogLevel.Verbose
+  let extended = extended ?| false
+
+  match extended with
+  | true  -> importWithExtendedSolution
+  | false -> import publishAfterImport
+  |> fun f -> f env pathToSolutionZip
+      
+  match activatePluginSteps with
+  | Some true -> 
+    let solutionName, _ = CrmUtility.getSolutionInformationFromFile pathToSolutionZip
+    pluginSteps env solutionName true logLevel
+  | _ -> ()
+
+let exportStandard (env: Environment) solutionName outputDirectory managed extended =
   let extended = extended ?| false
 
   match extended with
   | true  -> exportWithExtendedSolution 
   | false -> export
-  |> fun f -> f env solutionName outputDirectory managed logLevel
+  |> fun f -> f env solutionName outputDirectory managed
 
 let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) = 
   log.Info "Starting diff export"
@@ -199,35 +264,6 @@ let importDiff solutionZipPath completeSolutionName tempSolutionName (env:DG.Dax
   
   log.Verbose "Deleting solution '%s'" tempSolutionName
   proxy.Delete("solution", tempSolution.Id)
-    
-
-let importWithExtendedSolution (env: Environment) location log = 
-  let log = ConsoleLogger log
-  let solution, managed = CrmUtility.getSolutionInformationFromFile location
-  logVersion log
-  log.Info @"Import solution: %s" solution
-  log.Verbose @"Organization: %O" env.url
-  log.Verbose @"Solution: %s" solution
-  log.Verbose @"Path to file: %s" location
-  log.Verbose @"Managed solution: %O" managed
-  env.logAuthentication log
-  SolutionHelper.importWithExtendedSolution' env solution location managed log |> ignore
-  log.Info @"The extended solution was imported successfully"
-  
-let importStandard (env: Environment) (activatePluginSteps: bool option) extended pathToSolutionZip logLevel =
-  let logLevel = logLevel ?| LogLevel.Verbose
-  let extended = extended ?| false
-
-  match extended with
-  | true  -> importWithExtendedSolution
-  | false -> import
-  |> fun f -> f env pathToSolutionZip logLevel
-      
-  match activatePluginSteps with
-  | Some true -> 
-    let solutionName, _ = CrmUtility.getSolutionInformationFromFile pathToSolutionZip
-    pluginSteps env solutionName true logLevel
-  | _ -> ()
 
 // TODO: 
 let extract location customizations map project logLevel = 

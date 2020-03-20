@@ -15,21 +15,28 @@ type DiffExportCallingInfo = {
 
 type Solution private () =
 
+  /// <summary>Publish all customization. Not necessary after a import of an managed solution</summary>
+  /// <param name="env">Environment the action should be performed against.</param>
+  static member PublishAll(env: Environment, ?logLevel) =
+    log.setLevelOption logLevel
+    Main.PublishAll env
+
   /// <summary>Imports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   /// <param name="diffCallingInfo">[Experimental] When specified, a diff import will be performed. Assumes exportdiff has been used prior.</param>
-  static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel, ?diffCallingInfo) =    
+  static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel, ?diffCallingInfo, ?publishAfterImport) =    
+    let publishAfterImport = publishAfterImport ?| true
     match diffCallingInfo with
     | Some dci -> Main.importDiff pathToSolutionZip dci.SolutionName Domain.partialSolutionName env
-    | _ -> Main.importStandard env activatePluginSteps extended pathToSolutionZip logLevel
+    | _ -> Main.importStandard env activatePluginSteps extended publishAfterImport pathToSolutionZip logLevel
 
   /// <summary>Exports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   /// <param name="diffCallingInfo">[Experimental] When specified, a diff export happens with env as source and diffCallingInfo.TargetEnv as target</param
   static member Export(env: Environment, solutionName, outputDirectory, managed, ?extended, ?deltaFromDate, ?logLevel, ?diffCallingInfo) =
     match diffCallingInfo with
-    | Some dci -> Main.exportDiff outputDirectory solutionName Domain.partialSolutionName env dci.TargetEnv |> ignore
-    | _ -> Main.exportStandard env solutionName outputDirectory managed extended logLevel
+    | Some dci -> Main.exportDiff outputDirectory solutionName Domain.partialSolutionName env dci.TargetEnv
+    | _ -> Main.exportStandard env solutionName outputDirectory managed extended
     
   /// <summary>Generates TypeScript context from a given environment and settings using XrmDefinitelyTyped</summary>
   /// <param name="env">Environment the action should be performed against.</param>

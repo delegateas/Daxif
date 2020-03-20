@@ -4,6 +4,7 @@ open System.Net
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
+open DG.Daxif.Common.InternalUtility
 open System
 open Microsoft.Xrm.Tooling.Connector
 open System.IO
@@ -44,7 +45,9 @@ let internal getOrganizationServiceProxy
     | _ ->
         new OrganizationServiceProxy(serviceManagement, ac.SecurityTokenResponse)
 
-  proxy.Timeout <- TimeSpan(0,59,0)
+  let timeOut = TimeSpan(0,59,0)
+  log.Verbose @"Connection timeout set to %i hour, %i minutes, %i seconds" timeOut.Hours timeOut.Minutes timeOut.Seconds
+  proxy.Timeout <- timeOut
   proxy
 
 // Authentication
@@ -66,11 +69,15 @@ let internal getCrmServiceClient userName password (orgUrl:Uri) mfaAppId mfaRetu
   let mutable isOnPrem = false
   Utilities.GetOrgnameAndOnlineRegionFromServiceUri(orgUrl, &region, &orgName, &isOnPrem)
   let cacheFileLocation = System.IO.Path.Combine(System.IO.Path.GetTempPath(), orgName, "oauth-cache.txt")
-  CrmServiceClient.MaxConnectionTimeout <- TimeSpan(1,0,0)
+  let timeOut = TimeSpan(0,59,0)
+  log.Verbose @"Connection timeout set to %i hour, %i minutes, %i seconds" timeOut.Hours timeOut.Minutes timeOut.Seconds
+  CrmServiceClient.MaxConnectionTimeout <- timeOut
   new CrmServiceClient(userName, CrmServiceClient.MakeSecureString(password), region, orgName, false, null, null, mfaAppId, Uri(mfaReturnUrl), cacheFileLocation, null)
   |> ensureClientIsReady
 
 let internal getCrmServiceClientClientSecret (org: Uri) appId clientSecret =
-  CrmServiceClient.MaxConnectionTimeout <- TimeSpan(1,0,0)
+  let timeOut = TimeSpan(0,59,0)
+  log.Verbose @"Connection timeout set to %i hour, %i minutes, %i seconds" timeOut.Hours timeOut.Minutes timeOut.Seconds
+  CrmServiceClient.MaxConnectionTimeout <- timeOut
   new CrmServiceClient(org, appId, CrmServiceClient.MakeSecureString(clientSecret), true, Path.Combine(Path.GetTempPath(), appId, "oauth-cache.txt"))
   |> ensureClientIsReady

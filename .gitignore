@@ -5,7 +5,12 @@
 *.suo
 *.user
 *.sln.docstates
+
+# Visual studio code user files
 .vs/
+
+# Ionide vs code extension
+.ionide/
 
 # Xamarin Studio / monodevelop user-specific
 *.userprefs
@@ -196,10 +201,7 @@ docs/content/Microsoft.Xrm.Sdk.*
 docs/content/Microsoft.Xrm.Sdk.*
 docs/content/*.fs*
 
-# VS folers
-.vs
-
-# Ionide
-.ionide
+# Daxif solution specifics
 /src/Delegate.Daxif/ScriptTemplates/solutions
 *.daxif
+!*.daxif/
