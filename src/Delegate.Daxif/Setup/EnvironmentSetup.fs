@@ -58,18 +58,50 @@ type Credentials = {
       x.domain ?| ""
 
 
+type IConnection = 
+  /// Connects to the environment and returns IOrganizationService
+  abstract member GetService: unit -> IOrganizationService
+  /// Connects to the environment and returns an OrganizationServiceProxy
+  abstract member GetProxy: unit -> OrganizationServiceProxy
+  /// Connects to the environment and returns a CrmServiceClient
+  abstract member GetCrmServiceClient: unit -> Microsoft.Xrm.Tooling.Connector.CrmServiceClient
+
+type IEnvironment =
+  abstract member name: string
+  abstract member url: Uri
+  abstract member method: ConnectionType
+  abstract member creds: Credentials option
+  abstract member ap: AuthenticationProviderType
+  abstract member clientId: string option
+  abstract member returnUrl: string option
+  abstract member clientSecret: string option
+  /// Connects to the given environment
+  abstract member connect: ?logger:ConsoleLogger -> IConnection
+  /// Gets credentials for the given environment
+  abstract member getCreds: unit -> string * string *string
+  /// Prints authentication informations
+  abstract member logAuthentication: log:ConsoleLogger -> unit
+  /// Runs an executable with the given arguments and also passes on necessary login details for CRM if specified
+  abstract member executeProcess: exeLocation:string 
+    * ?args:#seq<string * string> 
+    * ?urlParam:string 
+    * ?usrParam:string 
+    * ?pwdParam:string 
+    * ?apParam:string 
+    * ?dmnParam:string 
+    * ?paramToString:(string * string -> string) -> unit
+
 /// Used to get new proxy connections to a CRM environment
 type Connection = {
   method: ConnectionMethod
 } with
-
   /// Creates a connection with the given credentials
-  static member Connect(env: Environment) =
+  static member Connect(env: Environment): IConnection =
     match env.method with
     | Proxy ->
       let usr, pwd, dmn = env.getCreds()
       let m, at = CrmAuth.authenticate env.url env.ap usr pwd dmn
-      { method = ConnectionMethod.Proxy({serviceManager = m; credentials = at}) }
+      { method = ConnectionMethod.Proxy({serviceManager = m; credentials = at}) } :> IConnection
     | OAuth ->
       let usr, pwd, _ = env.getCreds()
       match env.clientId, env.returnUrl with
@@ -82,7 +114,7 @@ type Connection = {
           password = pwd
           clientId = appId
           returnUrl = returnUrl
-        })}
+        })} :> IConnection
     | ClientSecret ->
       match env.clientId, env.clientSecret with
       | None,_
@@ -92,16 +124,7 @@ type Connection = {
           orgUrl = env.url
           clientId = appId
           clientSecret = secret
-        })}
-
-  /// Connects to the environment and returns IOrganizationService
-  member x.GetService() =
-    match x.method with
-    | ConnectionMethod.Proxy _ -> 
-      x.GetProxy() :> IOrganizationService
-    | ConnectionMethod.CrmServiceClientOAuth _
-    | ConnectionMethod.CrmServiceClientClientSecret _ -> 
-      x.GetCrmServiceClient() :> IOrganizationService
+        })} :> IConnection
 
   /// Connects to the environment and returns an OrganizationServiceProxy
   member x.GetProxy() = 
@@ -121,6 +144,19 @@ type Connection = {
       CrmAuth.getCrmServiceClient oauth.username oauth.password oauth.orgUrl oauth.clientId oauth.returnUrl
     | ConnectionMethod.CrmServiceClientClientSecret clientSecret ->
       CrmAuth.getCrmServiceClientClientSecret clientSecret.orgUrl clientSecret.clientId clientSecret.clientSecret
+
+  interface IConnection with 
+    member x.GetService() =
+      match x.method with
+      | ConnectionMethod.Proxy _ -> 
+        x.GetProxy() :> IOrganizationService
+      | ConnectionMethod.CrmServiceClientOAuth _
+      | ConnectionMethod.CrmServiceClientClientSecret _ -> 
+        x.GetCrmServiceClient() :> IOrganizationService
+
+    member x.GetProxy() = x.GetProxy()
+
+    member x.GetCrmServiceClient() = x.GetCrmServiceClient()
 
 /// Describes a connection to a Dynamics 365/CRM environment
 and Environment = {
@@ -178,7 +214,6 @@ and Environment = {
     | None   -> CredentialManagement.getCredentialsFromKey x.name
     | Some c -> c.getValues()
     
-
   /// Connects to the given environment
   member x.connect(?logger: ConsoleLogger) =
     // Log connection info if logger provided
@@ -202,7 +237,6 @@ and Environment = {
               
         | _ -> raise ex
 
-
   /// Runs an executable with the given arguments and also passes on necessary login details for CRM if specified
   member x.executeProcess(exeLocation, ?args, ?urlParam, ?usrParam, ?pwdParam, ?apParam, ?dmnParam, ?paramToString) =
     let usr, pwd, dmn = x.getCreds()
@@ -220,8 +254,8 @@ and Environment = {
 
     let exeName = System.IO.Path.GetFileName exeLocation
     Utility.postProcess (Utility.executeProcess(exeLocation, argString)) log exeName
-
     
+  /// Prints authentication informations
   member x.logAuthentication (log: ConsoleLogger) =
       match x.method with 
       | Proxy -> 
@@ -240,6 +274,24 @@ and Environment = {
         log.Verbose "ReturnUrl: %O" x.returnUrl
       | ClientSecret ->
         log.Verbose "AppId: %O" x.clientId 
+
+  interface IEnvironment with
+    member this.ap = this.ap
+    member this.clientId = this.clientId
+    member this.clientSecret = this.clientSecret
+    member this.creds = this.creds
+    member this.method = this.method
+    member this.name = this.name
+    member this.returnUrl = this.returnUrl
+    member this.url = this.url
+    member x.connect(?logger: ConsoleLogger): IConnection =
+      x.connect(?logger = logger) 
+    member x.executeProcess(exeLocation, ?args, ?urlParam, ?usrParam, ?pwdParam, ?apParam, ?dmnParam, ?paramToString): unit = 
+      x.executeProcess(exeLocation, ?args = args, ?urlParam = urlParam, ?usrParam = usrParam, ?pwdParam = pwdParam, ?apParam = apParam, ?dmnParam = dmnParam, ?paramToString = paramToString)
+    member x.getCreds() =
+      x.getCreds()
+    member x.logAuthentication(log: ConsoleLogger): unit = 
+      x.logAuthentication(log)
 
     
   
