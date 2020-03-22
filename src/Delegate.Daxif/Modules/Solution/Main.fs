@@ -90,7 +90,7 @@ let workflow (env: Environment) solution enable log =
     (LogLevel.Info, 
       @"The solution workflow activities was successfully " + msg')
 
-let PublishCustomization (env: Environment) =
+let PublishCustomization (env: IEnvironment) =
   logVersion log
   log.Info @"Publish Customizations"
   log.Verbose @"Organization: %O" env.url

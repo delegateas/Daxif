@@ -1,4 +1,4 @@
-﻿module Delegate.Daxif.Test.Example
+﻿module Delegate.Daxif.Test.Basic
 
 open Xunit
 open System
@@ -10,11 +10,11 @@ open Microsoft.Xrm.Sdk.Metadata
 open Microsoft.Xrm.Sdk.Query
 open DG.Daxif
 open DG.Daxif.Modules.Solution
-
-//type testEnvironment = 
+open Microsoft
+open DG.Daxif
 
 type TestOrg () = 
-
+  [<DefaultValue>] val mutable published : bool
   interface IOrganizationService with
     member this.Associate(entityName: string, entityId: Guid, relationship: Relationship, relatedEntities: EntityReferenceCollection): unit = 
       raise (System.NotImplementedException())
@@ -32,6 +32,10 @@ type TestOrg () =
       raise (System.NotImplementedException())
     member this.Execute( req: OrganizationRequest ) = 
       match req with
+      | :? Messages.PublishAllXmlRequest -> 
+        this.published <- true
+        printfn "Published All"
+        Messages.PublishAllXmlResponse() :> OrganizationResponse
       | :? UpdateRequest -> 
         printfn "test"
         UpdateResponse() :> OrganizationResponse
@@ -42,10 +46,23 @@ type TestOrg () =
       | _ -> 
         raise (System.NotImplementedException())
 
-let service = TestOrg() :> IOrganizationService
 
-//[<Fact>]
-//let GetStatusRequest() =
-//  Solution.Import()
-//    //let id = whoAmI service
-//    Assert.NotNull id
+
+[<Fact>]
+let TestWhoAmI() =
+  let mockEnv = EnvironmentMock.CreateEnvironment (TestOrg() :> IOrganizationService)
+  let newService = mockEnv.connect().GetService()
+  let req = Messages.WhoAmIRequest()
+  let resp = newService.Execute(req) :?> Messages.WhoAmIResponse
+  let id = resp.UserId
+  Assert.NotNull id
+
+[<Fact>]
+let TestPublishAll() =
+  let testOrg = TestOrg()
+  Assert.False testOrg.published
+  let mockEnv = EnvironmentMock.CreateEnvironment testOrg
+  Solution.PublishCustomization(mockEnv)
+  Assert.True testOrg.published
+
+
