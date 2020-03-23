@@ -1,6 +1,10 @@
 # Release Notes
 
-### 4.6.0 - Martch 20 2020
+### 4.6.1 - March 23 2020
+* Fix an issue in pre- and post-import extended solutio when referencing the path to the solution
+* Add new build server script for publishing all customizations
+
+### 4.6.0 - March 20 2020
 * Now possible to perform extended solution export and import across multiple scripts
 * Update Solution.Import with new option to not publish customizations after import
 * Exposed steps that are nested within the Solution.Import
