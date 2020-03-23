@@ -295,10 +295,8 @@ let deleteElements service elementGroup =
         false;
 
 
-let preImport service solutionName location managed =
+let preImport service solutionName zipPath =
   log.Info @"Performing pre-steps for importing extended solution"
-  let zipPath = location ++ generateSolutioZipFilename solutionName managed
-  
   match tryGetExtendedSolutionAndId service solutionName zipPath with
   | None -> 
     log.Verbose "No solution exists yet, skipping pre steps"
@@ -325,9 +323,8 @@ let preImport service solutionName location managed =
     else
       log.WriteLine(LogLevel.Info, @"Extend pre-steps completed")
 
-let postImport service solutionName location managed =
+let postImport service solutionName zipPath =
   log.Info @"Performing post-steps for importing extended solution"
-  let zipPath = location ++ generateSolutioZipFilename solutionName managed
   let solutionId, extSol = getExtendedSolutionAndId service solutionName zipPath
   
   let mutable errors = false in

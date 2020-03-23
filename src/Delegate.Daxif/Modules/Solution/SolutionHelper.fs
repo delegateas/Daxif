@@ -220,13 +220,13 @@ let exportWithExtendedSolution (env: Environment) solution location managed =
 
 let importWithExtendedSolution (env: Environment) solution location managed = 
   let service = env.connect().GetService()
-  Extend.preImport service solution location managed
+  Extend.preImport service solution location
   Import.execute service solution location managed
   |> fun jobInfo -> jobInfo.result
   |> function
     | Some (Domain.ImportResult.Success) ->
       Import.publish service managed
-      Extend.postImport service solution location managed
+      Extend.postImport service solution location
     | _ -> ()
 
 //TODO:
