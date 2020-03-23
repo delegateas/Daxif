@@ -173,6 +173,7 @@
     <None Include="ScriptTemplates\WebResourceSyncDev.fsx" />
     <None Include="ScriptTemplates\WorkflowSyncDev.fsx" />
     <None Include="ScriptTemplates\ViewExtender.fsx" />
+    <None Include="ScriptTemplates\PublishAllArg.fsx" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
