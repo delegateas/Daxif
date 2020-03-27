@@ -1,5 +1,8 @@
 # Release Notes
 
+### 4.6.2 - March 27 2020
+* fix issue with publish after import
+
 ### 4.6.1 - March 23 2020
 * Fix an issue in pre- and post-import extended solutio when referencing the path to the solution
 * Add new build server script for publishing all customizations

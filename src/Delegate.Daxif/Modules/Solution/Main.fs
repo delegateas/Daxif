@@ -122,7 +122,7 @@ let import publishAfterImport (env: Environment) location =
   env.logAuthentication log
   let service = env.connect().GetService()
   Import.execute service solution location managed |> ignore
-  if not publishAfterImport then
+  if publishAfterImport then
     Import.publish service managed
 
 let extendSolution (env: Environment) solutionPath = 
