@@ -1,5 +1,4 @@
-# DAXIF#
-
+# DAXIF# [![Join the chat at https://gitter.im/delegateas/Daxif](https://badges.gitter.im/delegateas/Daxif.svg)](https://gitter.im/delegateas/Daxif?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ## Delegate Automated Xrm Installation Framework
 
 A framework for automating installation of all kinds of xRM systems.
