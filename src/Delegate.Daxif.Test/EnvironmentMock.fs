@@ -1,8 +1,8 @@
 ﻿module Delegate.Daxif.Test.EnvironmentMock
 
+open Microsoft
 open Microsoft.Xrm.Sdk.Client
 open DG.Daxif
-open Microsoft
 
 let connectionMock customService = {
   new IConnection with

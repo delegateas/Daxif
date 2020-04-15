@@ -48,7 +48,9 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="EnvironmentMock.fs" />
-    <Compile Include="Test1.fs" />
+    <Compile Include="Base.fs" />
+    <Compile Include="TestBasic.fs" />
+    <Compile Include="ExportTest.fs" />
     <None Include="Script.fsx" />
     <Content Include="packages.config" />
   </ItemGroup>
