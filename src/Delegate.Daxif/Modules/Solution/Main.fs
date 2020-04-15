@@ -99,7 +99,7 @@ let PublishCustomization (env: IEnvironment) =
   CrmDataHelper.publishAll service
   log.WriteLine(LogLevel.Verbose, @"The solution was successfully published")
   
-let export (env: Environment) solution location managed = 
+let export (env: IEnvironment) solution location managed = 
   logVersion log
   log.Info @"Export solution: %s" solution
   log.Verbose @"Organization: %O" env.url
@@ -158,7 +158,7 @@ let postImportExtendedSolution (env: Environment) location =
   let service = env.connect().GetService()
   Extend.postImport service solution location managed
 
-let exportWithExtendedSolution (env: Environment) solution location managed = 
+let exportWithExtendedSolution (env: IEnvironment) solution location managed = 
   logVersion log
   log.Info @"Export extended solution: %s" solution
   log.Verbose @"Organization: %O" env.url
@@ -194,7 +194,7 @@ let importStandard (env: Environment) (activatePluginSteps: bool option) extende
     pluginSteps env solutionName true logLevel
   | _ -> ()
 
-let exportStandard (env: Environment) solutionName outputDirectory managed extended =
+let exportStandard (env: IEnvironment) solutionName outputDirectory managed extended =
   let extended = extended ?| false
 
   match extended with
@@ -202,7 +202,7 @@ let exportStandard (env: Environment) solutionName outputDirectory managed exten
   | false -> export
   |> fun f -> f env solutionName outputDirectory managed
 
-let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) = 
+let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:IEnvironment) (prod:IEnvironment) = 
   log.Info "Starting diff export"
   Directory.CreateDirectory(fileLocation) |> ignore;
   // Export [complete solution] from DEV and PROD

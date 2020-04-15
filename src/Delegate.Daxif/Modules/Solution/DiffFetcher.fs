@@ -12,6 +12,7 @@ open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Messages
 open Microsoft.Xrm.Sdk.Metadata
 open Microsoft.Crm.Sdk.Messages
+open DG.Daxif
 
 let selectNodes (node: XmlNode) (xpath: string) =
   node.SelectNodes(xpath)
@@ -21,7 +22,7 @@ let fetchSolution proxy (solution: string) =
   let columnSet = ColumnSet("uniquename", "friendlyname", "publisherid", "version")
   CrmDataInternal.Entities.retrieveSolution proxy solution columnSet
 
-let downloadSolution (env: DG.Daxif.Environment) file_location sol_name =
+let downloadSolution (env: IEnvironment) file_location sol_name =
   log.Verbose "Exporting extended solution %A" (file_location + sol_name)
   SolutionHelper.exportWithExtendedSolution env sol_name file_location false
 

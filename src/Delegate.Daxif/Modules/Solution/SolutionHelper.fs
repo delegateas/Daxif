@@ -212,7 +212,7 @@ let workflow' (env: Environment) solutionname enable (log : ConsoleLogger) =
         + solutionId.ToString() + @")"
       log.WriteLine(LogLevel.Verbose, msg)
 
-let exportWithExtendedSolution (env: Environment) solution location managed = 
+let exportWithExtendedSolution (env: IEnvironment) solution location managed = 
   let service = env.connect().GetService()
   let solutionPath = Export.execute service solution location managed log
   Extend.export service solution solutionPath
