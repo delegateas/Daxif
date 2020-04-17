@@ -1,4 +1,6 @@
 # Release Notes
+### 4.7.0 - April 17 2020
+* Added option to reassign workflows to same owner as export using extended solution
 
 ### 4.6.2 - March 27 2020
 * fix issue with publish after import
