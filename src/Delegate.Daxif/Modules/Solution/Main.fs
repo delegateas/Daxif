@@ -168,7 +168,7 @@ let exportWithExtendedSolution (env: Environment) solution location managed =
   env.logAuthentication log
   SolutionHelper.exportWithExtendedSolution env solution location managed
 
-let importWithExtendedSolution (env: Environment) location = 
+let importWithExtendedSolution reassignWorkflows (env: Environment) location = 
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
   logVersion log
   log.Info @"Import extended solution: %s" solution
@@ -177,14 +177,14 @@ let importWithExtendedSolution (env: Environment) location =
   log.Verbose @"Path to file: %s" location
   log.Verbose @"Managed solution: %O" managed
   env.logAuthentication log
-  SolutionHelper.importWithExtendedSolution env solution location managed |> ignore
+  SolutionHelper.importWithExtendedSolution reassignWorkflows env solution location managed |> ignore
 
-let importStandard (env: Environment) (activatePluginSteps: bool option) extended publishAfterImport pathToSolutionZip logLevel =
+let importStandard (env: Environment) (activatePluginSteps: bool option) extended publishAfterImport reassignWorkflows pathToSolutionZip logLevel =
   let logLevel = logLevel ?| LogLevel.Verbose
   let extended = extended ?| false
 
   match extended with
-  | true  -> importWithExtendedSolution
+  | true  -> importWithExtendedSolution reassignWorkflows
   | false -> import publishAfterImport
   |> fun f -> f env pathToSolutionZip
       

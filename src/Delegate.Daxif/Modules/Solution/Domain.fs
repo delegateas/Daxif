@@ -22,7 +22,7 @@ type ExtendedSolution =
     keepPluginTypes: seq<Guid*string>
     keepPluginSteps: seq<Guid*string>
     keepPluginImages: seq<Guid*string>
-    keepWorkflows: seq<Guid*string>
+    keepWorkflows: seq<Guid*string*string>
     keepWebresources: seq<Guid*string>
   }
 

@@ -14,6 +14,7 @@ open DG.Daxif.Common.InternalUtility
 open DG.Daxif.Common.CrmUtility
 open DG.Daxif.Modules.Serialization
 open Domain
+open Microsoft.Xrm.Sdk.Query
 
 let asmLogicName = @"pluginassembly"
 let typeLogicName = @"plugintype"
@@ -23,6 +24,7 @@ let webResLogicalName = @"webresource"
 let workflowLogicalName = @"workflow"
 
 let getName (x:Entity) = x.GetAttributeValue<string>("name")
+let getOwnerRef (x:Entity) = x.GetAttributeValue<EntityReference>("ownerid")
    
 // Tries to get an attribute from an entit. Fails if the attribute does not exist.
 let getAttribute key (x:Entity)= 
@@ -85,6 +87,16 @@ let getWorkflows p solution =
 
 let getWebresources p solution =
   CrmDataInternal.Entities.retrieveWebResources p solution
+
+let getUsers p =
+  CrmDataInternal.Entities.retrieveSystemUsers p
+
+let getDomainnameUser (p: IOrganizationService) (ref: EntityReference) =
+  p.Retrieve("systemuser", ref.Id, ColumnSet("domainname")).GetAttributeValue<string>("domainname")
+
+let getEntityIdsAndOwners proxy (entities: seq<Entity>) =
+  entities
+  |> Seq.map(fun e -> e.Id, getName e, getOwnerRef e |> getDomainnameUser proxy)
 
 // Retrievs the assemblies, types, active steps, and images of a solution
 let getPluginsIds p solution =
@@ -203,7 +215,7 @@ let export service solution solutionPath =
     log.WriteLine(LogLevel.Verbose, sprintf @"Found %d %s" (Seq.length x) name )
     )
 
-  let workflowsIds = workflows |> getEntityIds
+  let workflowsIdsAndOwners = workflows |> getEntityIdsAndOwners service
   let webResIds = getWebresources service solutionId |> getEntityIds
 
   let delegateSolution = 
@@ -212,7 +224,7 @@ let export service solution solutionPath =
       keepPluginTypes = typesIds
       keepPluginSteps = stepsIds
       keepPluginImages = imgsIds
-      keepWorkflows = workflowsIds
+      keepWorkflows = workflowsIdsAndOwners
       keepWebresources = webResIds}
     
   log.WriteLine(LogLevel.Verbose, @"Creating extended solution file")
@@ -306,13 +318,14 @@ let preImport service solutionName zipPath =
     // Sync plugins and workflows
     let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds service solutionId
     let targetWorkflows = getWorkflows service solutionId |> getEntityIds
+    let sourceWorkflows = extSol.keepWorkflows |> Seq.map (fun (id,name,_) -> id,name)
     
     let deletionError =
       [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
         (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
         (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)
         (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, None)
-        (workflowLogicalName, extSol.keepWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
+        (workflowLogicalName, sourceWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
       |> Array.map (fun x -> deleteElements service x)
       |> Array.exists (fun x -> not x)
 
@@ -323,11 +336,53 @@ let preImport service solutionName zipPath =
     else
       log.WriteLine(LogLevel.Info, @"Extend pre-steps completed")
 
-let postImport service solutionName zipPath =
+let postImport service solutionName zipPath reassignWorkflows =
   log.Info @"Performing post-steps for importing extended solution"
   let solutionId, extSol = getExtendedSolutionAndId service solutionName zipPath
   
   let mutable errors = false in
+
+  // Attempt to find owners in target to preserve owners of workflows
+  if reassignWorkflows then
+    log.Verbose "Ensuring correct owner on workflows"
+  
+    let workflowOwners =
+      extSol.keepWorkflows
+      |> Seq.map (fun (_,_,domainname) -> domainname)
+      |> Seq.distinct
+      |> Set.ofSeq
+  
+    let userMapping = 
+      getUsers service
+      |> Array.ofSeq
+      |> Array.Parallel.map (fun e -> e.GetAttributeValue<string>("domainname"),e.Id)
+      |> Array.filter (fun (domainname,_) -> workflowOwners.Contains domainname)
+      |> Map.ofArray
+  
+    let wfToUpdate =
+      extSol.keepWorkflows
+      |> Array.ofSeq
+      |> Array.filter (fun (_,_,domainname) -> userMapping.ContainsKey domainname)
+
+    log.Verbose "Found %i worfklows that could be reassigned" wfToUpdate.Length
+
+    log.Verbose "Setting workflows to draft"
+    wfToUpdate
+    |> Array.map(fun (id,_,_) -> 
+      CrmDataInternal.Entities.updateStateReq "workflow" id 0 -1 :> OrganizationRequest )
+    |> fun req -> 
+      try CrmDataInternal.CRUD.performAsBulkWithOutput service log req
+      with _ -> errors <- true;
+
+    log.Verbose "Reassigning workflows"
+    wfToUpdate
+    |> Array.map(fun (id,_,domainname) ->
+      CrmDataInternal.Entities.assignReq userMapping.[domainname] "workflow" id :> OrganizationRequest )
+    |> fun req -> 
+      try CrmDataInternal.CRUD.performAsBulkWithOutput service log req
+      with _ -> errors <- true;
+
+
   // Read the status and statecode of the entities and update them in crm
   log.Verbose @"Finding states of entities to be updated"
 

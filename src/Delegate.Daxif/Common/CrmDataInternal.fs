@@ -70,10 +70,11 @@ module CrmDataInternal =
       e.Attributes.Add("statuscode", OptionSetValue(status))
       proxy.Update(e)
     
-    let assignReq userid logicalName guid = 
-      let req = Messages.AssignRequest()
-      req.Assignee <- EntityReference("systemuser", id = userid)
-      req.Target <- EntityReference(logicalName, id = guid)
+    let assignReq userid (logicalName: string) (guid: Guid) = 
+      let e = Entity(logicalName,guid)
+      e.Attributes.Add("ownerid", EntityReference("systemuser", id = userid))
+      let req = Messages.UpdateRequest()
+      req.Target <- e
       req
     
     let assign proxy userid logicalName guid = 
@@ -518,7 +519,12 @@ module CrmDataInternal =
       q.Criteria <- f
       q.LinkEntities.Add(le)
       CrmDataHelper.retrieveMultiple proxy q
-    
+    let retrieveSystemUsers proxy =
+      let q = QueryExpression("systemuser")
+      q.ColumnSet <- ColumnSet(true)
+      q.Criteria <- FilterExpression()
+      CrmDataHelper.retrieveMultiple proxy q 
+
     let retrievePluginAssembliesByNameAndVersion proxy (uniqueName: string) (version: string) attrToReturn=
       let le = LinkEntity()
       le.JoinOperator <- JoinOperator.LeftOuter

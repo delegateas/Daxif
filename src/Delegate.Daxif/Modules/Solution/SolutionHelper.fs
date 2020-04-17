@@ -218,7 +218,7 @@ let exportWithExtendedSolution (env: Environment) solution location managed =
   Extend.export service solution solutionPath
   solutionPath
 
-let importWithExtendedSolution (env: Environment) solution location managed = 
+let importWithExtendedSolution reassignWorkflows (env: Environment) solution location managed = 
   let service = env.connect().GetService()
   Extend.preImport service solution location
   Import.execute service solution location managed
@@ -226,7 +226,7 @@ let importWithExtendedSolution (env: Environment) solution location managed =
   |> function
     | Some (Domain.ImportResult.Success) ->
       Import.publish service managed
-      Extend.postImport service solution location
+      Extend.postImport service solution location reassignWorkflows
     | _ -> ()
 
 //TODO:

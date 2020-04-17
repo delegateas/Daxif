@@ -24,11 +24,12 @@ type Solution private () =
   /// <summary>Imports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
   /// <param name="diffCallingInfo">[Experimental] When specified, a diff import will be performed. Assumes exportdiff has been used prior.</param>
-  static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel, ?diffCallingInfo, ?publishAfterImport) =    
+  static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel, ?diffCallingInfo, ?publishAfterImport, ?reassignWorkflows) =    
     let publishAfterImport = publishAfterImport ?| true
+    let reassignWorkflows = reassignWorkflows ?| false
     match diffCallingInfo with
     | Some dci -> Main.importDiff pathToSolutionZip dci.SolutionName Domain.partialSolutionName env
-    | _ -> Main.importStandard env activatePluginSteps extended publishAfterImport pathToSolutionZip logLevel
+    | _ -> Main.importStandard env activatePluginSteps extended publishAfterImport reassignWorkflows pathToSolutionZip logLevel
 
   /// <summary>Exports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
