@@ -384,7 +384,9 @@ let updateXrmMockupMetadata' (env: Environment) location exe log
         addIfSome "domain" dmn >>
         addIfSome "mfaAppId" env.clientId >>
         addIfSome "mfaReturnUrl" env.returnUrl >>
-        addIfSome "mfaClientSecret" env.clientSecret
+        addIfSome "mfaClientSecret" env.clientSecret >>
+        addIfSome "connectionString" env.connectionString
+
       )
       
     let finalArgs = optionalArgs @ extraArgs
