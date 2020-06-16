@@ -16,10 +16,12 @@ and ConnectionMethod =
   | Proxy of Proxy
   | CrmServiceClientOAuth of CrmServiceClientOAuth
   | CrmServiceClientClientSecret of CrmServiceClientClientSecret
+  | ConnectionString of string
 type ConnectionType = 
   | Proxy
   | OAuth
   | ClientSecret
+  | ConnectionString
 
 /// Manages credentials used for connecting to a CRM environment
 type Credentials = {
@@ -67,32 +69,41 @@ type Connection = {
   static member Connect(env: Environment) =
     match env.method with
     | Proxy ->
-      let usr, pwd, dmn = env.getCreds()
-      let m, at = CrmAuth.authenticate env.url env.ap usr pwd dmn
-      { method = ConnectionMethod.Proxy({serviceManager = m; credentials = at}) }
+      match env.url with
+      | None -> let s = sprintf "Must specify url when using Proxy auth method" in failwith s
+      | Some url ->
+        let usr, pwd, dmn = env.getCreds()
+        let m, at = CrmAuth.authenticate url env.ap usr pwd dmn
+        { method = ConnectionMethod.Proxy({serviceManager = m; credentials = at}) }
     | OAuth ->
       let usr, pwd, _ = env.getCreds()
-      match env.clientId, env.returnUrl with
-      | None,_
-      | _,None -> let s = sprintf "Unable to connect using OAuth without client id and return url" in failwith s
-      | Some appId, Some returnUrl ->
+      match env.url, env.clientId, env.returnUrl with
+      | None,_,_
+      | _,None,_
+      | _,_,None -> let s = sprintf "Unable to connect using OAuth without url, client id and return url" in failwith s
+      | Some url, Some appId, Some returnUrl ->
         { method = ConnectionMethod.CrmServiceClientOAuth({
-          orgUrl = env.url
+          orgUrl = url
           username = usr
           password = pwd
           clientId = appId
           returnUrl = returnUrl
         })}
     | ClientSecret ->
-      match env.clientId, env.clientSecret with
-      | None,_
-      | _,None -> let s = sprintf "Unable to connect using Client Secret without client id and client secret" in failwith s
-      | Some appId, Some secret ->
+      match env.url, env.clientId, env.clientSecret with
+      | None,_,_
+      | _,None,_
+      | _,_,None -> let s = sprintf "Unable to connect using Client Secret without url, client id and client secret" in failwith s
+      | Some url, Some appId, Some secret ->
         { method = ConnectionMethod.CrmServiceClientClientSecret({
-          orgUrl = env.url
+          orgUrl = url
           clientId = appId
           clientSecret = secret
         })}
+    | ConnectionString ->
+      match env.connectionString with
+      | None -> let s = sprintf "Must specify connectionString when using ConnectionString auth method" in failwith s
+      | Some cs -> { method = ConnectionMethod.ConnectionString cs }
 
   /// Connects to the environment and returns IOrganizationService
   member x.GetService() =
@@ -100,7 +111,8 @@ type Connection = {
     | ConnectionMethod.Proxy _ -> 
       x.GetProxy() :> IOrganizationService
     | ConnectionMethod.CrmServiceClientOAuth _
-    | ConnectionMethod.CrmServiceClientClientSecret _ -> 
+    | ConnectionMethod.CrmServiceClientClientSecret _
+    | ConnectionMethod.ConnectionString _ -> 
       x.GetCrmServiceClient() :> IOrganizationService
 
   /// Connects to the environment and returns an OrganizationServiceProxy
@@ -109,7 +121,8 @@ type Connection = {
     | ConnectionMethod.Proxy proxy -> 
       CrmAuth.getOrganizationServiceProxy proxy.serviceManager proxy.credentials
     | ConnectionMethod.CrmServiceClientOAuth _
-    | ConnectionMethod.CrmServiceClientClientSecret _ ->
+    | ConnectionMethod.CrmServiceClientClientSecret _
+    | ConnectionMethod.ConnectionString _ ->
       failwith "Not possible to get an OrganizationProxy usign OAuth or Client Secret. Get a CrmServiceClient instead"
 
   /// Connects to the environment and returns a CrmServiceClient
@@ -121,17 +134,20 @@ type Connection = {
       CrmAuth.getCrmServiceClient oauth.username oauth.password oauth.orgUrl oauth.clientId oauth.returnUrl
     | ConnectionMethod.CrmServiceClientClientSecret clientSecret ->
       CrmAuth.getCrmServiceClientClientSecret clientSecret.orgUrl clientSecret.clientId clientSecret.clientSecret
+    | ConnectionMethod.ConnectionString cs ->
+      CrmAuth.getCrmServiceClientConnectionString cs
 
 /// Describes a connection to a Dynamics 365/CRM environment
 and Environment = {
   name: string
-  url: Uri
+  url: Uri option
   method: ConnectionType
   creds: Credentials option
   ap: AuthenticationProviderType
   clientId: string option
   returnUrl: string option
   clientSecret: string option
+  connectionString: string option
 } with 
   override x.ToString() = sprintf "%A (%A)" x.name x.url
  
@@ -139,7 +155,7 @@ and Environment = {
   static member Get(name) = EnvironmentHelper.get name
 
   /// Creates a new environment using the credentials and arguments given
-  static member Create(name, url, ?method: ConnectionType, ?ap, ?creds, ?mfaAppId, ?mfaReturnUrl, ?mfaClientSecret, ?args) =
+  static member Create(name, ?url, ?method: ConnectionType, ?ap, ?creds, ?mfaAppId, ?mfaReturnUrl, ?mfaClientSecret, ?connectionString, ?args) =
     let argMap = args ?|> parseArgs
     let credsToUse = 
       let usr = tryFindArgOpt ["username"; "usr"; "u"] argMap ?| ""
@@ -155,18 +171,22 @@ and Environment = {
         match method with
         | "OAuth" -> Some ConnectionType.OAuth
         | "ClientSecret" -> Some ConnectionType.ClientSecret
+        | "ConnectionString" -> Some ConnectionType.ConnectionString
         | "Proxy" -> Some ConnectionType.Proxy
         | _ -> None)
 
+    let urlArg = tryFindArgOpt ["url"] argMap ?|? url
+
     let env = {
       name = name
-      url = Uri(url)
+      url = urlArg ?|> Uri
       method = argMethod ?|? method ?| ConnectionType.Proxy
       creds = credsToUse
       ap = ap ?| AuthenticationProviderType.OnlineFederation
       clientId = tryFindArgOpt ["mfaappid"] argMap ?|? mfaAppId
       returnUrl = tryFindArgOpt ["mfareturnurl"] argMap ?|? mfaReturnUrl
       clientSecret = tryFindArgOpt ["mfaclientsecret"] argMap ?|? mfaClientSecret 
+      connectionString = tryFindArgOpt ["connectionString"] argMap ?|? connectionString 
     }
 
     EnvironmentHelper.add name env
@@ -240,6 +260,8 @@ and Environment = {
         log.Verbose "ReturnUrl: %O" x.returnUrl
       | ClientSecret ->
         log.Verbose "AppId: %O" x.clientId 
+      | ConnectionString ->
+        log.Verbose "Using connection string of length: %i" (x.connectionString ?|> String.length ?| 0)
 
     
   

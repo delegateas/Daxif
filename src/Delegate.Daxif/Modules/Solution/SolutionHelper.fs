@@ -327,7 +327,8 @@ let addIfSome (key: string) (v: string option) (list: (string * string) list) =
 
 let getOptionalUsrPwdDmn (env: Environment) =
   match env.method with
-  | ClientSecret -> None,None,None
+  | ClientSecret
+  | ConnectionString -> None,None,None
   | Proxy
   | OAuth ->
     let usr, pwd, dmn = env.getCreds()
@@ -355,7 +356,8 @@ let updateCustomServiceContext' (env: Environment) location exe log
         addIfSome "domain" dmn >>
         addIfSome "mfaAppId" env.clientId >>
         addIfSome "mfaReturnUrl" env.returnUrl >>
-        addIfSome "mfaClientSecret" env.clientSecret
+        addIfSome "mfaClientSecret" env.clientSecret >>
+        addIfSome "connectionString" env.connectionString
       )
      
     let args = optionalArgs @ extraArgs
@@ -409,7 +411,8 @@ let updateTypeScriptContext' (env: Environment) location exe log
         addIfSome "domain" dmn >>
         addIfSome "mfaAppId" env.clientId >>
         addIfSome "mfaReturnUrl" env.returnUrl >>
-        addIfSome "mfaClientSecret" env.clientSecret
+        addIfSome "mfaClientSecret" env.clientSecret >>
+        addIfSome "connectionString" env.connectionString
       )
       
     let finalArgs = optionalArgs @ extraArgs
