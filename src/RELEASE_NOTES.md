@@ -1,4 +1,7 @@
 # Release Notes
+### 4.7.1 - June 17 2020
+* Added Connection String Authentication method
+
 ### 4.7.0 - April 17 2020
 * Added option to reassign workflows to same owner as export using extended solution
 
