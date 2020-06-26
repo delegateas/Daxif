@@ -338,8 +338,7 @@ let updateCustomServiceContext' (env: Environment) location exe log
     (solutions : string list) (entities : string list) extraArgs = 
   let ccs() = 
     let baseArgs = 
-      [ "url", env.url.ToString()
-        "ap", env.ap.ToString()
+      [ "ap", env.ap.ToString()
         "out", location
         "method", env.method.ToString()
         "solutions", (solutions |> fun ss -> String.Join(",", ss))
@@ -351,6 +350,7 @@ let updateCustomServiceContext' (env: Environment) location exe log
     let optionalArgs =
       baseArgs
       |>(
+        addIfSome "url" (env.url ?|> fun x -> x.ToString()) >>
         addIfSome "username" usr >>
         addIfSome "password" pwd >>
         addIfSome "domain" dmn >>
@@ -368,8 +368,7 @@ let updateXrmMockupMetadata' (env: Environment) location exe log
     (solutions : string list) (entities : string list) extraArgs = 
   let ccs() = 
     let baseArgs = 
-      [ "url", env.url.ToString()
-        "ap", env.ap.ToString()
+      [ "ap", env.ap.ToString()
         "method", env.method.ToString()
         "out", location
         "solutions", (solutions |> fun ss -> String.Join(",", ss))
@@ -379,6 +378,7 @@ let updateXrmMockupMetadata' (env: Environment) location exe log
     let optionalArgs =
       baseArgs
       |>(
+        addIfSome "url" (env.url ?|> fun x -> x.ToString()) >>
         addIfSome "username" usr >>
         addIfSome "password" pwd >>
         addIfSome "domain" dmn >>
@@ -397,8 +397,7 @@ let updateTypeScriptContext' (env: Environment) location exe log
     (solutions : string list) (entities : string list) extraArgs = 
   let dts() = 
     let baseArgs = 
-      [ "url", env.url.ToString()
-        "ap", env.ap.ToString()
+      [ "ap", env.ap.ToString()
         "method", env.method.ToString()
         "out", location
         "solutions", (solutions |> fun ss -> String.Join(",", ss))
@@ -408,6 +407,7 @@ let updateTypeScriptContext' (env: Environment) location exe log
     let optionalArgs =
       baseArgs
       |>(
+        addIfSome "url" (env.url ?|> fun x -> x.ToString()) >>
         addIfSome "username" usr >>
         addIfSome "password" pwd >>
         addIfSome "domain" dmn >>
