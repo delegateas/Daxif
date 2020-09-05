@@ -1,4 +1,7 @@
 # Release Notes
+### 4.7.2 - September 04 2020
+* Fixed issue when calling XrmContext or XrmDefinitelyTyped with connection string
+
 ### 4.7.1 - June 17 2020
 * Added Connection String Authentication method
 
