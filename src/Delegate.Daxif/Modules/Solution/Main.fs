@@ -147,7 +147,7 @@ let preImportExtendedSolution (env: Environment) location =
   let service = env.connect().GetService()
   Extend.preImport service solution location
 
-let postImportExtendedSolution (env: Environment) location = 
+let postImportExtendedSolution (env: Environment) location reassignWorkflows = 
   let solution, _ = CrmUtility.getSolutionInformationFromFile location
   logVersion log
   log.Info @"Post-import extend solution: %s" solution
@@ -156,7 +156,7 @@ let postImportExtendedSolution (env: Environment) location =
   log.Verbose @"Path to file: %s" location
   env.logAuthentication log
   let service = env.connect().GetService()
-  Extend.postImport service solution location
+  Extend.postImport service solution location reassignWorkflows
 
 let exportWithExtendedSolution (env: Environment) solution location managed = 
   logVersion log

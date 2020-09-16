@@ -20,6 +20,7 @@ type ExtendedSolution private () =
 
   /// <summary>Starts post-import task for an extended solution. Run this after solution import</summary>
   /// <param name="env">Environment the action should be performed against.</param>
-  static member PostImport(env: Environment, pathToSolutionZip, ?logLevel) =
+  static member PostImport(env: Environment, pathToSolutionZip, ?reassignWorkflows, ?logLevel) =
     log.setLevelOption logLevel
-    Main.postImportExtendedSolution env pathToSolutionZip
+    let reassignWorkflows = reassignWorkflows ?| false
+    Main.postImportExtendedSolution env pathToSolutionZip reassignWorkflows
