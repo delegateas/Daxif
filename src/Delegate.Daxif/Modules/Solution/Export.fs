@@ -48,8 +48,10 @@ let rec exportLoop service (jobInfo: ExportAsyncJobInfo) =
   async { 
     match jobInfo.status with
     | AsyncJobStatus.Completed -> 
+      log.WriteLine(LogLevel.Verbose, @"Export solution: Completed")
       return jobInfo
     | AsyncJobStatus.Starting -> 
+      log.WriteLine(LogLevel.Verbose, @"Export solution: Starting")
       AsyncJobHelper.checkJobHasStarted service jobInfo.asyncJobId |> ignore
       let status = AsyncJobHelper.getJobStatus service jobInfo.asyncJobId
       let! jobInfo' = exportLoop service {jobInfo with status = status }
@@ -63,11 +65,11 @@ let rec exportLoop service (jobInfo: ExportAsyncJobInfo) =
       match status with
       | AsyncJobStatus.Starting // should not be possible
       | AsyncJobStatus.InProgress -> 
-        sprintf @"Export solution: In Progress"
-        |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
+        log.WriteLine(LogLevel.Verbose, @"Export solution: In Progress")
         let! jobInfo' = exportLoop service { jobInfo with status = status}
         return jobInfo'
       | AsyncJobStatus.Completed -> 
+        log.WriteLine(LogLevel.Verbose, @"Export solution: Completed")
         let result = getJobResult service jobInfo.asyncJobId
         let jobInfo' = { jobInfo with status = status; result = Some(result) }
         return jobInfo'

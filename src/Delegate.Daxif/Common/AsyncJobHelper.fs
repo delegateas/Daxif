@@ -43,15 +43,15 @@ let getJobResult service asyncJobId =
 let checkJobHasStarted service asyncJobId = 
   match retrieveAsyncJobState service asyncJobId with
   | AsyncJobState.Failed | AsyncJobState.Canceled ->
-  log.WriteLine(LogLevel.Verbose, "Asynchronous job failed")
-  let systemJob = CrmData.CRUD.retrieve service "asyncoperation" asyncJobId
-  let msg = 
-      match systemJob.Attributes.ContainsKey "message" with
-      | true -> systemJob.Attributes.["message"] :?> string
-      | false -> "No failure message"
-  msg
-  |> sprintf "Failed with message: %s"
-  |> failwith 
+    log.WriteLine(LogLevel.Verbose, "Asynchronous job failed")
+    let systemJob = CrmData.CRUD.retrieve service "asyncoperation" asyncJobId
+    let msg = 
+        match systemJob.Attributes.ContainsKey "message" with
+        | true -> systemJob.Attributes.["message"] :?> string
+        | false -> "No failure message"
+    msg
+    |> sprintf "Failed with message: %s"
+    |> failwith 
   | _ -> ()
 
 
