@@ -3,10 +3,13 @@
 // --------------------------------------------------------------------------------------
 #r "packages/FAKE/tools/FakeLib.dll"
 
-open Fake
-open Fake.Git
-open Fake.ReleaseNotesHelper
-open Fake.AssemblyInfoFile
+open Fake.Core
+open Fake.Core.TargetOperators
+open Fake.DotNet
+open Fake.DotNet.NuGet.NuGet
+open Fake.IO
+open Fake.IO.Globbing.Operators
+open Fake.Tools.Git
 open System
 open System.IO
 
@@ -51,25 +54,37 @@ let docsGitHome = "https://github.com/delegateas/Daxif.wiki.git"
 // Read additional information from the release notes document
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 let (++) x y = Path.Combine(x,y)
-let release = parseReleaseNotes (IO.File.ReadAllLines "RELEASE_NOTES.md")
+let release = Fake.Core.ReleaseNotes.parse (IO.File.ReadAllLines "RELEASE_NOTES.md")
 
 // Generate assembly info files with the right version & up-to-date information
-Target "AssemblyInfo" 
+Target.create "AssemblyInfo" 
   (fun _ -> 
   let fileName = project + "/AssemblyInfo.fs"
-  CreateFSharpAssemblyInfo fileName 
-    [ Attribute.Title project
-      Attribute.Product project
-      Attribute.Description summary
-      Attribute.Company company
-      Attribute.Copyright copyright
-      Attribute.Version release.AssemblyVersion
-      Attribute.FileVersion release.AssemblyVersion ])
+  AssemblyInfoFile.createFSharp fileName
+    [ Fake.DotNet.AssemblyInfo.Title project
+      Fake.DotNet.AssemblyInfo.Product project
+      Fake.DotNet.AssemblyInfo.Description summary
+      Fake.DotNet.AssemblyInfo.Company company
+      Fake.DotNet.AssemblyInfo.Copyright copyright
+      Fake.DotNet.AssemblyInfo.Version release.AssemblyVersion
+      Fake.DotNet.AssemblyInfo.FileVersion release.AssemblyVersion ])
 
 
 // --------------------------------------------------------------------------------------
 // Setting up VS for building with FAKE
 let commonBuild target solutions =
+  let msBuildParams: MSBuild.CliArguments = 
+    { (MSBuild.CliArguments.Create()) with
+        Targets = [target]
+        Properties = [("Configuration", "Release")]
+    }
+  solutions
+  |> DotNet.build (fun x -> 
+    {x with
+       //Configuration = DotNet.BuildConfiguration.Custom(target)
+       MSBuildParams = msBuildParams
+       NoRestore = true
+      })
   //try 
   //  solutions
   //  |> Seq.iter (fun solution ->
@@ -91,14 +106,15 @@ let commonBuild target solutions =
   //  )
   //with _ -> 
     //printfn "Unable to build with given params. Trying old MSBuildRelease."
-    solutions
-    |> MSBuildRelease "" target
-    |> ignore
+    //solutions
+    //|> Fake.DotNet.MSBuild.runRelease id "" target
+    //|> ignore
+
 
 let currentTimeFileFormat () = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss")
 
-Target "Clean" (fun _ -> 
-  CleanDirs [ "bin"; "temp" ]
+Target.create "Clean" (fun _ -> 
+  Shell.cleanDirs [ "bin"; "temp" ]
   
   let extList = ["dll"; "exe"; "pdb"; "xml"; "optdata"; "sigdata"]
   let matchesAnyExt (path: string) = extList |> List.exists (fun ext -> path.EndsWith(sprintf ".%s" ext))
@@ -131,26 +147,29 @@ Target "Clean" (fun _ ->
   moveFilesToTemp scriptFolder
   
   !!(solutionFile + "*.sln")
+  |> Seq.head
   |> commonBuild "Clean"
 )
 
-Target "Build" (fun _ -> 
+Target.create "Build" (fun _ -> 
   !!(solutionFile + ".sln")
+  |> Seq.head
   |> commonBuild "Build"
 )
 
-Target "Rebuild" (fun _ -> 
+Target.create "Rebuild" (fun _ -> 
   !!(solutionFile + "*.sln")
+  |> Seq.head
   |> commonBuild "Rebuild"
 )
 
 
 // --------------------------------------------------------------------------------------
 // Run the unit tests using test runner
-Target "RunTests" DoNothing
+Target.create "RunTests" ignore
 // --------------------------------------------------------------------------------------
 // Build a NuGet package
-Target "NuGet" (fun _ -> 
+Target.create "NuGet" (fun _ -> 
   NuGet (fun p -> 
     { p with Title = project
              Authors = authors
@@ -163,14 +182,14 @@ Target "NuGet" (fun _ ->
              ReleaseNotes = String.Join(Environment.NewLine, release.Notes)
              OutputPath = "bin"
              NoDefaultExcludes = true
-             AccessKey = getBuildParamOrDefault "delegateas-nugetkey" ""
+             AccessKey = Fake.Core.Environment.environVarOrDefault "delegateas-nugetkey" ""
              Dependencies = 
                [ ]
              References = [] }) (@"nuget/" + project + ".nuspec"))
 
 
 // Build a NuGet package and publish it
-Target "PublishNuGet" (fun _ -> 
+Target.create "PublishNuGet" (fun _ -> 
   NuGet (fun p -> 
     { p with Title = project
              Authors = authors
@@ -184,17 +203,17 @@ Target "PublishNuGet" (fun _ ->
              OutputPath = "bin"
              PublishUrl = "https://www.nuget.org/api/v2/package"
              NoDefaultExcludes = true
-             AccessKey = getBuildParamOrDefault "delegateas-nugetkey" ""
-             Publish = hasBuildParam "delegateas-nugetkey"
+             AccessKey = Fake.Core.Environment.environVarOrDefault "delegateas-nugetkey" ""
+             Publish = Fake.Core.Environment.hasEnvironVar "delegateas-nugetkey"
              Dependencies = 
                [ ]
              References = [] }) (@"nuget/" + project + ".nuspec"))
 
-Target "CleanDocs" (fun _ ->
-  CleanDir "temp"
+Target.create "CleanDocs" (fun _ ->
+  Shell.cleanDir "temp"
 )
 
-Target "GenerateDocs" (fun _ ->
+Target.create "GenerateDocs" (fun _ ->
     Directory.CreateDirectory("temp" ++ "code") |> ignore
 
     Directory.EnumerateFiles ("Delegate.Daxif" ++ "ScriptTemplates")
@@ -210,7 +229,7 @@ Target "GenerateDocs" (fun _ ->
     )
 )
 
-Target "ReleaseDocs" (fun _ ->
+Target.create "ReleaseDocs" (fun _ ->
   Repository.cloneSingleBranch "" docsGitHome "master" ("temp" ++ "wiki")
   
   Directory.EnumerateFiles("temp" ++ "code")
@@ -218,21 +237,20 @@ Target "ReleaseDocs" (fun _ ->
   |> Array.map (fun d -> d.Split('\\') |> Array.last)
   |> Array.iter (fun f -> File.Copy("temp" ++ "code" ++ f, "temp" ++ "wiki" ++ f,true))
 
-  StageAll ("temp" ++ "wiki")
-  Commit ("temp" ++ "wiki") "Updated wiki with new scripts"
+  Staging.stageAll ("temp" ++ "wiki")
+  Commit.exec ("temp" ++ "wiki") "Updated wiki with new scripts"
   Branches.push ("temp" ++ "wiki")
 )
 
-
 // --------------------------------------------------------------------------------------
 // Run all targets by default. Invoke 'build <Target>' to override
-Target "GenerateReferenceDocs" DoNothing
-Target "GenerateHelp" DoNothing
-Target "GenerateHelpDebug" DoNothing
-Target "KeepRunning" DoNothing
-Target "AddLangDocs" DoNothing
-Target "BuildPackage" DoNothing
-Target "All" DoNothing
+Target.create "GenerateReferenceDocs" ignore 
+Target.create "GenerateHelp" ignore 
+Target.create "GenerateHelpDebug" ignore
+Target.create "KeepRunning" ignore
+Target.create "AddLangDocs" ignore
+Target.create "BuildPackage" ignore
+Target.create "All" ignore
 
 "Clean"
   ==> "AssemblyInfo"
@@ -249,4 +267,4 @@ Target "All" DoNothing
   ==> "GenerateDocs"
   ==> "ReleaseDocs"
   
-RunTargetOrDefault "Build"
+Target.runOrDefault "Build"
