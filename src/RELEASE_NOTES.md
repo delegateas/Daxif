@@ -1,4 +1,10 @@
 # Release Notes
+
+### 4.8.0 - Septebmer 17 2020
+* Add support for async solution export
+* Add Modern Flow support in extended solution
+* Fix missing argument in extended solution post-import interface
+
 ### 4.7.2 - September 04 2020
 * Fixed issue when calling XrmContext or XrmDefinitelyTyped with connection string
 
@@ -12,7 +18,7 @@
 * fix issue with publish after import
 
 ### 4.6.1 - March 23 2020
-* Fix an issue in pre- and post-import extended solutio when referencing the path to the solution
+* Fix an issue in pre- and post-import extended solution when referencing the path to the solution
 * Add new build server script for publishing all customizations
 
 ### 4.6.0 - March 20 2020

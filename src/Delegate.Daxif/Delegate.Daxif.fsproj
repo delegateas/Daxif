@@ -1,6 +1,10 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <DebugType>portable</DebugType>
+    <UserSecretsId>a6ea0a71-6e7b-4b1b-9979-2ac68bc7557b</UserSecretsId>
+  </PropertyGroup>
+  <!-- <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -9,45 +13,22 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Delegate.Daxif</RootNamespace>
     <AssemblyName>Delegate.Daxif</AssemblyName>
-    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <Name>Delegate.Daxif</Name>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
-    <SccProjectName>SAK</SccProjectName>
-    <SccProvider>SAK</SccProvider>
-    <SccAuxPath>SAK</SccAuxPath>
-    <SccLocalPath>SAK</SccLocalPath>
-    <TargetFSharpCoreVersion>4.3.0.0</TargetFSharpCoreVersion>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-  </PropertyGroup>
+  </PropertyGroup> -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
+    <OutputPath>ScriptTemplates\bin</OutputPath>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>ScriptTemplates\bin</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
     <DocumentationFile>ScriptTemplates\bin\Delegate.Daxif.xml</DocumentationFile>
-    <StartAction>Program</StartAction>
-    <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\devenv.exe</StartProgram>
-    <StartWorkingDirectory>..\..\..\</StartWorkingDirectory>
-    <StartArguments>"TestXrmProvider.fsx"</StartArguments>
-    <OtherFlags>--warnaserror:25</OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Release\Delegate.Daxif.xml</DocumentationFile>
     <OtherFlags>--warnaserror:25</OtherFlags>
   </PropertyGroup>
-  <PropertyGroup>
+  <!--<PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>
   <Choose>
@@ -63,7 +44,7 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />-->
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
@@ -71,20 +52,20 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  <Target Name="AfterBuild" Condition="$(Configuration)==Release">
-    <!--<Exec Command="&quot;$(SolutionDir)Delegate.Daxif\Tests\Delegate.DaxifTests.cmd&quot; &quot;$(SolutionDir)&quot;" />-->
+  <!--<Target Name="AfterBuild" Condition="$(Configuration)==Release">
+    --><!--<Exec Command="&quot;$(SolutionDir)Delegate.Daxif\Tests\Delegate.DaxifTests.cmd&quot; &quot;$(SolutionDir)&quot;" />--><!--
     <GetAssemblyIdentity AssemblyFiles="$(TargetPath)">
       <Output TaskParameter="Assemblies" ItemName="CurrentAssembly" />
     </GetAssemblyIdentity>
-  </Target>
-  <PropertyGroup>
+  </Target>-->
+  <!--<PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>
   </PropertyGroup>
-  <!--<PropertyGroup>
+  --><!--<PropertyGroup>
     <FakeTargetsPath>..\Targets\fake.targets</FakeTargetsPath>
   </PropertyGroup>-->
-  <Import Project="$(FakeTargetsPath)" Condition="Exists($(FakeTargetsPath)) And '$(RealBuild)'!='true'" />
+  <!--<Import Project="$(FakeTargetsPath)" Condition="Exists($(FakeTargetsPath)) And '$(RealBuild)'!='true'" />-->
   <ItemGroup>
     <Content Include="bin\coretools\Other Redistributable.txt" />
     <None Include="bin\coretools\Microsoft.Xrm.Tooling.CrmConnectControl.dll" />
@@ -178,6 +159,54 @@
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="System.Activities" />
+    <Reference Include="System.Activities.Presentation" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Net" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Net.Http.WebRequest" />
+    <Reference Include="System.Runtime" />
+    <Reference Include="System.Workflow.Activities" />
+    <Reference Include="System.Workflow.ComponentModel" />
+    <Reference Include="System.Workflow.Runtime" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.Services" />
+    <Reference Include="System.Data.Services.Client" />
+    <Reference Include="System.DirectoryServices" />
+    <Reference Include="System.DirectoryServices.AccountManagement" />
+    <Reference Include="System.IdentityModel" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.Caching" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Web" />
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Xml" />
+    <Reference Include="mscorlib" />
+    <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CrmSdk.CoreAssemblies" Version="9.0.2.27" />
+    <PackageReference Include="Microsoft.CrmSdk.CoreTools" Version="9.1.0.49" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.CrmSdk.Deployment" Version="9.0.2.27" />
+    <PackageReference Include="Microsoft.CrmSdk.Workflow" Version="9.0.2.27" />
+    <PackageReference Include="Microsoft.CrmSdk.XrmTooling.CoreAssembly" Version="9.1.0.51" />
+    <PackageReference Include="Microsoft.IdentityModel" Version="7.0.0" />
+    <Reference Include="SolutionPackagerLib">
+      <HintPath>(PkgMicrosoft_CrmSdk_CoreTools)\content\bin\coretools\SolutionPackagerLib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <!-- <ItemGroup>
     <Reference Include="FSharp.Core">
       <HintPath>..\packages\FSharp.Core.4.3.4\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
@@ -216,9 +245,6 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="SolutionPackagerLib">
-      <HintPath>..\packages\Microsoft.CrmSdk.CoreTools.9.1.0.44\content\bin\coretools\SolutionPackagerLib.dll</HintPath>
-    </Reference>
     <Reference Include="System.Activities" />
     <Reference Include="System.Activities.Presentation" />
     <Reference Include="System.IO.Compression" />
@@ -254,5 +280,5 @@
     <Reference Include="System.Xml" />
     <Reference Include="mscorlib" />
     <Reference Include="System.Xml.Linq" />
-  </ItemGroup>
+  </ItemGroup> -->
 </Project>
