@@ -99,16 +99,19 @@ let PublishAll (env: Environment) =
   CrmDataHelper.publishAll service
   log.WriteLine(LogLevel.Verbose, @"All customizations was successfully published")
   
-let export (env: Environment) solution location managed = 
+let export (env: Environment) solution location managed async = 
   logVersion log
   log.Info @"Export solution: %s" solution
   log.Verbose @"Organization: %O" env.url
   log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to folder: %s" location
   log.Verbose @"Managed solution: %O" managed
+  log.Verbose @"Asynchronous export: %b" async
   env.logAuthentication log
   let service = env.connect().GetService()
-  Export.execute service solution location managed log
+  match async with
+  | false -> Export.exportSync service solution location managed
+  | true -> Export.exportAsync service solution location managed
   
 let import publishAfterImport (env: Environment) location = 
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
@@ -158,15 +161,16 @@ let postImportExtendedSolution (env: Environment) location reassignWorkflows =
   let service = env.connect().GetService()
   Extend.postImport service solution location reassignWorkflows
 
-let exportWithExtendedSolution (env: Environment) solution location managed = 
+let exportWithExtendedSolution (env: Environment) solution location managed async = 
   logVersion log
   log.Info @"Export extended solution: %s" solution
   log.Verbose @"Organization: %O" env.url
   log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to folder: %s" location
   log.Verbose @"Managed solution: %O" managed
+  log.Verbose @"Asynchronous export: %b" async
   env.logAuthentication log
-  SolutionHelper.exportWithExtendedSolution env solution location managed
+  SolutionHelper.exportWithExtendedSolution env solution location managed async
 
 let importWithExtendedSolution reassignWorkflows (env: Environment) location = 
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
@@ -194,15 +198,15 @@ let importStandard (env: Environment) (activatePluginSteps: bool option) extende
     pluginSteps env solutionName true logLevel
   | _ -> ()
 
-let exportStandard (env: Environment) solutionName outputDirectory managed extended =
+let exportStandard (env: Environment) solutionName outputDirectory managed extended async =
   let extended = extended ?| false
 
   match extended with
   | true  -> exportWithExtendedSolution 
   | false -> export
-  |> fun f -> f env solutionName outputDirectory managed
+  |> fun f -> f env solutionName outputDirectory managed async
 
-let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) = 
+let exportDiff fileLocation completeSolutionName temporarySolutionName async (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) = 
   log.Info "Starting diff export"
   Directory.CreateDirectory(fileLocation) |> ignore;
   // Export [complete solution] from DEV and PROD
@@ -214,7 +218,7 @@ let exportDiff fileLocation completeSolutionName temporarySolutionName (dev:DG.D
       Directory.CreateDirectory(fileLocation + "/" + env.name) |> ignore;
 
       log.Verbose "Exporting solution '%s' from %s" completeSolutionName env.name;
-      let sol = DiffFetcher.downloadSolution env (fileLocation + "/" + env.name + "/") completeSolutionName
+      let sol = DiffFetcher.downloadSolution env (fileLocation + "/" + env.name + "/") completeSolutionName async
       DiffFetcher.unzip sol;
       (proxy, sol))
     |> function [| devSolution; prodSolution |] -> (devSolution, prodSolution) | _ -> failwith "Impossible"

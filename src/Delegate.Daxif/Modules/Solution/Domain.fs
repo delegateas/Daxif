@@ -3,6 +3,7 @@
 open System
 open System.Reflection
 open Microsoft.Xrm.Sdk
+open AsyncJobHelper
 
 let partialSolutionName = "DAXIFPartialSolution"
 
@@ -26,25 +27,26 @@ type ExtendedSolution =
     keepWebresources: seq<Guid*string>
   }
 
-type ImportResult = 
-  | Failure
-  | Success
-
-type ImportStatus = 
-  | Starting
-  | InProgress 
-  | Completed 
-
 type ImportJobInfo =
   {
     solution: string
     managed: bool
     jobId: Guid
     asyncJobId: Option<Guid>
-    status: ImportStatus
+    status: AsyncJobStatus
     progress: double
-    result: Option<ImportResult>
+    result: Option<JobResult>
     excelFile: Option<string>
+  }
+
+type ExportAsyncJobInfo =
+  {
+    solution: string
+    managed: bool
+    jobId: Guid
+    asyncJobId: Guid
+    status: AsyncJobStatus
+    result: Option<JobResult>
   }
 
 type EntityComponent = 

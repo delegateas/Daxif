@@ -12,6 +12,7 @@ open DG.Daxif.Common.CrmDataInternal
 open DG.Daxif.Modules.Serialization
 open Microsoft.Crm.Sdk.Messages
 open Domain
+open AsyncJobHelper
 
 let generateExcelResultLocation (solutionLocation: string) =
   let location' = solutionLocation.Replace(@".zip", "")
@@ -44,7 +45,7 @@ let getImportJobStatus service (jobInfo: ImportJobInfo) =
   let jobExist = CrmDataInternal.Entities.existCrm service @"importjob" jobInfo.jobId None
   match jobExist with
   | false -> 
-    (ImportStatus.Starting, jobInfo.progress)
+    (AsyncJobStatus.Starting, jobInfo.progress)
   | true ->
     let j = CrmDataInternal.Entities.retrieveImportJobWithXML service jobInfo.jobId
     let progress' = j.GetAttributeValue<double>("progress")
@@ -53,17 +54,24 @@ let getImportJobStatus service (jobInfo: ImportJobInfo) =
     | None ->
       let status =
         match j.Attributes.Contains("completedon") with
-        | true -> ImportStatus.Completed
-        | false -> ImportStatus.InProgress
+        | true -> AsyncJobStatus.Completed
+        | false -> AsyncJobStatus.InProgress
       (status, progress')
     | Some id ->
       try
-        match Info.retrieveAsyncJobState service id with
+        match AsyncJobHelper.retrieveAsyncJobState service id with
         | AsyncJobState.Succeeded 
         | AsyncJobState.Failed 
-        | AsyncJobState.Canceled -> (ImportStatus.Completed, progress')
-        | _ -> (ImportStatus.InProgress, progress')
-      with _ -> (ImportStatus.InProgress, progress')
+        | AsyncJobState.Canceled -> (AsyncJobStatus.Completed, progress')
+        | _ -> (AsyncJobStatus.InProgress, progress')
+      with _ -> (AsyncJobStatus.InProgress, progress')
+
+// Check to ensure that the async job is started at all
+let checkJobHasStarted service (jobInfo: ImportJobInfo) = 
+  match jobInfo.asyncJobId with
+  | None -> ()
+  | Some id ->
+    AsyncJobHelper.checkJobHasStarted service id
 
 let getImportJobResult service (jobInfo: ImportJobInfo) =
   try
@@ -80,41 +88,23 @@ let getImportJobResult service (jobInfo: ImportJobInfo) =
       | Some id -> 
         log.WriteLine(LogLevel.Verbose,@"Asynchronous import job completed")
         let success = 
-          match Info.retrieveAsyncJobState service id with
+          match AsyncJobHelper.retrieveAsyncJobState service id with
           | AsyncJobState.Succeeded -> true
           | _ -> false
 
         (progress' = 100.) || success
     match succeded with
-    | true -> ImportResult.Success
-    | false -> ImportResult.Failure
-  with _ -> ImportResult.Failure
-
- // Check to ensure that the async job is started at all
-let checkJobHasStarted service (jobInfo: ImportJobInfo) = 
-  match jobInfo.asyncJobId with
-  | None -> ()
-  | Some id ->
-    match Info.retrieveAsyncJobState service id with
-    | AsyncJobState.Failed | AsyncJobState.Canceled ->
-    log.WriteLine(LogLevel.Verbose, "Asynchronous import job failed")
-    let systemJob = CrmData.CRUD.retrieve service "asyncoperation" id
-    let msg = 
-        match systemJob.Attributes.ContainsKey "message" with
-        | true -> systemJob.Attributes.["message"] :?> string
-        | false -> "No failure message"
-    msg
-    |> sprintf "Failed with message: %s"
-    |> failwith 
-    | _ -> ()
+    | true -> JobResult.Success
+    | false -> JobResult.Failure
+  with _ -> JobResult.Failure
 
 let printImportResult service (jobInfo: ImportJobInfo) =
   match jobInfo.result with
-  | Some(ImportResult.Success) -> 
+  | Some(JobResult.Success) -> 
     sprintf  @"Solution was imported successfully (ImportJob ID: %A)" jobInfo.jobId 
     |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
   | None
-  | Some(ImportResult.Failure) ->
+  | Some(JobResult.Failure) ->
     let msg =
       match jobInfo.asyncJobId with
       | None -> 
@@ -131,33 +121,33 @@ let printImportResult service (jobInfo: ImportJobInfo) =
 let rec importLoop service (jobInfo: ImportJobInfo) = 
   async { 
     match jobInfo.status with
-    | ImportStatus.Completed -> 
+    | AsyncJobStatus.Completed -> 
       return jobInfo
-    | ImportStatus.Starting -> 
+    | AsyncJobStatus.Starting -> 
       checkJobHasStarted service jobInfo |> ignore
       let (status, pct) = getImportJobStatus service jobInfo
       let! jobInfo' = importLoop service {jobInfo with status = status; progress = pct }
       return jobInfo'
-    | ImportStatus.InProgress -> 
+    | AsyncJobStatus.InProgress -> 
       do! Async.Sleep 10000 // Wait 10 seconds
       let (status, pct) =
         try 
           getImportJobStatus service jobInfo
-        with _ -> (ImportStatus.Completed, jobInfo.progress)
+        with _ -> (AsyncJobStatus.Completed, jobInfo.progress)
       match status with
-      | ImportStatus.Starting // should not be possible
-      | ImportStatus.InProgress -> 
+      | AsyncJobStatus.Starting // should not be possible
+      | AsyncJobStatus.InProgress -> 
         sprintf @"Import solution: %s (%i%%)" jobInfo.solution (pct |> int)
         |> fun msg -> log.WriteLine(LogLevel.Verbose, msg)
         let! jobInfo' = importLoop service { jobInfo with status = status; progress = pct }
         return jobInfo'
-      | ImportStatus.Completed -> 
+      | AsyncJobStatus.Completed -> 
         let result = getImportJobResult service jobInfo
         let jobInfo' = { jobInfo with status = status; progress = pct; result = Some(result) }
         return jobInfo'
   }
 
-let saveImportJobResult (service: IOrganizationService) jobResult (excelLocation:string) = 
+let saveImportJobResult (service: IOrganizationService) (jobResult:ImportJobInfo) (excelLocation:string) = 
   log.WriteLine(LogLevel.Verbose, @"Fetching import job result")
   try  
     let req' = new Messages.RetrieveFormattedImportJobResultsRequest()
@@ -209,7 +199,7 @@ let execute service solution location managed =
         managed = managed
         jobId = jobId
         asyncJobId = asyncJobId
-        status = ImportStatus.Starting
+        status = AsyncJobStatus.Starting
         progress = 0.
         result = None
         excelFile = None

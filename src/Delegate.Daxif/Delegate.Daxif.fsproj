@@ -107,6 +107,7 @@
     <Compile Include="Common\ServiceProxy__ToDeprecate.fs" />
     <Compile Include="Common\CrmData.fs" />
     <Compile Include="Common\CrmDataInternal.fs" />
+    <Compile Include="Common\AsyncJobHelper.fs" />
     <Compile Include="Setup\CredentialManagement.fs" />
     <Compile Include="Setup\EnvironmentSetup.fs" />
     <Compile Include="Modules\View\TypeDeclarations.fs" />
