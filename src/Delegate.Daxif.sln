@@ -3,20 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30503.244
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Delegate.Daxif", "Delegate.Daxif\Delegate.Daxif.fsproj", "{380BA6A3-8276-490C-B9F9-4CAD64035AE3}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Delegate.Daxif", "Delegate.Daxif\Delegate.Daxif.fsproj", "{380BA6A3-8276-490C-B9F9-4CAD64035AE3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "project", "project", "{91D22ACA-CA2B-4A13-80C1-8B68082334D2}"
 	ProjectSection(SolutionItems) = preProject
 		build.cmd = build.cmd
 		build.fsx = build.fsx
 		buildOld.fsx = buildOld.fsx
-		nuget\Delegate.Daxif.nuspec = nuget\Delegate.Daxif.nuspec
 		RELEASE_NOTES.md = RELEASE_NOTES.md
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Targets", "Targets", "{E79877B3-7533-48D9-BE36-0874A19D68DD}"
-	ProjectSection(SolutionItems) = preProject
-		Targets\fake.targets = Targets\fake.targets
 	EndProjectSection
 EndProject
 Global

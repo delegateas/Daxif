@@ -1,1 +1,0 @@
-@for %%f in (..\bin\*.nupkg) do @..\.nuget\NuGet.exe push %%f -Source https://www.nuget.org/api/v2/package
