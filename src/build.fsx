@@ -143,12 +143,13 @@ Target.create "PublishNuGet" (fun _ ->
   let setNugetPushParams (defaults:NuGetPushParams) =
     { defaults with
         ApiKey = Fake.Core.Environment.environVarOrDefault "delegateas-nugetkey" "" |> Some
+        Source = Some "https://api.nuget.org/v3/index.json"
     }
   let setParams (defaults:DotNet.NuGetPushOptions) =
       { defaults with
           PushParams = setNugetPushParams defaults.PushParams
        }
-  let nugetPacakge = !!("bin/*/"+project+"*.nupkg") |> Seq.head
+  let nugetPacakge = !!("bin/"+project+".*.nupkg") |> Seq.head
   DotNet.nugetPush setParams nugetPacakge)
 
 Target.create "GenerateReferenceDocs" ignore 
