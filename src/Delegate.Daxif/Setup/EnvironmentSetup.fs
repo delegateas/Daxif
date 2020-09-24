@@ -228,7 +228,7 @@ and Environment = {
     let usr, pwd, dmn = x.getCreds()
     let givenArgs = args ?|> List.ofSeq ?| List.empty
     let envArgs = 
-      [ urlParam ?|> fun k -> k, x.url.ToString()
+      [ urlParam ?|> fun k -> k, x.url.Value.ToString()
         usrParam ?|> fun k -> k, usr
         pwdParam ?|> fun k -> k, pwd
         dmnParam ?|> fun k -> k, dmn
