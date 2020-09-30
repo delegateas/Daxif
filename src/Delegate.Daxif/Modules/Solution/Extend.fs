@@ -424,7 +424,7 @@ let postImport service solutionName zipPath reassignWorkflows =
   let targetWebRes = getWebresources service solutionId |> getEntityIds
 
   let deletionError =
-    [|(webResLogicalName, extSol.keepWebresources, targetWebRes, takeGuid, None)|]
+    [|(webResLogicalName, extSol.keepWebresources, targetWebRes, takeName, None)|]
     |> Array.map (fun x -> deleteElements service x)
     |> Array.exists (fun x -> not x)
 
