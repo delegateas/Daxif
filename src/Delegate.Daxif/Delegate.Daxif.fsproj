@@ -18,8 +18,8 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>ScriptTemplates\bin</OutputPath>
-    <DocumentationFile>ScriptTemplates\bin\Delegate.Daxif.xml</DocumentationFile>
+    <OutputPath>..\Delegate.Daxif.Scripts\ScriptTemplates\bin</OutputPath>
+    <DocumentationFile>..\Delegate.Daxif.Scripts\ScriptTemplates\bin\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -28,6 +28,7 @@
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="RELEASE_NOTES.md" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Daxif.fs" />
     <Compile Include="ConsoleLogger.fs" />
@@ -93,13 +94,10 @@
     <Compile Include="API\Workflow.fs" />
     <Compile Include="API\View.fs" />
     <Compile Include="API\Info.fs" />
-    <!--<Content Include="bin\Release\$(TargetFramework)\Delegate.Daxif.pdb" Pack="true" PackagePath="lib\$(TargetFramework)" />-->
-    <Content Include="ScriptTemplates\*.fsx" Pack="true" PackagePath="content\Daxif" />
     <Content Include="bin\Release\$(TargetFramework)\Delegate.Daxif.pdb" Pack="true" PackagePath="content\Daxif\bin" />
     <Content Include="bin\Release\$(TargetFramework)\Delegate.Daxif.xml" Pack="true" PackagePath="content\Daxif\bin" />
     <Content Include="bin\Release\$(TargetFramework)\*.dll" Pack="true" PackagePath="content\Daxif\bin" />
     <Content Include="bin\Release\$(TargetFramework)\*.exe" Pack="true" PackagePath="content\Daxif\bin" />
-    <Content Include="Resources\Plugin.cs" Pack="true" />
     <None Include="..\resources\delegate_daxif_logo_small.png" Pack="true" PackagePath="" />
   </ItemGroup>
   <ItemGroup>
@@ -146,34 +144,26 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CrmSdk.CoreAssemblies" Version="9.0.2.27">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>all</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.CrmSdk.CoreTools" Version="9.1.0.49" GeneratePathProperty="true">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>all</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.CrmSdk.Deployment" Version="9.0.2.27">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>all</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.CrmSdk.Workflow" Version="9.0.2.27">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>all</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.CrmSdk.XrmTooling.CoreAssembly" Version="9.1.0.51">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>all</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.IdentityModel" Version="7.0.0">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>all</IncludeAssets>
     </PackageReference>
     <PackageReference Update="FSharp.Core">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>all</IncludeAssets>
     </PackageReference>
     <PackageReference Update="System.ValueTuple" Version="4.5.0">
-      <IncludeAssets>all</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>

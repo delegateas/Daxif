@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageProjectUrl>http://delegateas.github.io/</PackageProjectUrl>
+    <Authors>Delegate A/S</Authors>
+    <Company>Delegate</Company>
+    <Description>Example Scripts for Daxif. A framework for automating xRM development processses.</Description>
+    <PackageTags>F# fsharp delegate crm xrm daxifsharp</PackageTags>
+    <Copyright>Copyright (c) Delegate A/S 2017</Copyright>
+    <PackageIcon>delegate_daxif_logo_small.png</PackageIcon>
+    <RepositoryUrl>https://github.com/delegateas/Daxif</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="RELEASE_NOTES.md" />
+    <Content Include="ScriptTemplates\*.fsx" Pack="true" PackagePath="content\Daxif" />
+    <Content Include="Resources\Plugin.cs" Pack="true" />
+    <None Include="..\resources\delegate_daxif_logo_small.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Delegate.Daxif\Delegate.Daxif.fsproj">
+      <ExcludeAssets>All</ExcludeAssets>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

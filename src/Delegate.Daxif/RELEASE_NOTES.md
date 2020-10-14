@@ -1,4 +1,9 @@
 # Release Notes
+
+### 5.0.0 - September 24 2020
+* Split Daxif and the ScriptTemplates to sepatare packages. This will make it easier to update daxif dll without accedentially reseting scripts. New Daxif Script packages "Delegate.Daxif.Scripts"
+* Update Extended solution to match web resources on Name and not Guid
+
 ### 4.8.1 - September 24 2020
 * Env.executeProcess now correctly passes option url arg
 
