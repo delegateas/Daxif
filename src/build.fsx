@@ -169,14 +169,14 @@ Target.create "PublishNuGetScripts" (fun _ ->
   let nugetPackage = !!("bin/"+projectScripts+"."+releaseScripts.AssemblyVersion+".nupkg") |> Seq.head
   commonPublish nugetPackage)
 
-Target.create "Nuget" ignore
-Target.create "PublishNuget" ignore
+Target.create "Nugets" ignore
+Target.create "PublishNugets" ignore
 
 "Clean"
   ==> "AssemblyInfo"
   ==> "Build"
   ==> "NuGetDaxif" <=> "NuGetScripts"
-  ==> "Nuget"
+  ==> "Nugets"
 
 "NuGetDaxif"
   ==> "PublishNuGetDaxif"
@@ -185,6 +185,6 @@ Target.create "PublishNuget" ignore
   ==> "PublishNuGetScripts"
 
 "PublishNuGetDaxif" <=> "PublishNuGetScripts"
-  ==> "PublishNuget"
+  ==> "PublishNugets"
 
 Target.runOrDefault "Build"
