@@ -94,7 +94,7 @@ let getUsers p =
 let getDomainnameUser (p: IOrganizationService) (ref: EntityReference) =
   p.Retrieve("systemuser", ref.Id, ColumnSet("domainname")).GetAttributeValue<string>("domainname")
 
-let getEntityIdsAndOwners proxy (entities: seq<Entity>) =
+let getWorkflowData proxy (entities: seq<Entity>) =
   entities
   |> Seq.map(fun e -> e.Id, getName e, getOwnerRef e |> getDomainnameUser proxy)
 
@@ -215,7 +215,7 @@ let export service solution solutionPath =
     log.WriteLine(LogLevel.Verbose, sprintf @"Found %d %s" (Seq.length x) name )
     )
 
-  let workflowsIdsAndOwners = workflows |> getEntityIdsAndOwners service
+  let workflowsIdsAndOwners = workflows |> getWorkflowData service
   let webResIds = getWebresources service solutionId |> getEntityIds
 
   let delegateSolution = 
