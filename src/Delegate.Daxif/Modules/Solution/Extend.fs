@@ -317,15 +317,15 @@ let preImport service solutionName zipPath =
     let mutable errors = false in
     // Sync plugins and workflows
     let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds service solutionId
-    let targetWorkflows = getWorkflows service solutionId |> getEntityIds
-    let sourceWorkflows = extSol.keepWorkflows |> Seq.map (fun (id,name,_) -> id,name)
+   
     
     let deletionError =
-      [|(imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
+      [|
+        (imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
         (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
         (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)
         (asmLogicName, extSol.keepAssemblies, targetAsms, takeName, None)
-        (workflowLogicalName, sourceWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))|]
+      |]
       |> Array.map (fun x -> deleteElements service x)
       |> Array.exists (fun x -> not x)
 
@@ -341,6 +341,23 @@ let postImport service solutionName zipPath reassignWorkflows =
   let solutionId, extSol = getExtendedSolutionAndId service solutionName zipPath
   
   let mutable errors = false in
+
+  log.Verbose "Synching Web Resource and Workflows"
+  
+  // Sync Webresources and workflows
+  let targetWebRes = getWebresources service solutionId |> getEntityIds
+  let targetWorkflows = getWorkflows service solutionId |> getEntityIds
+  let sourceWorkflows = extSol.keepWorkflows |> Seq.map (fun (id,name,_) -> id,name)
+  
+  let deletionError =
+    [|
+      (webResLogicalName, extSol.keepWebresources, targetWebRes, takeName, None)
+      (workflowLogicalName, sourceWorkflows, targetWorkflows, takeGuid, Some(deactivateWorkflows))
+    |]
+    |> Array.map (fun x -> deleteElements service x)
+    |> Array.exists (fun x -> not x)
+  
+  if deletionError then errors <- true
 
   // Attempt to find owners in target to preserve owners of workflows
   if reassignWorkflows then
@@ -417,18 +434,6 @@ let postImport service solutionName zipPath reassignWorkflows =
     |> fun req -> 
       try CrmDataInternal.CRUD.performAsBulkWithOutput service log req
       with _ -> errors <- true;
-
-  log.Verbose "Synching plugins"
-
-  // Sync Webresources
-  let targetWebRes = getWebresources service solutionId |> getEntityIds
-
-  let deletionError =
-    [|(webResLogicalName, extSol.keepWebresources, targetWebRes, takeName, None)|]
-    |> Array.map (fun x -> deleteElements service x)
-    |> Array.exists (fun x -> not x)
-
-  if deletionError then errors <- true
 
   if errors then
     failwith "There were errors during the post-steps of extended solution"
