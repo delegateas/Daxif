@@ -33,9 +33,6 @@ let summaryScripts = "Example Scripts for Daxif. Delegate Automated xRM Installa
 // Company and copyright information
 let company = "Delegate"
 let copyright = @"Copyright (c) Delegate A/S 2017"
-// File system information 
-// (<solutionFile>.sln is built during the building process)
-let solutionFile = @"Delegate.Daxif"
 
 // --------------------------------------------------------------------------------------
 // END TODO: The rest of the file includes standard build steps
@@ -71,15 +68,23 @@ Target.create "AssemblyInfo"
 
 // --------------------------------------------------------------------------------------
 // Setting up VS for building with FAKE
-let commonBuild solution =
-  let packArgs (defaults:MSBuild.CliArguments) = defaults
-  solution
+let commonBuild (rel: ReleaseNotes.ReleaseNotes) project =
+  let buildArgs (defaults:MSBuild.CliArguments) = 
+    { defaults with
+        NoWarn = Some(["NU5100"])
+        Properties = 
+        [
+          "Version", rel.NugetVersion
+          "ReleaseNotes", String.Join(Environment.NewLine, rel.Notes)
+        ] 
+    }
+  project
   |> DotNet.build (fun buildOp -> 
     { buildOp with 
-          MSBuildParams = packArgs buildOp.MSBuildParams
+          MSBuildParams = buildArgs buildOp.MSBuildParams
     })
 
-let commonNuget (rel: ReleaseNotes.ReleaseNotes) noBuild proj =
+let commonNuget (rel: ReleaseNotes.ReleaseNotes) proj =
   let packArgs (defaults:MSBuild.CliArguments) = 
     { defaults with
         NoWarn = Some(["NU5100"])
@@ -91,7 +96,7 @@ let commonNuget (rel: ReleaseNotes.ReleaseNotes) noBuild proj =
     }
   DotNet.pack (fun def -> 
     { def with
-        NoBuild = noBuild
+        NoBuild = false
         MSBuildParams = packArgs def.MSBuildParams
         OutputPath = Some("bin")
     }) proj
@@ -147,18 +152,22 @@ Target.create "Clean" (fun _ ->
 )
 
 Target.create "Build" (fun _ -> 
-  !!(solutionFile + ".sln")
+  !!(project + "/" + project + ".fsproj")
   |> Seq.head
-  |> commonBuild
+  |> commonBuild release
+
+  !!(projectScripts + "/" + projectScripts + ".fsproj")
+  |> Seq.head
+  |> commonBuild releaseScripts
 )
 
 // --------------------------------------------------------------------------------------
 // Build a NuGet package
 Target.create "NuGetDaxif" (fun _ -> 
-  commonNuget release true project)
+  commonNuget release project)
 
 Target.create "NuGetScripts" (fun _ -> 
-  commonNuget releaseScripts false projectScripts)
+  commonNuget releaseScripts projectScripts)
 
 // Publish the build nuget package
 Target.create "PublishNuGetDaxif" (fun _ -> 
