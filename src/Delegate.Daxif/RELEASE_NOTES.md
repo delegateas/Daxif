@@ -1,5 +1,9 @@
 # Release Notes
 
+### 5.1.0 - October 27 2020
+* Update Extended Import to delete workflow post-import instead of pre-import
+* Fix issue with incorrect verion number in Delegate.Daxif.dll file
+
 ### 5.0.0 - September 24 2020
 * Split Daxif and the ScriptTemplates to sepatare packages. This will make it easier to update daxif dll without accedentially reseting scripts. New Daxif Script packages "Delegate.Daxif.Scripts"
 * Update Extended solution to match web resources on Name and not Guid
