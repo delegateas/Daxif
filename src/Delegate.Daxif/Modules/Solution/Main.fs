@@ -90,16 +90,16 @@ let workflow (env: Environment) solution enable log =
     (LogLevel.Info, 
       @"The solution workflow activities was successfully " + msg')
 
-let PublishAll (env: Environment) =
+let PublishAll (env: Environment) (timeOut: TimeSpan) =
   logVersion log
   log.Info @"Publish all customizations"
   log.Verbose @"Organization: %O" env.url
-  let service = env.connect().GetService()
+  let service = env.connect().GetService(timeOut)
   log.WriteLine(LogLevel.Verbose, @"Publishing customization")
   CrmDataHelper.publishAll service
   log.WriteLine(LogLevel.Verbose, @"All customizations was successfully published")
   
-let export (env: Environment) solution location managed async = 
+let export (env: Environment) solution location managed async (timeOut: TimeSpan) = 
   logVersion log
   log.Info @"Export solution: %s" solution
   log.Verbose @"Organization: %O" env.url
@@ -108,12 +108,12 @@ let export (env: Environment) solution location managed async =
   log.Verbose @"Managed solution: %O" managed
   log.Verbose @"Asynchronous export: %b" async
   env.logAuthentication log
-  let service = env.connect().GetService()
+  let service = env.connect().GetService(timeOut)
   match async with
   | false -> Export.exportSync service solution location managed
   | true -> Export.exportAsync service solution location managed
   
-let import publishAfterImport (env: Environment) location = 
+let import publishAfterImport (env: Environment) location (timeOut: TimeSpan) = 
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
   logVersion log
   log.Info @"Import solution: %s" solution
@@ -123,12 +123,12 @@ let import publishAfterImport (env: Environment) location =
   log.Verbose @"Managed solution: %O" managed
   log.Verbose @"Publish after Import: %O" publishAfterImport
   env.logAuthentication log
-  let service = env.connect().GetService()
+  let service = env.connect().GetService(timeOut)
   Import.execute service solution location managed |> ignore
   if publishAfterImport then
     Import.publish service managed
 
-let extendSolution (env: Environment) solutionPath = 
+let extendSolution (env: Environment) solutionPath (timeOut: TimeSpan) = 
   let solution, _ = CrmUtility.getSolutionInformationFromFile solutionPath
   logVersion log
   log.Info @"Extend solution: %s" solution
@@ -136,10 +136,10 @@ let extendSolution (env: Environment) solutionPath =
   log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to file: %s" solutionPath
   env.logAuthentication log
-  let service = env.connect().GetService()
+  let service = env.connect().GetService(timeOut)
   Extend.export service solution solutionPath
 
-let preImportExtendedSolution (env: Environment) location = 
+let preImportExtendedSolution (env: Environment) location (timeOut: TimeSpan) = 
   let solution, _ = CrmUtility.getSolutionInformationFromFile location
   logVersion log
   log.Info @"Pre-import extend solution: %s" solution
@@ -147,10 +147,10 @@ let preImportExtendedSolution (env: Environment) location =
   log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to file: %s" location
   env.logAuthentication log
-  let service = env.connect().GetService()
+  let service = env.connect().GetService(timeOut)
   Extend.preImport service solution location
 
-let postImportExtendedSolution (env: Environment) location reassignWorkflows = 
+let postImportExtendedSolution (env: Environment) location reassignWorkflows (timeOut: TimeSpan) = 
   let solution, _ = CrmUtility.getSolutionInformationFromFile location
   logVersion log
   log.Info @"Post-import extend solution: %s" solution
@@ -158,10 +158,10 @@ let postImportExtendedSolution (env: Environment) location reassignWorkflows =
   log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to file: %s" location
   env.logAuthentication log
-  let service = env.connect().GetService()
+  let service = env.connect().GetService(timeOut)
   Extend.postImport service solution location reassignWorkflows
 
-let exportWithExtendedSolution (env: Environment) solution location managed async = 
+let exportWithExtendedSolution (env: Environment) solution location managed async (timeOut: TimeSpan) = 
   logVersion log
   log.Info @"Export extended solution: %s" solution
   log.Verbose @"Organization: %O" env.url
@@ -170,9 +170,9 @@ let exportWithExtendedSolution (env: Environment) solution location managed asyn
   log.Verbose @"Managed solution: %O" managed
   log.Verbose @"Asynchronous export: %b" async
   env.logAuthentication log
-  SolutionHelper.exportWithExtendedSolution env solution location managed async
+  SolutionHelper.exportWithExtendedSolution env solution location managed async timeOut
 
-let importWithExtendedSolution reassignWorkflows (env: Environment) location = 
+let importWithExtendedSolution reassignWorkflows (env: Environment) location (timeOut: TimeSpan) = 
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
   logVersion log
   log.Info @"Import extended solution: %s" solution
@@ -181,16 +181,16 @@ let importWithExtendedSolution reassignWorkflows (env: Environment) location =
   log.Verbose @"Path to file: %s" location
   log.Verbose @"Managed solution: %O" managed
   env.logAuthentication log
-  SolutionHelper.importWithExtendedSolution reassignWorkflows env solution location managed |> ignore
+  SolutionHelper.importWithExtendedSolution reassignWorkflows env solution location managed timeOut |> ignore
 
-let importStandard (env: Environment) (activatePluginSteps: bool option) extended publishAfterImport reassignWorkflows pathToSolutionZip logLevel =
+let importStandard (env: Environment) (activatePluginSteps: bool option) extended publishAfterImport reassignWorkflows pathToSolutionZip logLevel (timeOut: TimeSpan) =
   let logLevel = logLevel ?| LogLevel.Verbose
   let extended = extended ?| false
 
   match extended with
   | true  -> importWithExtendedSolution reassignWorkflows
   | false -> import publishAfterImport
-  |> fun f -> f env pathToSolutionZip
+  |> fun f -> f env pathToSolutionZip timeOut
       
   match activatePluginSteps with
   | Some true -> 
@@ -198,15 +198,15 @@ let importStandard (env: Environment) (activatePluginSteps: bool option) extende
     pluginSteps env solutionName true logLevel
   | _ -> ()
 
-let exportStandard (env: Environment) solutionName outputDirectory managed extended async =
+let exportStandard (env: Environment) solutionName outputDirectory managed extended async (timeOut: TimeSpan) =
   let extended = extended ?| false
 
   match extended with
   | true  -> exportWithExtendedSolution 
   | false -> export
-  |> fun f -> f env solutionName outputDirectory managed async
+  |> fun f -> f env solutionName outputDirectory managed async timeOut
 
-let exportDiff fileLocation completeSolutionName temporarySolutionName async (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) = 
+let exportDiff fileLocation completeSolutionName temporarySolutionName async (dev:DG.Daxif.Environment) (prod:DG.Daxif.Environment) (timeOut: TimeSpan) = 
   log.Info "Starting diff export"
   Directory.CreateDirectory(fileLocation) |> ignore;
   // Export [complete solution] from DEV and PROD
@@ -214,11 +214,11 @@ let exportDiff fileLocation completeSolutionName temporarySolutionName async (de
     [| dev; prod |]
     |> Array.Parallel.map (fun env -> 
       log.Verbose "Connecting to %s" env.name;
-      let proxy = env.connect().GetService()
+      let proxy = env.connect().GetService(timeOut)
       Directory.CreateDirectory(fileLocation + "/" + env.name) |> ignore;
 
       log.Verbose "Exporting solution '%s' from %s" completeSolutionName env.name;
-      let sol = DiffFetcher.downloadSolution env (fileLocation + "/" + env.name + "/") completeSolutionName async
+      let sol = DiffFetcher.downloadSolution env (fileLocation + "/" + env.name + "/") completeSolutionName async timeOut
       DiffFetcher.unzip sol;
       (proxy, sol))
     |> function [| devSolution; prodSolution |] -> (devSolution, prodSolution) | _ -> failwith "Impossible"
@@ -242,9 +242,9 @@ let exportDiff fileLocation completeSolutionName temporarySolutionName async (de
     devProxy.Delete("solution", id);
     failwith e.Message; 
 
-let importDiff solutionZipPath completeSolutionName tempSolutionName (env:DG.Daxif.Environment) = 
+let importDiff solutionZipPath completeSolutionName tempSolutionName (env:DG.Daxif.Environment) (timeOut: TimeSpan) = 
   log.Verbose "Connecting to environment %s" env.name;
-  let proxy = env.connect().GetService()
+  let proxy = env.connect().GetService(timeOut)
   let fileBytes = File.ReadAllBytes(solutionZipPath + "/" + tempSolutionName + ".zip")
   let stopWatch = System.Diagnostics.Stopwatch.StartNew()
   

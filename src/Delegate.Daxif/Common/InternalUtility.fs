@@ -120,3 +120,5 @@ let syncDescription () =
 
 let logVersion (log: ConsoleLogger) =
   log.Info "%s" daxifVersion
+
+let defaultServiceTimeOut = TimeSpan(0,59,0)

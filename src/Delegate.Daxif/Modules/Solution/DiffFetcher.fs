@@ -21,9 +21,9 @@ let fetchSolution proxy (solution: string) =
   let columnSet = ColumnSet("uniquename", "friendlyname", "publisherid", "version")
   CrmDataInternal.Entities.retrieveSolution proxy solution columnSet
 
-let downloadSolution (env: DG.Daxif.Environment) file_location sol_name async =
+let downloadSolution (env: DG.Daxif.Environment) file_location sol_name async (timeOut: TimeSpan) =
   log.Verbose "Exporting extended solution %A" (file_location + sol_name)
-  SolutionHelper.exportWithExtendedSolution env sol_name file_location false async
+  SolutionHelper.exportWithExtendedSolution env sol_name file_location false async timeOut
 
 let unzip file =
   log.Verbose "Unpacking zip '%s' to '%s'" (file + ".zip") file;

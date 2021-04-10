@@ -35,7 +35,8 @@ let internal getCredentials provider username (password: string) domain =
 // Get Organization Service Proxy
 let internal getOrganizationServiceProxy
   (serviceManagement:IServiceManagement<IOrganizationService>)
-  (authCredentials:AuthenticationCredentials) =
+  (authCredentials:AuthenticationCredentials)
+  (timeOut: TimeSpan) =
   let ac = authCredentials
 
   let proxy =
@@ -45,7 +46,6 @@ let internal getOrganizationServiceProxy
     | _ ->
         new OrganizationServiceProxy(serviceManagement, ac.SecurityTokenResponse)
 
-  let timeOut = TimeSpan(0,59,0)
   log.Verbose @"Connection timeout set to %i hour, %i minutes, %i seconds" timeOut.Hours timeOut.Minutes timeOut.Seconds
   proxy.Timeout <- timeOut
   proxy
@@ -63,27 +63,24 @@ let ensureClientIsReady (client: CrmServiceClient) =
     in failwith s
   | true -> client
 
-let internal getCrmServiceClient userName password (orgUrl:Uri) mfaAppId mfaReturnUrl =
+let internal getCrmServiceClient userName password (orgUrl:Uri) mfaAppId mfaReturnUrl (timeOut: TimeSpan) =
   let mutable orgName = ""
   let mutable region = ""
   let mutable isOnPrem = false
   Utilities.GetOrgnameAndOnlineRegionFromServiceUri(orgUrl, &region, &orgName, &isOnPrem)
   let cacheFileLocation = System.IO.Path.Combine(System.IO.Path.GetTempPath(), orgName, "oauth-cache.txt")
-  let timeOut = TimeSpan(0,59,0)
   log.Verbose @"Connection timeout set to %i hour, %i minutes, %i seconds" timeOut.Hours timeOut.Minutes timeOut.Seconds
   CrmServiceClient.MaxConnectionTimeout <- timeOut
   new CrmServiceClient(userName, CrmServiceClient.MakeSecureString(password), region, orgName, false, null, null, mfaAppId, Uri(mfaReturnUrl), cacheFileLocation, null)
   |> ensureClientIsReady
 
-let internal getCrmServiceClientClientSecret (org: Uri) appId clientSecret =
-  let timeOut = TimeSpan(0,59,0)
+let internal getCrmServiceClientClientSecret (org: Uri) appId clientSecret (timeOut: TimeSpan) =
   log.Verbose @"Connection timeout set to %i hour, %i minutes, %i seconds" timeOut.Hours timeOut.Minutes timeOut.Seconds
   CrmServiceClient.MaxConnectionTimeout <- timeOut
   new CrmServiceClient(org, appId, CrmServiceClient.MakeSecureString(clientSecret), true, Path.Combine(Path.GetTempPath(), appId, "oauth-cache.txt"))
   |> ensureClientIsReady
 
-let internal getCrmServiceClientConnectionString (cs: string) =
-  let timeOut = TimeSpan(0,59,0)
+let internal getCrmServiceClientConnectionString (cs: string) (timeOut: TimeSpan) =
   log.Verbose @"Connection timeout set to %i hour, %i minutes, %i seconds" timeOut.Hours timeOut.Minutes timeOut.Seconds
   CrmServiceClient.MaxConnectionTimeout <- timeOut
   new CrmServiceClient(cs)
