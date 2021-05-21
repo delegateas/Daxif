@@ -212,8 +212,8 @@ let workflow' (env: Environment) solutionname enable (log : ConsoleLogger) =
         + solutionId.ToString() + @")"
       log.WriteLine(LogLevel.Verbose, msg)
 
-let exportWithExtendedSolution (env: Environment) solution location managed async = 
-  let service = env.connect().GetService()
+let exportWithExtendedSolution (env: Environment) solution location managed async (timeOut: TimeSpan) = 
+  let service = env.connect().GetService(timeOut)
   let solutionPath =
     match async with
     | false -> Export.exportSync service solution location managed
@@ -221,8 +221,8 @@ let exportWithExtendedSolution (env: Environment) solution location managed asyn
   Extend.export service solution solutionPath
   solutionPath
 
-let importWithExtendedSolution reassignWorkflows (env: Environment) solution location managed = 
-  let service = env.connect().GetService()
+let importWithExtendedSolution reassignWorkflows (env: Environment) solution location managed (timeOut: TimeSpan) = 
+  let service = env.connect().GetService(timeOut)
   Extend.preImport service solution location
   Import.execute service solution location managed
   |> fun jobInfo -> jobInfo.result

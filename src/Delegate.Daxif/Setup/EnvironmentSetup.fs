@@ -106,36 +106,39 @@ type Connection = {
       | Some cs -> { method = ConnectionMethod.ConnectionString cs }
 
   /// Connects to the environment and returns IOrganizationService
-  member x.GetService() =
+  member x.GetService(?timeOut: TimeSpan) =
+    let timeOut = defaultArg timeOut defaultServiceTimeOut
     match x.method with
     | ConnectionMethod.Proxy _ -> 
       x.GetProxy() :> IOrganizationService
     | ConnectionMethod.CrmServiceClientOAuth _
     | ConnectionMethod.CrmServiceClientClientSecret _
     | ConnectionMethod.ConnectionString _ -> 
-      x.GetCrmServiceClient() :> IOrganizationService
+      x.GetCrmServiceClient(timeOut) :> IOrganizationService
 
   /// Connects to the environment and returns an OrganizationServiceProxy
-  member x.GetProxy() = 
+  member x.GetProxy(?timeOut: TimeSpan) = 
+    let timeOut = defaultArg timeOut defaultServiceTimeOut
     match x.method with
     | ConnectionMethod.Proxy proxy -> 
-      CrmAuth.getOrganizationServiceProxy proxy.serviceManager proxy.credentials
+      CrmAuth.getOrganizationServiceProxy proxy.serviceManager proxy.credentials timeOut
     | ConnectionMethod.CrmServiceClientOAuth _
     | ConnectionMethod.CrmServiceClientClientSecret _
     | ConnectionMethod.ConnectionString _ ->
       failwith "Not possible to get an OrganizationProxy usign OAuth or Client Secret. Get a CrmServiceClient instead"
 
   /// Connects to the environment and returns a CrmServiceClient
-  member x.GetCrmServiceClient() =
+  member x.GetCrmServiceClient(?timeOut: TimeSpan) =
+    let timeOut = defaultArg timeOut defaultServiceTimeOut
     match x.method with
     | ConnectionMethod.Proxy _ -> 
       failwith "Unable to get CrmServiceClient with Proxy method"
     | ConnectionMethod.CrmServiceClientOAuth oauth ->
-      CrmAuth.getCrmServiceClient oauth.username oauth.password oauth.orgUrl oauth.clientId oauth.returnUrl
+      CrmAuth.getCrmServiceClient oauth.username oauth.password oauth.orgUrl oauth.clientId oauth.returnUrl timeOut
     | ConnectionMethod.CrmServiceClientClientSecret clientSecret ->
-      CrmAuth.getCrmServiceClientClientSecret clientSecret.orgUrl clientSecret.clientId clientSecret.clientSecret
+      CrmAuth.getCrmServiceClientClientSecret clientSecret.orgUrl clientSecret.clientId clientSecret.clientSecret timeOut
     | ConnectionMethod.ConnectionString cs ->
-      CrmAuth.getCrmServiceClientConnectionString cs
+      CrmAuth.getCrmServiceClientConnectionString cs timeOut
 
 /// Describes a connection to a Dynamics 365/CRM environment
 and Environment = {

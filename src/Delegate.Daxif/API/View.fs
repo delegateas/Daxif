@@ -11,6 +11,10 @@ type View private () =
 
   /// <summary>Generates the files needed for View Extender</summary>
   /// <param name="env">Environment the action should be performed against.</param>
+  /// <param name="daxifRoot">Daxif script folder.</param>
+  /// <param name="entities">List of entities to include in View Extender files.</param>
+  /// <param name="solutions">List of solutions to include in View Extender files.</param>
+  /// <param name="logLevel">Log Level - Error, Warning, Info, Verbose or Debug - defaults to: 'Verbose'</param>
   static member GenerateFiles(env: Environment, daxifRoot: string, ?entities: string[], ?solutions: string[], ?logLevel: LogLevel) =
     let proxyGen = env.connect(log).GetService
     log.setLevelOption logLevel
