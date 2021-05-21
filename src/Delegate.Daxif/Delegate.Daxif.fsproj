@@ -5,7 +5,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <PackageProjectUrl>http://delegateas.github.io/</PackageProjectUrl>
-    <Authors>Delegate A/S</Authors>
+    <Authors>Delegate A/S, Magnus Gether Sørensen</Authors>
     <Company>Delegate</Company>
     <Description>A framework for automating xRM development processses. By using simple F# script commands/files one can save time and effort during various development process by using Delegates DAXIF# library.</Description>
     <PackageTags>F# fsharp delegate crm xrm daxifsharp</PackageTags>

@@ -1,4 +1,6 @@
 # Release Notes
+### 5.1.1 - May 21 2021
+* Added automatic retry to publish all and configurable timeout
 
 ### 5.1.0 - October 27 2020
 * Update Extended Import to delete workflow post-import instead of pre-import
