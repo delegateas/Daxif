@@ -323,7 +323,6 @@ let updateXrmMockupMetadata (env: Environment) outputDirectory pathToExe log
 
   SolutionHelper.updateXrmMockupMetadata' env outputDirectory
     pathToExe logger solutions entities extraArgs
-  logger.Info "XrmMockup Metadata was updated successfully"
   
 
 let updateTypeScriptContext (env: Environment) outputDirectory pathToExe log solutions entities extraArgs = 
