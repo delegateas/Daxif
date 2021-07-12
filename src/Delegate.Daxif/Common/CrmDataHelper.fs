@@ -172,3 +172,33 @@ let retrieveSolution proxy (solutionName: string) (retrieveSelect: RetrieveSelec
   q.ColumnSet <- retrieveSelect.columnSet
   q.Criteria <- f
   retrieveFirstMatch proxy q
+
+let retrieveEntityMap proxy (sourceEntity: string) (targetEntity: string) =
+  let logicalName = @"entitymap"
+  let q = QueryExpression(logicalName)
+  let f = FilterExpression()
+  f.AddCondition(ConditionExpression("sourceentityname", ConditionOperator.Equal, sourceEntity))
+  f.AddCondition(ConditionExpression("targetentityname", ConditionOperator.Equal, targetEntity))
+  q.ColumnSet <- ColumnSet(true)
+  q.Criteria <- f
+  retrieveMultiple proxy q |> Seq.tryHead  
+  
+let retrieveAttributeMaps proxy (entityMapId: Guid)=
+  let logicalName = @"attributemap"
+  let q = QueryExpression(logicalName)
+  let f = FilterExpression()
+  f.AddCondition(ConditionExpression("entitymapid", ConditionOperator.Equal, entityMapId))
+  q.ColumnSet <- ColumnSet(true)
+  q.Criteria <- f
+  retrieveMultiple proxy q
+
+let retrieveAttributeMap proxy (entityMapId: Guid) (sourceAttribute: string) (targetAttribute: string) =
+  let logicalName = @"attributemap"
+  let q = QueryExpression(logicalName)
+  let f = FilterExpression()
+  f.AddCondition(ConditionExpression("entitymapid", ConditionOperator.Equal, entityMapId))
+  f.AddCondition(ConditionExpression("sourceattributename", ConditionOperator.Equal, sourceAttribute))
+  f.AddCondition(ConditionExpression("targetattributename", ConditionOperator.Equal, targetAttribute))
+  q.ColumnSet <- ColumnSet(true)
+  q.Criteria <- f
+  retrieveMultiple proxy q |> Seq.tryHead
