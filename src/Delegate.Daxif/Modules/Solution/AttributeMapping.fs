@@ -20,94 +20,131 @@ open DG.Daxif.Common.Utility
 open CrmUtility
 open Microsoft.Crm.Sdk.Messages
 
-let createAttributeMapping proxy (mappings: (string * string * string * string) []) =
+type AttributeMapping =
+    { sourceEntity: string
+      targetEntity: string
+      sourceAttr: string
+      targetAttr: string }
+
+let createAttributeMapping proxy (mappings: AttributeMapping []) =
     log.Info "Create attribute mappings"
     log.Info "Fetching attribute mappings"
 
-    let someMappings, noneMappings = 
-      mappings
-      |> Array.map(fun (sourceEntity, targetEntity, sourceAttr, targetAttr) ->
-        let entity: Entity option = CrmDataHelper.retrieveEntityMap proxy sourceEntity targetEntity
-        match entity with 
-        | Some(entityMap) -> 
-            (sourceEntity, targetEntity, sourceAttr, targetAttr),
-            Some(entityMap),
-            CrmDataHelper.retrieveAttributeMap proxy entityMap.Id sourceAttr targetAttr
-        | None -> (sourceEntity, targetEntity, sourceAttr, targetAttr), None, None)
-    |> fun x -> 
-        x |> Array.filter(fun (_, eMap, aMap) -> eMap.IsSome && aMap.IsSome), x |> Array.filter(fun (_,eMap, aMap) -> eMap.IsNone || aMap.IsNone)
+    let someMappings, noneMappings =
+        mappings
+        |> Array.map
+            (fun mapping ->
+                let entity : Entity option =
+                    CrmDataHelper.retrieveEntityMap proxy mapping.sourceEntity mapping.targetEntity
+
+                match entity with
+                | Some (entityMap) ->
+                    mapping,
+                    Some(entityMap),
+                    CrmDataHelper.retrieveAttributeMap proxy entityMap.Id mapping.sourceAttr mapping.targetAttr
+                | None -> mapping, None, None)
+        |> fun x ->
+            x
+            |> Array.filter (fun (_, eMap, aMap) -> eMap.IsSome && aMap.IsSome),
+            x
+            |> Array.filter (fun (_, eMap, aMap) -> eMap.IsNone || aMap.IsNone)
 
     log.Info "Checking mapping length"
 
     if someMappings.Length > 0 then
-      log.Info "Found %i existing attribute mapping(s)" (someMappings |> Array.length)
+        log.Info "Found %i existing attribute mapping(s)" (someMappings |> Array.length)
+
     if someMappings.Length = mappings.Length then
-      log.Info "All mappings already exist"
-    else if noneMappings.Length = 0 then
-      log.Info "No mappings to create"
+        log.Info "All mappings already exist"
+    else
+
+    if noneMappings.Length = 0 then
+        log.Info "No mappings to create"
 
     else if noneMappings.Length > 0 then
-      log.Info "Starting to create %i attribute mappings" (noneMappings |> Array.length)
-      noneMappings
-      |> Array.map(fun (labels, someEntityMap ,someAttributeMap)  ->
-          let sourceEntity, targetEntity, sourceAttr, targetAttr = labels
-          match someEntityMap, someAttributeMap with
-          | Some(eMap), None -> 
-          log.Info "Creating mapping between %s.%s -> %s.%s" sourceEntity sourceAttr targetEntity targetAttr
-          let attributeMap = new Entity("attributemap")
-          attributeMap.["entitymapid"] <- eMap.ToEntityReference()
-          attributeMap.["sourceattributename"] <- sourceAttr
-          attributeMap.["targetattributename"] <- targetAttr
-          Some(CrmDataHelper.makeCreateReq attributeMap :> OrganizationRequest)  
-          | _ -> None)
-      |> Array.choose id
-      |> CrmDataHelper.performAsBulk proxy
-      |> Array.iter (fun resp -> 
-      if resp.Fault <> null then 
-        log.Info "Unable to Create a attribute mapping : %s" resp.Fault.Message)
+        log.Info "Starting to create %i attribute mappings" (noneMappings |> Array.length)
 
-let removeAttributeMappings proxy (mappings: (string * string * string * string) []) =
+        noneMappings
+        |> Array.map
+            (fun (mapping, someEntityMap, someAttributeMap) ->
+                match someEntityMap, someAttributeMap with
+                | Some (eMap), None ->
+                    log.Info
+                        "Creating mapping between %s.%s -> %s.%s"
+                        mapping.sourceEntity
+                        mapping.sourceAttr
+                        mapping.targetEntity
+                        mapping.targetAttr
 
-  log.Info "Remove attribute mappings"
+                    let attributeMap = new Entity("attributemap")
+                    attributeMap.["entitymapid"] <- eMap.ToEntityReference()
+                    attributeMap.["sourceattributename"] <- mapping.sourceAttr
+                    attributeMap.["targetattributename"] <- mapping.targetAttr
+                    Some(CrmDataHelper.makeCreateReq attributeMap :> OrganizationRequest)
+                | _ -> None)
+        |> Array.choose id
+        |> CrmDataHelper.performAsBulk proxy
+        |> Array.iter
+            (fun resp ->
+                if resp.Fault <> null then
+                    log.Info "Unable to Create an attribute mapping : %s" resp.Fault.Message)
 
-  log.Info "Fetching attribute mappings"
+let removeAttributeMappings proxy (mappings: AttributeMapping []) =
 
-  let someMappings, noneMappings = 
-    mappings
-    |> Array.map(fun (sourceEntity, targetEntity, sourceAttr, targetAttr) ->
-      let entity: Entity option = CrmDataHelper.retrieveEntityMap proxy sourceEntity targetEntity
-      match entity with 
-      | Some(entityMap) -> 
-        (sourceEntity, targetEntity, sourceAttr, targetAttr),
-          CrmDataHelper.retrieveAttributeMap proxy entityMap.Id sourceAttr targetAttr
-      | None -> (sourceEntity, targetEntity, sourceAttr, targetAttr), None)
-    |> fun x -> 
-        x |> Array.filter(fun (_, x) -> x.IsSome), x |> Array.filter(fun (_,x) -> x.IsNone)
-  
-  log.Info "Found %i existing attribute mapping(s)" (someMappings |> Array.length)
-  if noneMappings.Length > 0 then
-    log.Info "Unable to find following %i attribute mapping(s) to remove:" (noneMappings |> Array.length)
-    noneMappings 
-    |> Array.iter(fun ((sourceEntity,targetEntity,sourceAttr,targetAttr),_) ->
-      log.Info "Attribute mapping %s.%s -> %s.%s does not exist" sourceEntity sourceAttr targetEntity targetAttr)
+    log.Info "Remove attribute mappings"
 
-  if someMappings.Length > 0 then
-    log.Info "Starting to delete found attribute mappings"
-    someMappings
-    |> Array.map(fun (labels,someEntity)  ->
-      let sourceEntity, targetEntity, sourceAttr, targetAttr = labels
-      match someEntity with
-      | None -> None
-      | Some(attrMap) -> 
-        log.Info "Deleting attribute mapping %s.%s -> %s.%s" sourceEntity sourceAttr targetEntity targetAttr
-        Some(CrmDataHelper.makeDeleteReq attrMap :> OrganizationRequest))
-      |> Array.choose id
-      |> CrmDataHelper.performAsBulk proxy
-      |> Array.iter (fun resp ->
-        if resp.Fault <> null then 
-          log.Info "Unable to delete a attribute mapping : %s" resp.Fault.Message)
-  
-  log.Info "Done removing attribute mappings"
-      
-    
-    
+    log.Info "Fetching attribute mappings"
+
+    let someMappings, noneMappings =
+        mappings
+        |> Array.map
+            (fun mapping ->
+                let entity : Entity option =
+                    CrmDataHelper.retrieveEntityMap proxy mapping.sourceEntity mapping.targetEntity
+
+                match entity with
+                | Some (entityMap) ->
+                    mapping, CrmDataHelper.retrieveAttributeMap proxy entityMap.Id mapping.sourceAttr mapping.targetAttr
+                | None -> mapping, None)
+        |> fun x -> x |> Array.filter (fun (_, x) -> x.IsSome), x |> Array.filter (fun (_, x) -> x.IsNone)
+
+    log.Info "Found %i existing attribute mapping(s)" (someMappings |> Array.length)
+
+    if noneMappings.Length > 0 then
+        log.Info "Unable to find following %i attribute mapping(s) to remove:" (noneMappings |> Array.length)
+
+        noneMappings
+        |> Array.iter
+            (fun (mapping, _) ->
+                log.Info
+                    "Attribute mapping %s.%s -> %s.%s does not exist"
+                    mapping.sourceEntity
+                    mapping.sourceAttr
+                    mapping.targetEntity
+                    mapping.targetAttr)
+
+    if someMappings.Length > 0 then
+        log.Info "Starting to delete found attribute mappings"
+
+        someMappings
+        |> Array.map
+            (fun (mapping, someEntity) ->
+                match someEntity with
+                | None -> None
+                | Some (attrMap) ->
+                    log.Info
+                        "Deleting attribute mapping %s.%s -> %s.%s"
+                        mapping.sourceEntity
+                        mapping.sourceAttr
+                        mapping.targetEntity
+                        mapping.targetAttr
+
+                    Some(CrmDataHelper.makeDeleteReq attrMap :> OrganizationRequest))
+        |> Array.choose id
+        |> CrmDataHelper.performAsBulk proxy
+        |> Array.iter
+            (fun resp ->
+                if resp.Fault <> null then
+                    log.Info "Unable to delete an attribute mapping : %s" resp.Fault.Message)
+
+    log.Info "Done removing attribute mappings"
