@@ -193,11 +193,11 @@ type Solution private () =
     Versioning.updateSolutionVersionTo proxy solId newVersion
     log.Info "Version number was succesfully updated in CRM."
 
-  static member CreateAttributeMapping(env: Environment, mappings: AttributeMapping[]) = 
+  static member CreateAttributeMapping(env: Environment, mappings) = 
     let proxy = env.connect(log).GetService()
     AttributeMapping.createAttributeMapping proxy mappings
 
-  static member RemoveAttributeMapping(env: Environment, mappings: AttributeMapping[]) = 
+  static member RemoveAttributeMapping(env: Environment, mappings) = 
      let proxy = env.connect(log).GetService()
      AttributeMapping.removeAttributeMappings proxy mappings
     
