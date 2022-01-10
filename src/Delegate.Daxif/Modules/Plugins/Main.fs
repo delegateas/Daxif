@@ -23,8 +23,8 @@ let syncSolution proxyGen projectPath dllPath solutionName isolationMode ignoreO
     
   | true  ->
     log.Info "***** Dry run *****"
-    let regTypes, regSteps, regImages = pluginsReg
-    let localTypes, localSteps, localImages = pluginsLocal
+    let regTypes, regSteps, regImages, regCustomApis = pluginsReg
+    let localTypes, localSteps, localImages, localCustomApiTypes, localCustomApis = pluginsLocal
     printMergePartition "Types" localTypes regTypes Compare.pluginType log 
     printMergePartition "Steps" localSteps regSteps Compare.step log
     printMergePartition "Images" localImages regImages Compare.image log

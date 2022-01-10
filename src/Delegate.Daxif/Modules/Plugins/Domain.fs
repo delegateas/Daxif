@@ -25,6 +25,17 @@ type ImageType =
   | PostImage = 1
   | Both = 2
 
+(** Enum for custom api configurations **)
+type AllowedCustomProcessingStepType =
+  | None = 0
+  | AsyncOnly = 1
+  | SyncAndAsync = 2
+  
+type BindingType =
+  | Global = 0
+  | Entity = 1
+  | EntityCollection = 2
+  
 
 type EventOperation = String
 type LogicalName = String
@@ -55,7 +66,6 @@ type Image =
     attributes: string 
   }
 
-
 // Information about a plugin, its step and images
 type Plugin =
   { step: Step
@@ -69,8 +79,56 @@ type Plugin =
     this.images
     |> Seq.map(fun image -> sprintf "%s, %s" this.StepKey image.name, image)
 
+/// Information about a Custom API definition
+type Message = { 
+  uniqueName: String // Cannot be changed
+  name: String
+  displayName: String
+  description: String
+  isFunction: int // Cannot be changed
+  enabledForWorkflow: int // Cannot be changed
+  bindingType: int // Cannot be changed
+  boundEntityLogicalName: String // Cannot be changed
+  allowedCustomProcessingStepType: int // Cannot be changed
+  pluginTypeName: String
+  ownerId: Guid
+  ownerType: String
+  isCustomizable: bool
+  isPrivate: int
+  executePrivilegeName: String
+}
 
-/// Information about a plugin assembly
+/// Information about a Custom API Request Parameter
+type RequestParameter = { 
+  name: string 
+  isOptional: int
+}
+
+/// Information about a Custom API Response Property
+type ResponseProperty = { 
+  name: string
+  _type: int
+}
+
+// Information about a Custom API, its request parameters and response properties
+type CustomAPI =
+  { message: Message
+    reqParameters: seq<RequestParameter> 
+    resProperties: seq<ResponseProperty> 
+  } with
+  member this.TypeKey = 
+    this.message.pluginTypeName
+  member this.Key = 
+    this.message.uniqueName
+  member this.RequestParametersWithKeys =
+    this.reqParameters
+    |> Seq.map(fun param -> sprintf "%s, %s" this.Key param.name, param)
+  member this.ResponsePropertiesWithKeys =
+    this.resProperties
+    |> Seq.map(fun prop -> sprintf "%s, %s" this.Key prop.name, prop)
+
+
+/// Information about an assembly
 type AssemlyLocal =
   { assembly: Assembly
     assemblyId: Option<Guid>
@@ -79,6 +137,7 @@ type AssemlyLocal =
     hash: String
     isolationMode: AssemblyIsolationMode
     plugins: Plugin seq
+    customAPIs: CustomAPI seq
   }
 
 type AssemblyRegistration = {

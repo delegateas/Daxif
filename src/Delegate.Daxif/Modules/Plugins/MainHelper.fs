@@ -14,16 +14,27 @@ open CrmDataHelper
 open Retrieval
 
 /// Transforms plugins from source to maps with names as keys
-let localToMaps (plugins: Plugin seq) =
-  plugins
-  |> Seq.fold (fun (typeMap, stepMap, imageMap) p ->
-    let newTypeMap = if Map.containsKey p.TypeKey typeMap then typeMap else Map.add p.TypeKey p typeMap
-    let newStepMap = Map.add p.StepKey p.step stepMap
-    let newImageMap = p.ImagesWithKeys |> Seq.fold (fun acc (k,v) -> Map.add k v acc) imageMap
+let localToMaps (plugins: Plugin seq) (customAPIs: CustomAPI seq) =
+  let pluginTypeMap, stepMap, imageMap = 
+    plugins
+    |> Seq.fold (fun (typeMap, stepMap, imageMap) p ->
+      let newTypeMap = if Map.containsKey p.TypeKey typeMap then typeMap else Map.add p.TypeKey p typeMap
+      let newStepMap = Map.add p.StepKey p.step stepMap
+      let newImageMap = p.ImagesWithKeys |> Seq.fold (fun acc (k,v) -> Map.add k v acc) imageMap
 
-    newTypeMap, newStepMap, newImageMap
-  ) (Map.empty, Map.empty, Map.empty)
+      newTypeMap, newStepMap, newImageMap
+    ) (Map.empty, Map.empty, Map.empty)
 
+  let customApiTypeMap, customApiMap = 
+    customAPIs
+    |> Seq.fold (fun (typeMap, customApiMap) c ->
+      let newTypeMap = if Map.containsKey c.TypeKey typeMap then typeMap else Map.add c.TypeKey c typeMap
+      let newcustomApiMap = Map.add c.Key c.message customApiMap
+      
+      newTypeMap, newcustomApiMap
+    ) (Map.empty, Map.empty)
+
+  pluginTypeMap, stepMap, imageMap, customApiTypeMap, customApiMap // TODO add 2 maps
 
 /// Update or create assembly
 let ensureAssembly proxy solutionName asmLocal maybeAsm =
@@ -84,11 +95,16 @@ let update proxy imgDiff stepDiff =
 
 /// Creates additions to the plugin configuration in the correct order and
 /// passes guid maps to next step in process
-let create proxy solutionName imgDiff stepDiff typeDiff asmId targetTypes targetSteps =
-  CreateHelper.createTypes proxy solutionName typeDiff asmId targetTypes
+let create proxy solutionName imgDiff stepDiff apiDiff typeDiff asmId targetTypes targetSteps targetAPIs =
+  let types = CreateHelper.createTypes proxy solutionName typeDiff asmId targetTypes
+  
+  types
   |> CreateHelper.createSteps proxy solutionName stepDiff targetSteps
   |> CreateHelper.createImages proxy solutionName imgDiff
 
+  //types 
+  //|> CreateHelper.createAPIs proxy solutionName apiDiff targetAPIs 
+  //|> ignore // TODO parameters and responses
 
 /// Load a local assembly and validate its plugins
 let loadAndValidateAssembly proxy projectPath dllPath isolationMode ignoreOutdatedAssembly =
@@ -113,19 +129,20 @@ let analyze proxyGen projectPath dllPath solutionName isolationMode ignoreOutdat
   let solutionId = CrmDataInternal.Entities.retrieveSolutionId proxy solutionName
 
   let asmReg, pluginsReg = Retrieval.retrieveRegisteredByAssembly proxy solutionId asmLocal.dllName
-  let pluginsLocal = localToMaps asmLocal.plugins
+  let pluginsLocal = localToMaps asmLocal.plugins asmLocal.customAPIs
     
   asmLocal, asmReg, pluginsLocal, pluginsReg
 
 
 /// Performs a full synchronization of plugins
-let performSync proxy solutionName asmCtx asmReg (sourceTypes, sourceSteps, sourceImgs) (targetTypes, targetSteps, targetImgs) =
+let performSync proxy solutionName asmCtx asmReg (sourceTypes, sourceSteps, sourceImgs, _, sourceApis) (targetTypes, targetSteps, targetImgs, targetApis) =
   log.Info "Starting plugin synchronization"
   
   // Find differences
   let typeDiff = mapDiff sourceTypes targetTypes Compare.pluginType
   let stepDiff = mapDiff sourceSteps targetSteps Compare.step
   let imgDiff = mapDiff sourceImgs targetImgs Compare.image
+  let apiDiff = mapDiff sourceApis targetApis Compare.api
 
   // Perform sync
   log.Info "Deleting removed registrations"
@@ -138,6 +155,6 @@ let performSync proxy solutionName asmCtx asmReg (sourceTypes, sourceSteps, sour
   update proxy imgDiff stepDiff
 
   log.Info "Creating new registrations"
-  create proxy solutionName imgDiff stepDiff typeDiff asmId targetTypes targetSteps
+  create proxy solutionName imgDiff stepDiff apiDiff typeDiff asmId targetTypes targetSteps targetApis
 
   log.Info "Plugin synchronization was completed successfully"

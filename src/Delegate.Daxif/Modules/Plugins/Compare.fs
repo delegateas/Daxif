@@ -30,6 +30,25 @@ let step (step: Step) (x: Entity) =
 
   target = source
 
+/// Compares a custom API from CRM with one in source code
+let api (message: Message) (x: Entity) =
+  let name = x.GetAttributeValue<string>("name")
+  let displayname = x.GetAttributeValue<string>("displayname")
+  let description = x.GetAttributeValue<string>("description")
+  let pluginType = x.GetAttributeValue<EntityReference>("plugintypeid")
+  let owner = x.GetAttributeValue<EntityReference>("ownerid")
+  let isCustomizable = x.GetAttributeValue<ManagedProperty<bool>>("iscustomizable").Value
+  let isPrivate =  x.GetAttributeValue<int>("isprivate")
+  let executePrivilegeName = x.GetAttributeValue<string>("executeprivilegename")
+
+  let target = 
+    (name, displayname, description, pluginType.Name, owner.Id, owner.LogicalName, 
+      isCustomizable, isPrivate, executePrivilegeName)
+  let source = 
+    (message.name, message.displayName, message.description, message.pluginTypeName, message.ownerId, 
+      message.ownerType, message.isCustomizable, message.isPrivate, message.executePrivilegeName)
+
+  target = source
 
 /// Compares an plugin step image from CRM with one in source code
 let image (img: Image) (x: Entity) =
@@ -41,6 +60,12 @@ let image (img: Image) (x: Entity) =
   let sourceCompare = (img.entityAlias, img.imageType, img.attributes)
 
   targetCompare = sourceCompare
+
+/// Compares a Custom API Request Parameter from CRM with one in source code
+// TODO
+
+/// Compares a Custom API Response Property from CRM with one in source code
+// TODO
 
 
 /// Compares an assembly from CRM with the one containing the source code

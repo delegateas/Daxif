@@ -75,7 +75,7 @@ let createStep (typeId:Guid) (messageId:Guid) (filterId:Guid) name step =
   ps
 
 /// Create a new image with the provided image informations under the defined step
-let createImage (stepId:Guid) eventOperation image =
+let createImage (stepId:Guid) eventOperation (image:Image) =
   if not <| propertyNames.ContainsKey eventOperation then
     failwithf "Could not create step images since event operation '%s' was not recognized." eventOperation
 
@@ -106,7 +106,7 @@ let updateStep (stepId:Guid) step =
   ps
 
 /// Used to update an existing image with changes to its attributes
-let updateImage sourceImage (targetImageEntity:Entity) = 
+let updateImage (sourceImage:Image) (targetImageEntity:Entity) = 
   let psi = Entity("sdkmessageprocessingstepimage")
   psi.Attributes.Add("sdkmessageprocessingstepimageid", targetImageEntity.Id)
   psi.Attributes.Add("name", sourceImage.name)
