@@ -102,7 +102,7 @@ let tupleToPlugin
 let tupleToCustomApi
   ((name, isFunction, enabledForWorkflow, allowedCustomProcessingStepType, bindingType, boundEntityLogicalName),
     (pluginTypeName, ownerId, ownerType, isCustomizable, isPrivate, executePrivilegeName, description),
-    reqParams, resProps) = 
+    reqParams: seq<Tuple<string>>, resProps: seq<Tuple<string>>) = 
 
   //let entity' = 
   //  String.IsNullOrEmpty(logicalName) |> function
@@ -110,7 +110,7 @@ let tupleToCustomApi
   //let execMode = (enum<ExecutionMode> mode).ToString()
   //let execStage = (enum<ExecutionStage> stage).ToString()
   //let stepName = sprintf "%s: %s %s %s of %s" className execMode execStage eventOp entity'
-
+  let result = ref Guid.Empty
   let message = 
     { 
       uniqueName = name
@@ -123,7 +123,7 @@ let tupleToCustomApi
       boundEntityLogicalName = boundEntityLogicalName
       allowedCustomProcessingStepType = allowedCustomProcessingStepType
       pluginTypeName = pluginTypeName
-      ownerId = Guid.Parse(ownerId)
+      ownerId = if Guid.TryParse(ownerId, result) then result.Value else Guid.Empty // TODO
       ownerType = ownerType
       isCustomizable = isCustomizable
       isPrivate = isPrivate
@@ -132,17 +132,17 @@ let tupleToCustomApi
     
   let reqParams : RequestParameter seq =
     reqParams
-    |> Seq.map (fun (iName) ->
+    |> Seq.map (fun (iParam) ->
       { 
-        name = iName
+        name = iParam.Item1
         isOptional = 1
       })
 
   let resProps =
     resProps
-    |> Seq.map (fun (iName) ->
+    |> Seq.map (fun (iProp) ->
       { 
-        name = iName
+        name = iProp.Item1
         _type = 0
       })
 
@@ -233,8 +233,8 @@ let getCustomAPIsFromAssembly (asm: Assembly) =
           y.Invoke(x, [||]) :?> 
             (string * int * int * int * int * string) * 
             (string * string * string * bool * int * string * string) * 
-            seq<string> *
-            seq<string>)
+            seq<Tuple<string>> *
+            seq<Tuple<string>>)
       |> Array.toSeq
       |> Seq.map( fun x -> tupleToCustomApi x )
   with
