@@ -115,3 +115,39 @@ let updateImage (sourceImage:Image) (targetImageEntity:Entity) =
   psi.Attributes.Add("attributes", sourceImage.attributes)
   psi.Attributes.Add("sdkmessageprocessingstepid", targetImageEntity.GetAttributeValue<EntityReference>("sdkmessageprocessingstepid"))
   psi
+
+
+/// Create a new customAPI with the provided CustomAPI
+let createCustomAPI (api:Message) (pluginType: EntityReference) (prefix: string) =
+  let newCustomAPI = Entity("customapi")
+  newCustomAPI.Attributes.Add("allowedcustomprocessingsteptype", OptionSetValue(api.allowedCustomProcessingStepType))
+  newCustomAPI.Attributes.Add("bindingtype", OptionSetValue(api.bindingType))
+  newCustomAPI.Attributes.Add("boundentitylogicalname", api.boundEntityLogicalName)
+  newCustomAPI.Attributes.Add("description", api.description)
+  newCustomAPI.Attributes.Add("displayname", api.displayName)
+  newCustomAPI.Attributes.Add("executeprivilegename", api.executePrivilegeName)
+  newCustomAPI.Attributes.Add("isfunction", api.isFunction)
+  newCustomAPI.Attributes.Add("isprivate", api.isPrivate)
+  newCustomAPI.Attributes.Add("name", api.name)
+  newCustomAPI.Attributes.Add("plugintypeid", pluginType)
+  newCustomAPI.Attributes.Add("uniquename", prefix + "_" + api.uniqueName)
+  newCustomAPI.Attributes.Add("iscustomizable",BooleanManagedProperty(api.isCustomizable))
+  newCustomAPI
+
+/// Create a new customAPI with the provided CustomAPI
+let createCustomAPIWithParameters (api:CustomAPI) (pluginType: EntityReference) =
+  let newCustomAPI = Entity("customapi")
+  newCustomAPI.Attributes.Add("allowedcustomprocessingsteptype", api.message.allowedCustomProcessingStepType)
+  newCustomAPI.Attributes.Add("bindingtype", api.message.bindingType)
+  newCustomAPI.Attributes.Add("boundentitylogicalname", api.message.boundEntityLogicalName)
+  newCustomAPI.Attributes.Add("description", api.message.description)
+  newCustomAPI.Attributes.Add("displayname", api.message.displayName)
+  newCustomAPI.Attributes.Add("executeprivilegename", api.message.executePrivilegeName)
+  newCustomAPI.Attributes.Add("isfunction", api.message.isFunction)
+  newCustomAPI.Attributes.Add("isprivate", api.message.isPrivate)
+  newCustomAPI.Attributes.Add("name", api.message.name)
+  newCustomAPI.Attributes.Add("plugintypeid", pluginType)
+  newCustomAPI.Attributes.Add("uniquename", api.message.uniqueName)
+  newCustomAPI.Attributes.Add("iscustomizable", api.message.isCustomizable)
+  newCustomAPI
+ 

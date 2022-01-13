@@ -55,7 +55,7 @@ let retrieveRegistered proxy solutionId assemblyId =
     |> Seq.filter (fun e -> e.GetAttributeValue<EntityReference>("plugintypeid").Id |> validTypeGuids.Contains)
 
   let customApiMap =
-    customApis |> makeMap (fun (x:Entity) -> x.GetAttributeValue<string>("uniquename"))
+    customApis |> makeMap (fun (x:Entity) -> x.GetAttributeValue<string>("name"))
     
   let customApiGuidMap =
     customApis |> makeMap (fun step -> step.Id)

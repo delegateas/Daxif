@@ -407,6 +407,12 @@ module CrmDataInternal =
       q.Criteria <- f
       CrmDataHelper.retrieveFirstMatch proxy q
     
+    let pluginTypeExists (proxy: IOrganizationService) uniqueName =
+      try 
+        let pluginType = retrievePluginType proxy uniqueName
+        pluginType.Id <> Guid.Empty
+      with _ -> false
+
     let tryRetrievePluginType proxy uniqueName = 
       let (uniqueName : string) = uniqueName
       let ln = @"plugintype"

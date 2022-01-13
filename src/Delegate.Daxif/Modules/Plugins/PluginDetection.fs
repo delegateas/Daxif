@@ -135,7 +135,7 @@ let tupleToCustomApi
     |> Seq.map (fun (iParam) ->
       { 
         name = iParam.Item1
-        isOptional = 1
+        isOptional = true
       })
 
   let resProps =
@@ -231,8 +231,8 @@ let getCustomAPIsFromAssembly (asm: Assembly) =
         Activator.CreateInstance(x), x.GetMethod(@"GetCustomAPIConfig"))
       |> Array.Parallel.map (fun (x, (y:MethodInfo)) -> 
           y.Invoke(x, [||]) :?> 
-            (string * int * int * int * int * string) * 
-            (string * string * string * bool * int * string * string) * 
+            (string * bool * int * int * int * string) * 
+            (string * string * string * bool * bool * string * string) * 
             seq<Tuple<string>> *
             seq<Tuple<string>>)
       |> Array.toSeq

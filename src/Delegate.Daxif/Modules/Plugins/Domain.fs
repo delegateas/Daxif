@@ -85,7 +85,7 @@ type Message = {
   name: String
   displayName: String
   description: String
-  isFunction: int // Cannot be changed
+  isFunction: bool // Cannot be changed
   enabledForWorkflow: int // Cannot be changed
   bindingType: int // Cannot be changed
   boundEntityLogicalName: String // Cannot be changed
@@ -94,14 +94,14 @@ type Message = {
   ownerId: Guid
   ownerType: String
   isCustomizable: bool
-  isPrivate: int
+  isPrivate: bool
   executePrivilegeName: String
 }
 
 /// Information about a Custom API Request Parameter
 type RequestParameter = { 
   name: string 
-  isOptional: int
+  isOptional: bool
 }
 
 /// Information about a Custom API Response Property

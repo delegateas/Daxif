@@ -37,16 +37,28 @@ let api (message: Message) (x: Entity) =
   let description = x.GetAttributeValue<string>("description")
   let pluginType = x.GetAttributeValue<EntityReference>("plugintypeid")
   let owner = x.GetAttributeValue<EntityReference>("ownerid")
-  let isCustomizable = x.GetAttributeValue<ManagedProperty<bool>>("iscustomizable").Value
-  let isPrivate =  x.GetAttributeValue<int>("isprivate")
+  let isCustomizable = x.GetAttributeValue<BooleanManagedProperty>("iscustomizable").Value
+  let isPrivate =  x.GetAttributeValue<bool>("isprivate")
   let executePrivilegeName = x.GetAttributeValue<string>("executeprivilegename")
 
+  // TODO: Compare owner aswell
   let target = 
-    (name, displayname, description, pluginType.Name, owner.Id, owner.LogicalName, 
-      isCustomizable, isPrivate, executePrivilegeName)
+    (name, 
+    displayname,
+    description,
+    pluginType.Name,
+    isCustomizable,
+    isPrivate,
+    executePrivilegeName)
   let source = 
-    (message.name, message.displayName, message.description, message.pluginTypeName, message.ownerId, 
-      message.ownerType, message.isCustomizable, message.isPrivate, message.executePrivilegeName)
+    (message.name,
+     message.displayName,
+     message.description,
+     message.pluginTypeName,
+     message.isCustomizable,
+     message.isPrivate,
+     message.executePrivilegeName
+     )
 
   target = source
 
