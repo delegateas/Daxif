@@ -97,6 +97,25 @@ let customAPIsBySolution (solutionId: Guid) =
   q.LinkEntities.Add(le)
   q
 
+/// Create a query to get custom apis by solution
+let customAPIReqParamsByCustomApiId (customApiId: Guid) = 
+  let q = QueryExpression("customapirequestparameter")
+  q.ColumnSet <- ColumnSet(true)
+    
+  let f = FilterExpression()
+  f.AddCondition(ConditionExpression("customapiid", ConditionOperator.Equal, customApiId))
+  q.Criteria <- f
+  q
+
+/// Create a query to get custom apis by solution
+let customAPIRespParamsByCustomApiId (customApiId: Guid) = 
+  let q = QueryExpression("customapiresponseproperty")
+  q.ColumnSet <- ColumnSet(true)
+  let f = FilterExpression()
+  f.AddCondition(ConditionExpression("customapiid", ConditionOperator.Equal, customApiId))
+  q.Criteria <- f
+  q
+
 /// Create a query to get custom apis by type
 let CustomAPIsByType (typeId: Guid) = 
   let q = QueryExpression("customapi")

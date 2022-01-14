@@ -123,7 +123,7 @@ let createCustomAPI (api:Message) (pluginType: EntityReference) (prefix: string)
   newCustomAPI.Attributes.Add("allowedcustomprocessingsteptype", OptionSetValue(api.allowedCustomProcessingStepType))
   newCustomAPI.Attributes.Add("bindingtype", OptionSetValue(api.bindingType))
   newCustomAPI.Attributes.Add("boundentitylogicalname", api.boundEntityLogicalName)
-  newCustomAPI.Attributes.Add("description", api.description)
+  newCustomAPI.Attributes.Add("description", syncDescription())
   newCustomAPI.Attributes.Add("displayname", api.displayName)
   newCustomAPI.Attributes.Add("executeprivilegename", api.executePrivilegeName)
   newCustomAPI.Attributes.Add("isfunction", api.isFunction)
@@ -134,20 +134,32 @@ let createCustomAPI (api:Message) (pluginType: EntityReference) (prefix: string)
   newCustomAPI.Attributes.Add("iscustomizable",BooleanManagedProperty(api.isCustomizable))
   newCustomAPI
 
-/// Create a new customAPI with the provided CustomAPI
-let createCustomAPIWithParameters (api:CustomAPI) (pluginType: EntityReference) =
-  let newCustomAPI = Entity("customapi")
-  newCustomAPI.Attributes.Add("allowedcustomprocessingsteptype", api.message.allowedCustomProcessingStepType)
-  newCustomAPI.Attributes.Add("bindingtype", api.message.bindingType)
-  newCustomAPI.Attributes.Add("boundentitylogicalname", api.message.boundEntityLogicalName)
-  newCustomAPI.Attributes.Add("description", api.message.description)
-  newCustomAPI.Attributes.Add("displayname", api.message.displayName)
-  newCustomAPI.Attributes.Add("executeprivilegename", api.message.executePrivilegeName)
-  newCustomAPI.Attributes.Add("isfunction", api.message.isFunction)
-  newCustomAPI.Attributes.Add("isprivate", api.message.isPrivate)
-  newCustomAPI.Attributes.Add("name", api.message.name)
-  newCustomAPI.Attributes.Add("plugintypeid", pluginType)
-  newCustomAPI.Attributes.Add("uniquename", api.message.uniqueName)
-  newCustomAPI.Attributes.Add("iscustomizable", api.message.isCustomizable)
-  newCustomAPI
+/// Create a new customAPIReq
+let createCustomAPIReq (req:RequestParameter) (customapi: EntityReference) (prefix: string) =
+  let newReq = Entity("customapirequestparameter")
+
+  newReq.Attributes.Add("description", syncDescription())
+  newReq.Attributes.Add("displayname", req.displayName)
+  newReq.Attributes.Add("logicalentityname", req.logicalEntityName)
+  newReq.Attributes.Add("isoptional", req.isOptional)
+  newReq.Attributes.Add("name", req.name)
+  newReq.Attributes.Add("type", OptionSetValue(req._type))
+  newReq.Attributes.Add("uniquename", prefix + "_" + req.uniqueName)
+  newReq.Attributes.Add("iscustomizable",BooleanManagedProperty(req.isCustomizable))
+  newReq.Attributes.Add("customapiid", customapi)
+  newReq
+
+/// Create a new customAPIResp
+let createCustomAPIResp (resp:ResponseProperty) (customapi: EntityReference) (prefix: string) =
+  let newResp = Entity("customapiresponseproperty")
+  newResp.Attributes.Add("description", syncDescription())
+  newResp.Attributes.Add("displayname", resp.displayName)
+  newResp.Attributes.Add("logicalentityname", resp.logicalEntityName)
+  newResp.Attributes.Add("name", resp.name)
+  newResp.Attributes.Add("type", OptionSetValue(resp._type))
+  newResp.Attributes.Add("uniquename", prefix + "_" + resp.uniqueName)
+  newResp.Attributes.Add("iscustomizable",BooleanManagedProperty(resp.isCustomizable))
+  newResp.Attributes.Add("customapiid", customapi)
+  newResp
+
  

@@ -102,8 +102,8 @@ let tupleToPlugin
 let tupleToCustomApi
   ((name, isFunction, enabledForWorkflow, allowedCustomProcessingStepType, bindingType, boundEntityLogicalName),
     (pluginTypeName, ownerId, ownerType, isCustomizable, isPrivate, executePrivilegeName, description),
-    reqParams: seq<Tuple<string>>, resProps: seq<Tuple<string>>) = 
-
+    reqParams: seq<Tuple<string, string, string, bool, bool, string, int>>, resProps: seq<Tuple<string, string, string, bool, string, int>>) = 
+  
   //let entity' = 
   //  String.IsNullOrEmpty(logicalName) |> function
   //  | true -> "any Entity" | false -> logicalName
@@ -133,17 +133,30 @@ let tupleToCustomApi
   let reqParams : RequestParameter seq =
     reqParams
     |> Seq.map (fun (iParam) ->
+      let (name, uniqueName, displayName, isCustomizable, isOptional, logicalEntityName, _type) = iParam
       { 
-        name = iParam.Item1
-        isOptional = true
+        name = name
+        customApiName = message.name
+        uniqueName = uniqueName
+        displayName = displayName
+        isCustomizable = isCustomizable
+        isOptional = isOptional
+        logicalEntityName = logicalEntityName
+        _type = _type
       })
 
   let resProps =
     resProps
     |> Seq.map (fun (iProp) ->
+      let (name, uniqueName, displayName, isCustomizable, logicalEntityName, _type) = iProp
       { 
-        name = iProp.Item1
-        _type = 0
+        name = name
+        customApiName = message.name
+        uniqueName = uniqueName
+        displayName = displayName
+        isCustomizable = isCustomizable
+        logicalEntityName = logicalEntityName
+        _type = _type
       })
 
   { 
@@ -233,8 +246,8 @@ let getCustomAPIsFromAssembly (asm: Assembly) =
           y.Invoke(x, [||]) :?> 
             (string * bool * int * int * int * string) * 
             (string * string * string * bool * bool * string * string) * 
-            seq<Tuple<string>> *
-            seq<Tuple<string>>)
+            seq<Tuple<string, string, string, bool, bool, string, int>> *
+            seq<Tuple<string, string, string, bool, string, int>>)
       |> Array.toSeq
       |> Seq.map( fun x -> tupleToCustomApi x )
   with

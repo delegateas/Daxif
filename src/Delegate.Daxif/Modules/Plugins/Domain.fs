@@ -101,12 +101,23 @@ type Message = {
 /// Information about a Custom API Request Parameter
 type RequestParameter = { 
   name: string 
+  uniqueName: string
+  customApiName: string
+  displayName: string 
+  isCustomizable: bool
   isOptional: bool
+  logicalEntityName: string
+  _type: int
 }
 
 /// Information about a Custom API Response Property
 type ResponseProperty = { 
   name: string
+  uniqueName: string
+  customApiName: string
+  displayName: string 
+  isCustomizable: bool
+  logicalEntityName: string
   _type: int
 }
 
@@ -122,10 +133,8 @@ type CustomAPI =
     this.message.uniqueName
   member this.RequestParametersWithKeys =
     this.reqParameters
-    |> Seq.map(fun param -> sprintf "%s, %s" this.Key param.name, param)
   member this.ResponsePropertiesWithKeys =
     this.resProperties
-    |> Seq.map(fun prop -> sprintf "%s, %s" this.Key prop.name, prop)
 
 
 /// Information about an assembly

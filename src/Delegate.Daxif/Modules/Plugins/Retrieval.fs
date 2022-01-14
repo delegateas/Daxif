@@ -59,10 +59,35 @@ let retrieveRegistered proxy solutionId assemblyId =
     
   let customApiGuidMap =
     customApis |> makeMap (fun step -> step.Id)
+    
+  // Add Request Parameters based on custom id
+  // Make map where:
+  // Iterate through all customapis
+  // Request related request parameters 
+  // Gather al in mapp where: 
+  // Key = "ReqParam.Name"
+  // Value = ReqParam
 
-  // TODO: Add Request Parameters and Response Properties
+  let reqMap =
+    customApis   
+    |> Seq.toArray
+    |> Array.map(fun (x) -> Query.customAPIReqParamsByCustomApiId x.Id)
+    |> Array.map(fun (x) -> (
+       CrmDataHelper.retrieveMultiple proxy x))
+    |> Seq.fold Seq.append Seq.empty
+    |> makeMap (fun req -> req.GetAttributeValue<string>("name"))
 
-  typeMap, stepMap, imageMap, customApiMap
+
+  let respMap =
+      customApis   
+      |> Seq.toArray
+      |> Array.map(fun (x) -> Query.customAPIRespParamsByCustomApiId x.Id)
+      |> Array.map(fun (x) -> (
+         CrmDataHelper.retrieveMultiple proxy x))
+      |> Seq.fold Seq.append Seq.empty
+      |> makeMap (fun resp -> resp.GetAttributeValue<string>("name"))
+
+  typeMap, stepMap, imageMap, customApiMap, reqMap, respMap
 
 
 /// Retrieve registered plugins from CRM under a given assembly
@@ -75,7 +100,7 @@ let retrieveRegisteredByAssembly proxy solutionId assemblyName =
 
   let maps = 
     match targetAssembly with
-    | None         -> Map.empty, Map.empty, Map.empty, Map.empty
+    | None         -> Map.empty, Map.empty, Map.empty, Map.empty, Map.empty, Map.empty
     | Some asmInfo -> retrieveRegistered proxy solutionId asmInfo.id
   
   targetAssembly, maps

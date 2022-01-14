@@ -25,16 +25,18 @@ let localToMaps (plugins: Plugin seq) (customAPIs: CustomAPI seq) =
       newTypeMap, newStepMap, newImageMap
     ) (Map.empty, Map.empty, Map.empty)
 
-  let customApiTypeMap, customApiMap = 
+  let customApiTypeMap, customApiMap, reqParamMap, respPropMap = 
     customAPIs
-    |> Seq.fold (fun (typeMap, customApiMap) c ->
+    |> Seq.fold (fun (typeMap, customApiMap, reqParamMap, respPropMap) c ->
       let newTypeMap = if Map.containsKey c.TypeKey typeMap then typeMap else Map.add c.TypeKey c typeMap
       let newcustomApiMap = Map.add c.Key c.message customApiMap
-      
-      newTypeMap, newcustomApiMap
-    ) (Map.empty, Map.empty)
+      let newReqParamMap = c.RequestParametersWithKeys |> Seq.fold (fun acc x -> Map.add x.name x acc) reqParamMap
+      let newRespPropMap = c.ResponsePropertiesWithKeys |> Seq.fold (fun acc x -> Map.add x.name x acc) respPropMap
+
+      newTypeMap, newcustomApiMap, newReqParamMap, newRespPropMap
+    ) (Map.empty, Map.empty, Map.empty, Map.empty)
   
-  pluginTypeMap, stepMap, imageMap, customApiTypeMap, customApiMap // TODO add 2 maps
+  pluginTypeMap, stepMap, imageMap, customApiTypeMap, customApiMap, reqParamMap, respPropMap
 
 /// Update or create assembly
 let ensureAssembly proxy solutionName asmLocal maybeAsm =
@@ -65,7 +67,7 @@ let performMapDelete proxy map =
   |> ignore
 
 /// Deletes obsolete records in current plugin configuration
-let performDelete proxy imgDiff stepDiff typeDiff apiDiff (sourceAPITypeMaps:Map<string,CustomAPI>) =
+let performDelete proxy imgDiff stepDiff typeDiff apiDiff apiReqDiff apiRespDiff (sourceAPITypeMaps:Map<string,CustomAPI>) =
   // TODO Do this different correlates with note in CreateHelper.fs
   // Remove typeDiff.deletes which are to be used by Custom API
   let newTypeDeletes = 
@@ -75,6 +77,8 @@ let performDelete proxy imgDiff stepDiff typeDiff apiDiff (sourceAPITypeMaps:Map
     |> Map
   
   // Delete sequentially because of dependencies to parent entity
+  performMapDelete proxy apiRespDiff.deletes
+  performMapDelete proxy apiReqDiff.deletes
   performMapDelete proxy apiDiff.deletes
   performMapDelete proxy imgDiff.deletes 
   performMapDelete proxy stepDiff.deletes
@@ -104,7 +108,7 @@ let update proxy imgDiff stepDiff =
 
 /// Creates additions to the plugin configuration in the correct order and
 /// passes guid maps to next step in process
-let create proxy solutionName prefix imgDiff stepDiff apiDiff typeDiff asmId targetTypes targetSteps targetAPIs =
+let create proxy solutionName prefix imgDiff stepDiff apiDiff apiReqDiff apiRespDiff typeDiff asmId targetTypes targetSteps targetAPIs targetApiReqs targetApiResps =
   let types = CreateHelper.createTypes proxy solutionName typeDiff asmId targetTypes
   
   types
@@ -112,7 +116,13 @@ let create proxy solutionName prefix imgDiff stepDiff apiDiff typeDiff asmId tar
   |> CreateHelper.createImages proxy solutionName imgDiff
 
   let apis = CreateHelper.createAPIs proxy solutionName prefix apiDiff targetAPIs asmId
+  
   apis
+  |> CreateHelper.createAPIReqs proxy solutionName prefix apiReqDiff targetApiReqs
+
+  apis 
+  |> CreateHelper.createAPIResps proxy solutionName prefix apiRespDiff targetApiResps
+  
 
 /// Load a local assembly and validate its plugins
 let loadAndValidateAssembly proxy projectPath dllPath isolationMode ignoreOutdatedAssembly =
@@ -143,7 +153,7 @@ let analyze proxyGen projectPath dllPath solutionName isolationMode ignoreOutdat
 
 
 /// Performs a full synchronization of plugins
-let performSync proxy solutionName prefix asmCtx asmReg (sourceTypes, sourceSteps, sourceImgs, sourceAPITypeMaps: Map<string, CustomAPI>, sourceApis) (targetTypes, targetSteps, targetImgs, targetApis) =
+let performSync proxy solutionName prefix asmCtx asmReg (sourceTypes, sourceSteps, sourceImgs, sourceAPITypeMaps, sourceApis, sourceReqParams, sourceRespProps) (targetTypes, targetSteps, targetImgs, targetApis, targetReqParams, targetRespProps) =
   log.Info "Starting plugin synchronization"
  
   // Find differences
@@ -151,13 +161,12 @@ let performSync proxy solutionName prefix asmCtx asmReg (sourceTypes, sourceStep
   let stepDiff = mapDiff sourceSteps targetSteps Compare.step
   let imgDiff = mapDiff sourceImgs targetImgs Compare.image
   let apiDiff = mapDiff sourceApis targetApis Compare.api
-  // TODO Need to diff request params and response params of custom api
-  // let apiReqDiff = mapDiff sourceApiReqs targetApiReqs Compare.apiReq
-  // let apiRespDiff = mapDiff sourceApiResps targetApiResps Compare.apiResp
+  let apiReqDiff = mapDiff sourceReqParams targetReqParams Compare.apiReq
+  let apiRespDiff = mapDiff sourceRespProps targetRespProps Compare.apiResp
 
   // Perform sync
   log.Info "Deleting removed registrations"
-  performDelete proxy imgDiff stepDiff typeDiff apiDiff sourceAPITypeMaps
+  performDelete proxy imgDiff stepDiff typeDiff apiDiff apiReqDiff apiRespDiff sourceAPITypeMaps
 
   log.Info "Creating/updating assembly"
   let asmId = ensureAssembly proxy solutionName asmCtx asmReg
@@ -166,6 +175,6 @@ let performSync proxy solutionName prefix asmCtx asmReg (sourceTypes, sourceStep
   update proxy imgDiff stepDiff
 
   log.Info "Creating new registrations"
-  create proxy solutionName prefix imgDiff stepDiff apiDiff typeDiff asmId targetTypes targetSteps targetApis
+  create proxy solutionName prefix imgDiff stepDiff apiDiff apiReqDiff apiRespDiff typeDiff asmId targetTypes targetSteps targetApis targetReqParams targetRespProps
 
   log.Info "Plugin synchronization was completed successfully"

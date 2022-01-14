@@ -62,6 +62,61 @@ let api (message: Message) (x: Entity) =
 
   target = source
 
+/// Compares a custom API requestparameter from CRM with one in source code
+let apiReq (reqParam: RequestParameter) (x: Entity) =
+  let name = x.GetAttributeValue<string>("name")
+  let displayname = x.GetAttributeValue<string>("displayname")
+  let isCustomizable = x.GetAttributeValue<BooleanManagedProperty>("iscustomizable").Value
+  let isOptional = x.GetAttributeValue<bool>("isoptional")
+  let logicalEntityName = x.GetAttributeValue<string>("logicalentityname")
+  let _type = x.GetAttributeValue<OptionSetValue>("type").Value
+
+  // TODO: Compare more 
+  let target = 
+    (name, 
+    displayname,
+    isCustomizable,
+    isOptional,
+    logicalEntityName,
+    _type
+  )
+  let source = 
+    (reqParam.name,
+    reqParam.displayName,
+    reqParam.isCustomizable,
+    reqParam.isOptional,
+    reqParam.logicalEntityName,
+    reqParam._type
+     )
+
+  target = source
+
+/// Compares a custom API requestparameter from CRM with one in source code
+let apiResp (reqParam: ResponseProperty) (x: Entity) =
+  let name = x.GetAttributeValue<string>("name")
+  let displayname = x.GetAttributeValue<string>("displayname")
+  let isCustomizable = x.GetAttributeValue<BooleanManagedProperty>("iscustomizable").Value
+  let logicalEntityName = x.GetAttributeValue<string>("logicalentityname")
+  let _type = x.GetAttributeValue<OptionSetValue>("type").Value
+
+  // TODO: Compare more 
+  let target = 
+    (name, 
+    displayname,
+    isCustomizable,
+    logicalEntityName,
+    _type
+  )
+  let source = 
+    (reqParam.name,
+    reqParam.displayName,
+    reqParam.isCustomizable,
+    reqParam.logicalEntityName,
+    reqParam._type
+     )
+
+  target = source
+
 /// Compares an plugin step image from CRM with one in source code
 let image (img: Image) (x: Entity) =
   let alias = x.GetAttributeValue<string>("entityalias")

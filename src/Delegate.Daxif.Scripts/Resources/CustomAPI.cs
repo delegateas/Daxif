@@ -1,5 +1,5 @@
 
-namespace DG.DelegateAS.DAXIFdev.Plugins
+namespace dg.org0b6f091c.demo.Plugins
 {
     using System;
     using System.Collections.Generic;
@@ -12,12 +12,12 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
 
     // MainCustomAPIConfig      : UniqueName, IsFunction, EnabledForWorkflow, AllowedCustomProcessingStepType, BindingType, BoundEntityLogicalName
     // ExtendedCustomAPIConfig  : PluginType, OwnerId, OwnerType, IsCustomizable, IsPrivate, ExecutePrivilegeName, Description
-    // RequestParameterConfig   : 
-    // ResponsePropertyConfig   : 
-    using MainCustomAPIConfig = System.Tuple<string, int, int, int, int, string>;
-    using ExtendedCustomAPIConfig = System.Tuple<string, string, string, bool, int, string, string>;
-    using RequestParameterConfig = System.Tuple<string>; // TODO
-    using ResponsePropertyConfig = System.Tuple<string>; // TODO
+    // RequestParameterConfig   : Name, UniqueName, DisplayName, IsCustomizable, IsOptional, LogicalEntityName, Type
+    // ResponsePropertyConfig   : Name, UniqueName, DisplayName, IsCustomizable, LogicalEntityName, Type
+    using MainCustomAPIConfig = System.Tuple<string, bool, int, int, int, string>;
+    using ExtendedCustomAPIConfig = System.Tuple<string, string, string, bool, bool, string, string>;
+    using RequestParameterConfig = System.Tuple<string, string, string, bool, bool, string, int>; // TODO: Add description maybe
+    using ResponsePropertyConfig = System.Tuple<string, string, string, bool, string, int>; // TODO
 
     /// <summary>
     /// Base class for all CustomAPIs.
@@ -226,12 +226,12 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
         /// </summary>
         /// <returns>API</returns>
         public Tuple<MainCustomAPIConfig, ExtendedCustomAPIConfig, IEnumerable<RequestParameterConfig>, IEnumerable<ResponsePropertyConfig>> GetCustomAPIConfig()
-        { // TODO
-            //var className = this.ChildClassName;
+        {
+            var className = this.ChildClassName;
             var config = this.CustomAPIConfig;
             return new Tuple<MainCustomAPIConfig, ExtendedCustomAPIConfig, IEnumerable<RequestParameterConfig>, IEnumerable<ResponsePropertyConfig>>(
                 new MainCustomAPIConfig(config._Name, config._IsFunction, config._EnabledForWorkflow, config._AllowedCustomProcessingStepType, config._BindingType, config._BoundEntityLogicalName),
-                new ExtendedCustomAPIConfig(config._PluginType, "", "", config._IsCustomizable, config._IsPrivate, config._ExecutePrivilegeName, config._Description),
+                new ExtendedCustomAPIConfig(className, "", "", config._IsCustomizable, config._IsPrivate, config._ExecutePrivilegeName, config._Description),
                 config.GetRequestParameters(),
                 config.GetResponseProperties());
         }
@@ -250,7 +250,6 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
             return apiConfig;
         }
 
-
         //private ICustomAPIConfig apiConfig;
         private ICustomAPIConfig CustomAPIConfig { get; set; }
         #endregion
@@ -266,8 +265,8 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
         string _DisplayName { get; }
         string _ExecutePrivilegeName { get; }
         bool _IsCustomizable { get; }
-        int _IsFunction { get; }
-        int _IsPrivate { get; }
+        bool _IsFunction { get; }
+        bool _IsPrivate { get; }
         string _Name { get; }
         string _PluginType { get; }
         string _UniqueName { get; }
@@ -285,10 +284,10 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
         public string _DisplayName { get; private set; } // Remove?
         public string _ExecutePrivilegeName { get; private set; }
         public bool _IsCustomizable { get; private set; }
-        public int _IsFunction { get; private set; }
-        public int _IsPrivate { get; private set; }
+        public bool _IsFunction { get; private set; }
+        public bool _IsPrivate { get; private set; }
         public string _Name { get; private set; }
-        public string _UniqueName { get; private set; }
+        public string _UniqueName { get; private set; } // TODO: Maybe Remove, could control internally
         public string _PluginType { get; private set; }
         public int _EnabledForWorkflow { get; private set; }
 
@@ -300,7 +299,7 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
             this._Name = name;
             this._DisplayName = name;
             this._UniqueName = name;
-            this._IsFunction = 0;
+            this._IsFunction = false;
             this._EnabledForWorkflow = 0;
             this._AllowedCustomProcessingStepType = 0; // None
             this._BindingType = 0; // Global
@@ -308,9 +307,9 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
 
             this._PluginType = null;
             this._IsCustomizable = false;
-            this._IsPrivate = 0;
+            this._IsPrivate = false;
             this._ExecutePrivilegeName = null; // TODO
-            this._Description = null; // TODO
+            this._Description = "Description"; // TODO Can not be empty
         }
 
         public CustomAPIConfig AllowCustomProcessingStep(AllowedCustomProcessingStepType type)
@@ -328,12 +327,12 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
 
         public CustomAPIConfig MakeFunction()
         {
-            this._IsFunction = 1;
+            this._IsFunction = true;
             return this;
         }
         public CustomAPIConfig MakePrivate()
         {
-            this._IsPrivate = 1;
+            this._IsPrivate = true;
             return this;
         }
 
@@ -349,15 +348,15 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
             return this;
         }
 
-        public CustomAPIConfig AddRequestParameter(string name)
+        public CustomAPIConfig AddRequestParameter(CustomAPIRequestParameter reqParam)
         {
-            this._RequestParameters.Add(new CustomAPIRequestParameter(name));
+            this._RequestParameters.Add(reqParam);
             return this;
         }
 
-        public CustomAPIConfig AddResponseProperty(string name)
+        public CustomAPIConfig AddResponseProperty(CustomAPIResponseProperty respProperty)
         {
-            this._ResponseProperties.Add(new CustomAPIResponseProperty(name));
+            this._ResponseProperties.Add(respProperty);
             return this;
         }
 
@@ -365,15 +364,30 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
         {
             foreach (var requestParameter in this._RequestParameters)
             {
-                yield return new RequestParameterConfig(requestParameter.Name); // TODO: Populate
+                // TODO: Add description maybe
+                yield return new RequestParameterConfig(
+                    requestParameter._Name,
+                    requestParameter._UniqueName,
+                    requestParameter._DisplayName,
+                    requestParameter._IsCustomizable,
+                    requestParameter._IsOptional,
+                    requestParameter._LogicalEntityName,
+                    (int)requestParameter._Type
+                    );
             }
         }
 
-        public IEnumerable<RequestParameterConfig> GetResponseProperties()
+        public IEnumerable<ResponsePropertyConfig> GetResponseProperties()
         {
             foreach (var responseProperty in this._ResponseProperties)
             {
-                yield return new ResponsePropertyConfig(responseProperty.Name); // TODO: Populate
+                yield return new ResponsePropertyConfig(
+                    responseProperty._Name,
+                    responseProperty._UniqueName,
+                    responseProperty._DisplayName,
+                    responseProperty._IsCustomizable,
+                    responseProperty._LogicalEntityName,
+                    (int)responseProperty._Type);
             }
         }
 
@@ -382,12 +396,26 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
         /// </summary>
         public class CustomAPIRequestParameter
         {
-            public string Name { get; private set; }
-            // TODO: More parameters
+            public string _Name { get; private set; }
+            public string _UniqueName { get; private set; } // TODO: Maybe Remove, could control internally
+            public string _Description { get; private set; } // TODO: Maybe Remove, could control internally
+            public string _DisplayName { get; private set; } // TODO: Maybe Remove, could control internally
+            public bool _IsCustomizable { get; private set; }
+            public bool _IsOptional { get; private set; }
+            public string _LogicalEntityName { get; private set; }
+            public RequestParameterType _Type { get; private set; }
 
-            public CustomAPIRequestParameter(string name)
+            public CustomAPIRequestParameter(
+                string name, RequestParameterType type, bool isCustomizable = false, bool isOptional = false, string logicalEntityName = null)
             {
-                this.Name = name;
+                this._Name = name;
+                this._UniqueName = name;
+                this._Description = name;
+                this._DisplayName = name;
+                this._IsCustomizable = isCustomizable;
+                this._IsOptional = isOptional;
+                this._LogicalEntityName = logicalEntityName;
+                this._Type = type;
             }
         }
 
@@ -396,13 +424,43 @@ namespace DG.DelegateAS.DAXIFdev.Plugins
         /// </summary>
         public class CustomAPIResponseProperty
         {
-            public string Name { get; private set; }
+            public string _Name { get; private set; }
+            public string _UniqueName { get; private set; } // TODO: Maybe Remove, could control internally
+            public string _Description { get; private set; } // TODO: Maybe Remove, could control internally
+            public string _DisplayName { get; private set; } // TODO: Maybe Remove, could control internally
+            public bool _IsCustomizable { get; private set; }
+            public string _LogicalEntityName { get; private set; }
+            public RequestParameterType _Type { get; private set; }
 
-            public CustomAPIResponseProperty(string name)
+            public CustomAPIResponseProperty(
+                string name, RequestParameterType type, bool isCustomizable = false, string logicalEntityName = null)
             {
-                this.Name = name;
+                this._Name = name;
+                this._UniqueName = name;
+                this._Description = name;
+                this._DisplayName = name;
+                this._IsCustomizable = isCustomizable;
+                this._LogicalEntityName = logicalEntityName;
+                this._Type = type;
             }
         }
+    }
+
+    public enum RequestParameterType
+    {
+        Boolean = 0,
+        DateTime = 1,
+        Decimal = 2,
+        Entity = 3,
+        EntityCollection = 4,
+        EntityReference = 5,
+        Float = 6,
+        Integer = 7,
+        Money = 8,
+        Picklist = 9,
+        String = 10,
+        StringArray = 11,
+        Guid = 12
     }
 
     public enum AllowedCustomProcessingStepType
