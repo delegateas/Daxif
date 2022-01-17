@@ -110,35 +110,10 @@ let createAPIResps proxy solutionName prefix apiRespDiff targetApiResps apiMap =
   |> ignore
 
 /// Creates custom apis and return guid map. 
-let createAPIs proxy solutionName prefix apiDiff targetAPIs asmId =
+let createAPIs proxy solutionName prefix apiDiff targetAPIs asmId (types: Map<string,Guid>) =
   let apiArray = 
     apiDiff.adds 
     |> Map.toArray
-
-  // Create plugintypes and store the ones created in dictionary
-  // TODO This is not the place to do it. 
-  // This should be done earlier so we catch it in the type diff.  
-  let createdPluginTypes = new Dictionary<string, Guid>()
-  apiArray
-  |> Array.map (fun (_, api: Message) -> 
-  api.pluginTypeName, EntitySetup.createType asmId api.pluginTypeName
-  )
-  |>> Array.iter (fun (pluginTypeName, record) -> log.Info "Creating %s: %s" record.LogicalName pluginTypeName)
-  |> Array.map (fun (pluginTypeName, record) -> pluginTypeName,makeCreateReq record)
-  |> Array.map (fun (pluginTypeName, req) -> pluginTypeName, attachToSolution solutionName req)
-  |> Array.map (fun (pluginTypeName, req) -> pluginTypeName, toOrgReq req)
-  |> Array.map (fun (pluginTypeName, req) -> (
-    
-    // Create plugin type if it does not exist
-    match CrmDataInternal.Entities.pluginTypeExists proxy pluginTypeName with 
-    | false -> 
-      let typeResponse = CrmDataHelper.getResponse<CreateResponse> proxy req
-      createdPluginTypes.Add(pluginTypeName, typeResponse.id)
-    | true -> 
-      let typeResponse = CrmDataInternal.Entities.retrievePluginType proxy pluginTypeName
-      createdPluginTypes.Add(pluginTypeName, typeResponse.Id)
-    ))
-  |> ignore
 
   let orgApisMap = targetAPIs |> Map.map (fun _ (e: Entity) -> e.Id)
 
@@ -147,7 +122,7 @@ let createAPIs proxy solutionName prefix apiDiff targetAPIs asmId =
   let newApis = 
     apiArray
     |> Array.map (fun (_, api: Message) -> 
-       match createdPluginTypes.TryGetValue api.pluginTypeName with
+       match types.TryGetValue api.pluginTypeName with
        | true, value -> api.name, EntitySetup.createCustomAPI (api) (EntityReference("plugintype", id = value)) (prefix)
        | _           -> null, null
        )

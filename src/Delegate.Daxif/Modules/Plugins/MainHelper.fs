@@ -36,7 +36,30 @@ let localToMaps (plugins: Plugin seq) (customAPIs: CustomAPI seq) =
       newTypeMap, newcustomApiMap, newReqParamMap, newRespPropMap
     ) (Map.empty, Map.empty, Map.empty, Map.empty)
   
-  pluginTypeMap, stepMap, imageMap, customApiTypeMap, customApiMap, reqParamMap, respPropMap
+  // Convert CustomApi to Plugin to merge maps
+  let apiTypeMapPlugins = 
+    customApiTypeMap
+    |> Map.map (fun (name) (api) -> 
+    {
+    step = {
+        pluginTypeName = name
+        executionStage = 1
+        eventOperation = ""
+        logicalName = ""
+        deployment = 1
+        executionMode = 1
+        name = name
+        executionOrder = 1
+        filteredAttributes = ""
+        userContext = Guid.Empty
+        }
+    images = Seq.empty 
+    })
+  
+  // Merge pluginTypeMap and customApiTypeMap 
+  let mergedTypeMap = Map.fold (fun acc key value -> Map.add key value acc) pluginTypeMap apiTypeMapPlugins
+
+  mergedTypeMap, stepMap, imageMap, customApiTypeMap, customApiMap, reqParamMap, respPropMap
 
 /// Update or create assembly
 let ensureAssembly proxy solutionName asmLocal maybeAsm =
@@ -76,10 +99,11 @@ let performDelete proxy imgDiff stepDiff typeDiff apiDiff apiReqDiff apiRespDiff
     |> Array.filter (fun (name, entity) -> not (sourceAPITypeMaps.ContainsKey name))
     |> Map
   
+  // TODO: Maybe delete custom api and it's dependencies. 
   // Delete sequentially because of dependencies to parent entity
-  performMapDelete proxy apiRespDiff.deletes
-  performMapDelete proxy apiReqDiff.deletes
-  performMapDelete proxy apiDiff.deletes
+  //performMapDelete proxy apiRespDiff.deletes
+  //performMapDelete proxy apiReqDiff.deletes
+  //performMapDelete proxy apiDiff.deletes
   performMapDelete proxy imgDiff.deletes 
   performMapDelete proxy stepDiff.deletes
   performMapDelete proxy newTypeDeletes
@@ -115,7 +139,7 @@ let create proxy solutionName prefix imgDiff stepDiff apiDiff apiReqDiff apiResp
   |> CreateHelper.createSteps proxy solutionName stepDiff targetSteps
   |> CreateHelper.createImages proxy solutionName imgDiff
 
-  let apis = CreateHelper.createAPIs proxy solutionName prefix apiDiff targetAPIs asmId
+  let apis = CreateHelper.createAPIs proxy solutionName prefix apiDiff targetAPIs asmId types
   
   apis
   |> CreateHelper.createAPIReqs proxy solutionName prefix apiReqDiff targetApiReqs

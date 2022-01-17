@@ -144,7 +144,7 @@ let createCustomAPIReq (req:RequestParameter) (customapi: EntityReference) (pref
   newReq.Attributes.Add("isoptional", req.isOptional)
   newReq.Attributes.Add("name", req.name)
   newReq.Attributes.Add("type", OptionSetValue(req._type))
-  newReq.Attributes.Add("uniquename", prefix + "_" + req.uniqueName)
+  newReq.Attributes.Add("uniquename", req.uniqueName)
   newReq.Attributes.Add("iscustomizable",BooleanManagedProperty(req.isCustomizable))
   newReq.Attributes.Add("customapiid", customapi)
   newReq
@@ -157,7 +157,7 @@ let createCustomAPIResp (resp:ResponseProperty) (customapi: EntityReference) (pr
   newResp.Attributes.Add("logicalentityname", resp.logicalEntityName)
   newResp.Attributes.Add("name", resp.name)
   newResp.Attributes.Add("type", OptionSetValue(resp._type))
-  newResp.Attributes.Add("uniquename", prefix + "_" + resp.uniqueName)
+  newResp.Attributes.Add("uniquename", resp.uniqueName)
   newResp.Attributes.Add("iscustomizable",BooleanManagedProperty(resp.isCustomizable))
   newResp.Attributes.Add("customapiid", customapi)
   newResp
