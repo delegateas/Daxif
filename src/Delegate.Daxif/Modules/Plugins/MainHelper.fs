@@ -99,11 +99,9 @@ let performDelete proxy imgDiff stepDiff typeDiff apiDiff apiReqDiff apiRespDiff
     |> Array.filter (fun (name, entity) -> not (sourceAPITypeMaps.ContainsKey name))
     |> Map
   
-  // TODO: Maybe delete custom api and it's dependencies. 
-  // Delete sequentially because of dependencies to parent entity
-  //performMapDelete proxy apiRespDiff.deletes
-  //performMapDelete proxy apiReqDiff.deletes
-  //performMapDelete proxy apiDiff.deletes
+  performMapDelete proxy apiRespDiff.deletes
+  performMapDelete proxy apiReqDiff.deletes
+  performMapDelete proxy apiDiff.deletes
   performMapDelete proxy imgDiff.deletes 
   performMapDelete proxy stepDiff.deletes
   performMapDelete proxy newTypeDeletes
