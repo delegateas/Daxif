@@ -1,4 +1,7 @@
 # Release Notes
+### 5.3.0-alpha - January 01 20222
+* Added support for Custom APIs (@mlRosenquist)
+
 ### 5.2.0 - September 27 2021
 * Added support for attribute mapping (@mlRosenquist)
 * Removed notification when XrmMockup metadata generation has completed - notification has been moved to XrmMockup as per 1.8.2 (@elaurs)
