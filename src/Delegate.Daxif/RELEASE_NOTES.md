@@ -1,5 +1,6 @@
 # Release Notes
-### 5.3.0-alpha - January 01 20222
+
+### 5.3.0 - February 23 2022
 * Added support for Custom APIs (@mlRosenquist)
 
 ### 5.2.0 - September 27 2021
