@@ -1,4 +1,8 @@
 # Release Notes
+### 5.4.0 - October 10 2022
+* Fix impersonation in plugin registration (@skovlund)
+* Add support for resx files (@skovlund)
+
 ### 5.2.0 - September 27 2021
 * Added support for attribute mapping (@mlRosenquist)
 * Removed notification when XrmMockup metadata generation has completed - notification has been moved to XrmMockup as per 1.8.2 (@elaurs)
