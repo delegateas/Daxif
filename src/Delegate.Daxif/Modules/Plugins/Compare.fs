@@ -21,9 +21,10 @@ let step (step: Step) (x: Entity) =
   let mode = getDefaultOptSetValue x "mode" (int ExecutionMode.Synchronous)
   let order = x.GetAttributeValue<Nullable<int>>("rank").GetValueOrDefault(0)
   let fAttr = x.GetAttributeValue<string>("filteringattributes")
-  let user = x.GetAttributeValue<Nullable<Guid>>("impersonatinguserid").GetValueOrDefault(Guid.Empty)
+  let user = x.GetAttributeValue<EntityReference>("impersonatinguserid")
+  let userId = if isNull user then Guid.Empty else user.Id
   
-  let target = (stage, deploy, mode, order, fAttr, user)
+  let target = (stage, deploy, mode, order, fAttr, userId)
   let source = 
     (step.executionStage, step.deployment, step.executionMode, 
       step.executionOrder, step.filteredAttributes, step.userContext)
