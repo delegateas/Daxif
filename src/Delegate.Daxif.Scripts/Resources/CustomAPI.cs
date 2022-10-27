@@ -1,13 +1,10 @@
-
-namespace dg.org0b6f091c.demo.Plugins
+namespace DG.XrmFramework.Plugins
 {
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Globalization;
-    using System.Linq;
     using System.ServiceModel;
-    using System.Linq.Expressions;
     using Microsoft.Xrm.Sdk;
 
     // MainCustomAPIConfig      : UniqueName, IsFunction, EnabledForWorkflow, AllowedCustomProcessingStepType, BindingType, BoundEntityLogicalName
@@ -350,12 +347,14 @@ namespace dg.org0b6f091c.demo.Plugins
 
         public CustomAPIConfig AddRequestParameter(CustomAPIRequestParameter reqParam)
         {
+            reqParam.SetNameFromAPI(this._Name);
             this._RequestParameters.Add(reqParam);
             return this;
         }
 
         public CustomAPIConfig AddResponseProperty(CustomAPIResponseProperty respProperty)
         {
+            respProperty.SetNameFromAPI(this._Name);
             this._ResponseProperties.Add(respProperty);
             return this;
         }
@@ -408,14 +407,19 @@ namespace dg.org0b6f091c.demo.Plugins
             public CustomAPIRequestParameter(
                 string name, RequestParameterType type, bool isCustomizable = false, bool isOptional = false, string logicalEntityName = null)
             {
-                this._Name = name;
                 this._UniqueName = name;
-                this._Description = name;
-                this._DisplayName = name;
                 this._IsCustomizable = isCustomizable;
                 this._IsOptional = isOptional;
                 this._LogicalEntityName = logicalEntityName;
                 this._Type = type;
+            }
+
+            public void SetNameFromAPI(string apiName)
+            {
+                var name = $"{apiName}-In-{_UniqueName}";
+                _Name = name;
+                _DisplayName = name;
+                _Description = name;
             }
         }
 
@@ -435,13 +439,18 @@ namespace dg.org0b6f091c.demo.Plugins
             public CustomAPIResponseProperty(
                 string name, RequestParameterType type, bool isCustomizable = false, string logicalEntityName = null)
             {
-                this._Name = name;
                 this._UniqueName = name;
-                this._Description = name;
-                this._DisplayName = name;
                 this._IsCustomizable = isCustomizable;
                 this._LogicalEntityName = logicalEntityName;
                 this._Type = type;
+            }
+
+            public void SetNameFromAPI(string apiName)
+            {
+                var name = $"{apiName}-Out-{_UniqueName}";
+                _Name = name;
+                _DisplayName = name;
+                _Description = name;
             }
         }
     }
