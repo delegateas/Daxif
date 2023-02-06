@@ -128,15 +128,16 @@ type Connection = {
       failwith "Not possible to get an OrganizationProxy usign OAuth or Client Secret. Get a CrmServiceClient instead"
 
   /// Connects to the environment and returns a CrmServiceClient
-  member x.GetCrmServiceClient(?timeOut: TimeSpan) =
+  member x.GetCrmServiceClient(?timeOut: TimeSpan, ?useUniqueInstance: bool) =
     let timeOut = defaultArg timeOut defaultServiceTimeOut
+    let useUniqueConnection = defaultArg useUniqueInstance false
     match x.method with
     | ConnectionMethod.Proxy _ -> 
       failwith "Unable to get CrmServiceClient with Proxy method"
     | ConnectionMethod.CrmServiceClientOAuth oauth ->
-      CrmAuth.getCrmServiceClient oauth.username oauth.password oauth.orgUrl oauth.clientId oauth.returnUrl timeOut
+      CrmAuth.getCrmServiceClient oauth.username oauth.password oauth.orgUrl oauth.clientId oauth.returnUrl timeOut useUniqueInstance
     | ConnectionMethod.CrmServiceClientClientSecret clientSecret ->
-      CrmAuth.getCrmServiceClientClientSecret clientSecret.orgUrl clientSecret.clientId clientSecret.clientSecret timeOut
+      CrmAuth.getCrmServiceClientClientSecret clientSecret.orgUrl clientSecret.clientId clientSecret.clientSecret timeOut useUniqueInstance
     | ConnectionMethod.ConnectionString cs ->
       CrmAuth.getCrmServiceClientConnectionString cs timeOut
 
