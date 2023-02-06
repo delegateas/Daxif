@@ -63,7 +63,7 @@ let ensureClientIsReady (client: CrmServiceClient) =
     in failwith s
   | true -> client
 
-let internal getCrmServiceClient userName password (orgUrl:Uri) mfaAppId mfaReturnUrl (timeOut: TimeSpan) =
+let internal getCrmServiceClient userName password (orgUrl:Uri) mfaAppId mfaReturnUrl (timeOut: TimeSpan) (useUniqueInstance: bool) =
   let mutable orgName = ""
   let mutable region = ""
   let mutable isOnPrem = false
@@ -71,13 +71,13 @@ let internal getCrmServiceClient userName password (orgUrl:Uri) mfaAppId mfaRetu
   let cacheFileLocation = System.IO.Path.Combine(System.IO.Path.GetTempPath(), orgName, "oauth-cache.txt")
   log.Verbose @"Connection timeout set to %i hour, %i minutes, %i seconds" timeOut.Hours timeOut.Minutes timeOut.Seconds
   CrmServiceClient.MaxConnectionTimeout <- timeOut
-  new CrmServiceClient(userName, CrmServiceClient.MakeSecureString(password), region, orgName, false, null, null, mfaAppId, Uri(mfaReturnUrl), cacheFileLocation, null)
+  new CrmServiceClient(userName, CrmServiceClient.MakeSecureString(password), region, orgName, useUniqueInstance, null, null, mfaAppId, Uri(mfaReturnUrl), cacheFileLocation, null)
   |> ensureClientIsReady
 
-let internal getCrmServiceClientClientSecret (org: Uri) appId clientSecret (timeOut: TimeSpan) =
+let internal getCrmServiceClientClientSecret (org: Uri) appId clientSecret (timeOut: TimeSpan) (useUniqueInstance: bool) =
   log.Verbose @"Connection timeout set to %i hour, %i minutes, %i seconds" timeOut.Hours timeOut.Minutes timeOut.Seconds
   CrmServiceClient.MaxConnectionTimeout <- timeOut
-  new CrmServiceClient(org, appId, CrmServiceClient.MakeSecureString(clientSecret), true, Path.Combine(Path.GetTempPath(), appId, "oauth-cache.txt"))
+  new CrmServiceClient(org, appId, CrmServiceClient.MakeSecureString(clientSecret), useUniqueInstance, Path.Combine(Path.GetTempPath(), appId, "oauth-cache.txt"))
   |> ensureClientIsReady
 
 let internal getCrmServiceClientConnectionString (cs: string) (timeOut: TimeSpan) =

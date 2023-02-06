@@ -111,7 +111,7 @@ let validUserContext proxy plugins =
     plugins
     |> Seq.filter(fun (_,pl) -> pl.step.userContext <> Guid.Empty)
     |> Seq.filter(fun (_,pl) ->
-      CrmDataHelper.exists proxy "systemuser" pl.step.userContext
+      not (CrmDataHelper.exists proxy "systemuser" pl.step.userContext)
     )
 
   findInvalid plugins invalidPlugins "Plugin %s: Defined user context is not in the system"

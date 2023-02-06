@@ -43,7 +43,7 @@ let getLocalResourcesHelper location crmRelease =
       Enum.GetNames(typeof<DG.Daxif.WebResourceType>)
       |> Array.map (fun x -> @"." + x.ToLower())
       |> Array.toList
-      |> List.filter (fun x -> x <> ".svg" || crmRelease >= CrmReleases.D365)
+      |> List.filter (fun x -> (x <> ".svg" && x <> ".resx" ) || crmRelease >= CrmReleases.D365)
       
     let rec getLocalResources' exts' = 
       seq { 
