@@ -152,7 +152,7 @@ let getSyncActions proxy webresourceFolder solutionName patchSolutionName =
     yield! update
   }
 
-let syncSolution proxyGen location solutionName patchSolutionName = 
+let syncSolution proxyGen location solutionName patchSolutionName publishAfterSync = 
   let p = proxyGen()
   
   let syncActions = getSyncActions p location solutionName patchSolutionName
@@ -203,16 +203,17 @@ let syncSolution proxyGen location solutionName patchSolutionName =
             false
           )
 
-  match (Seq.exists id actionSuccess), (Seq.exists not actionSuccess) with
-  | false, false -> ()
-  | false, true -> failwith "Nothing to publish, all changes failed"
-  | true, fail -> 
-    log.Verbose @"Publishing changes to the solution"
-    CrmDataHelper.publishAll p
+  if (publishAfterSync) then
+    match (Seq.exists id actionSuccess), (Seq.exists not actionSuccess) with
+    | false, false -> ()
+    | false, true -> failwith "Nothing to publish, all changes failed"
+    | true, fail -> 
+      log.Verbose @"Publishing changes to the solution"
+      CrmDataHelper.publishAll p
 
-    match fail with
-    | false -> 
-      log.Verbose "All changes were successfully published"
-    | true -> 
-      log.Verbose "Some changes were successfully published"
-      failwith "Some changes failed"
+      match fail with
+      | false -> 
+        log.Verbose "All changes were successfully published"
+      | true -> 
+        log.Verbose "Some changes were successfully published"
+        failwith "Some changes failed"
