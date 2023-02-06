@@ -1,4 +1,7 @@
 # Release Notes
+### - vNext (TBD) -
+* Added 'useUniqueInstance' parameter to GetCrmServiceClient() with default value: 'true'. - This enables a single script to correctly connect to multiple environments, while still having the option to set the parameter to 'false' in order to optimize any existing scripts that may be adversely affected regarding performance by this change.
+
 ### 5.4.0 - October 10 2022
 * Fix impersonation in plugin registration (@skovlund)
 * Add support for resx files (@skovlund)
