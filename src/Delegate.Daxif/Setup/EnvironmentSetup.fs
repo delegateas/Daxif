@@ -130,7 +130,7 @@ type Connection = {
   /// Connects to the environment and returns a CrmServiceClient
   member x.GetCrmServiceClient(?timeOut: TimeSpan, ?useUniqueInstance: bool) =
     let timeOut = defaultArg timeOut defaultServiceTimeOut
-    let useUniqueConnection = defaultArg useUniqueInstance false
+    let useUniqueInstance = defaultArg useUniqueInstance false
     match x.method with
     | ConnectionMethod.Proxy _ -> 
       failwith "Unable to get CrmServiceClient with Proxy method"
