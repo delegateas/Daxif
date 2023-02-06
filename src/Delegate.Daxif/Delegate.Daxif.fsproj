@@ -57,6 +57,7 @@
     <Compile Include="Modules\Info\Main.fs" />
     <Compile Include="Modules\Serialization\SerializationHelper.fs" />
     <Compile Include="Modules\Serialization\Main.fs" />
+    <Compile Include="Modules\Solution\AttributeMapping.fs" />
     <Compile Include="Modules\Solution\Domain.fs" />
     <Compile Include="Modules\Solution\Import.fs" />
     <Compile Include="Modules\Solution\Export.fs" />

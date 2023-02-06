@@ -2,6 +2,7 @@
 
 open DG.Daxif.Common
 open DG.Daxif.Modules.Solution
+open DG.Daxif.Modules.Solution.AttributeMapping
 open Utility
 open InternalUtility
 
@@ -191,3 +192,12 @@ type Solution private () =
 
     Versioning.updateSolutionVersionTo proxy solId newVersion
     log.Info "Version number was succesfully updated in CRM."
+
+  static member CreateAttributeMapping(env: Environment, mappings) = 
+    let proxy = env.connect(log).GetService()
+    AttributeMapping.createAttributeMapping proxy mappings
+
+  static member RemoveAttributeMapping(env: Environment, mappings) = 
+     let proxy = env.connect(log).GetService()
+     AttributeMapping.removeAttributeMappings proxy mappings
+    
