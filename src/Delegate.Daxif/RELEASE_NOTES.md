@@ -1,4 +1,7 @@
 # Release Notes
+### 5.5.0 - February 06 2023
+* Added 'publishAfterSync' parameter to WebResourceSync with default value: 'true'. - This ensures that it is possible to omit PublishAll and explicitly adding such a step in a pipeline afterwards or use a different toolkit for publishing (@bo-stig-christensen)
+
 ### 5.4.0 - October 10 2022
 * Fix impersonation in plugin registration (@skovlund)
 * Add support for resx files (@skovlund)
