@@ -169,11 +169,13 @@ let getValidPlugins (types:Type[]) =
   let pluginType = 
     types 
     |> Array.filter (fun x -> x.Name = @"Plugin") 
-    |> Array.head
+    |> Array.tryHead
+
+  if pluginType.IsNone then Array.empty else
 
   let validTypes, invalidTypes = 
       types
-      |> Array.filter (fun (x:Type) -> x.IsSubclassOf(pluginType))
+      |> Array.filter (fun (x:Type) -> x.IsSubclassOf(pluginType.Value))
       |> Array.partition (fun (x:Type) -> not x.IsAbstract && x.GetConstructor(Type.EmptyTypes) <> null)
   
   invalidTypes
@@ -214,11 +216,13 @@ let getValidCustomAPIs(types:Type[]) =
   let customApiType = 
     types 
     |> Array.filter (fun x -> x.Name = @"CustomAPI") 
-    |> Array.head
+    |> Array.tryHead
+
+  if customApiType.IsNone then Array.empty else
 
   let validTypes, invalidTypes = 
       types
-      |> Array.filter (fun (x:Type) -> x.IsSubclassOf(customApiType))
+      |> Array.filter (fun (x:Type) -> x.IsSubclassOf(customApiType.Value))
       |> Array.partition (fun (x:Type) -> not x.IsAbstract && x.GetConstructor(Type.EmptyTypes) <> null)
   
   invalidTypes
