@@ -1,7 +1,11 @@
 # Release Notes
+### 5.5.0 - February 06 2023
+* Added 'useUniqueInstance' parameter to GetCrmServiceClient() with default value: 'true'. - This enables a single script to correctly connect to multiple environments, while still having the option to set the parameter to 'false' in order to optimize any existing scripts that may be adversely affected regarding performance by this change.
+* Added 'publishAfterSync' parameter to WebResourceSync with default value: 'true'. - This ensures that it is possible to omit PublishAll and explicitly adding such a step in a pipeline afterwards or use a different toolkit for publishing (@bo-stig-christensen)
 
-### 5.3.0 - February 23 2022
-* Added support for Custom APIs (@mlRosenquist)
+### 5.4.0 - October 10 2022
+* Fix impersonation in plugin registration (@skovlund)
+* Add support for resx files (@skovlund)
 
 ### 5.2.0 - September 27 2021
 * Added support for attribute mapping (@mlRosenquist)
