@@ -26,6 +26,9 @@ module Env =
       url = "https://mydev.crm4.dynamics.com/XRMServices/2011/Organization.svc",
       ap = AuthenticationProviderType.OnlineFederation,
       creds = creds,
+      method = ConnectionType.OAuth,
+      mfaAppId = "xxxxx",
+      mfaReturnUrl = "xxxx",
       args = fsi.CommandLineArgs
     )
   
@@ -35,6 +38,9 @@ module Env =
       url = "https://mytest.crm4.dynamics.com/XRMServices/2011/Organization.svc",
       ap = AuthenticationProviderType.OnlineFederation,
       creds = creds,
+      method = ConnectionType.OAuth,
+      mfaAppId = "xxxxx",
+      mfaReturnUrl = "xxxx",
       args = fsi.CommandLineArgs
     )
 
@@ -44,6 +50,9 @@ module Env =
       url = "https://myprod.crm4.dynamics.com/XRMServices/2011/Organization.svc",
       ap = AuthenticationProviderType.OnlineFederation,
       creds = creds,
+      method = ConnectionType.OAuth,
+      mfaAppId = "xxxxx",
+      mfaReturnUrl = "xxxx",
       args = fsi.CommandLineArgs
     )
 

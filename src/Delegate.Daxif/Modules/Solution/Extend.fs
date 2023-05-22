@@ -22,6 +22,7 @@ let stepLogicName = @"sdkmessageprocessingstep"
 let imgLogicName = @"sdkmessageprocessingstepimage"
 let webResLogicalName = @"webresource"
 let workflowLogicalName = @"workflow"
+let customAPILogicalName = @"customapi"
 
 let getName (x:Entity) = x.GetAttributeValue<string>("name")
 let getOwnerRef (x:Entity) = x.GetAttributeValue<EntityReference>("ownerid")
@@ -140,8 +141,13 @@ let getPluginsIds p solution =
       |> Seq.map(fun x -> x.Id, getName step + " " + getName x))
     |> Array.toSeq
     |> Seq.concat
+  
+  // Find all customapis 
+  let customApis = 
+      CrmDataInternal.Entities.retrieveCustomAPIsBySolution p solution
+      |> Seq.map(fun x -> x.Id, x.GetAttributeValue<string>("uniquename"))
 
-  asmName, types, stepsName, images
+  asmName, types, stepsName, images, customApis
 
 let deactivateWorkflows p ln (diff: (Guid*String)[]) (log:ConsoleLogger) =
   match diff.Length with 
@@ -207,10 +213,12 @@ let export service solution solutionPath =
   log.WriteLine(LogLevel.Verbose, "Finding plugins to be persisted")
 
   // Find assemblies, plugin types, active plugin steps, and plugin images 
-  let asmsIds, typesIds, stepsIds, imgsIds = getPluginsIds service solutionId
+  let asmsIds, typesIds, stepsIds, imgsIds, customApis = getPluginsIds service solutionId
 
   [|("Assemblies", asmsIds); ("Plugin Types", typesIds) 
-    ("Plugin Steps", stepsIds); ("Step Images", imgsIds)|]
+    ("Plugin Steps", stepsIds); ("Step Images", imgsIds)
+    ("Custom APIs", customApis)
+  |]
   |> Array.iter(fun (name, x) -> 
     log.WriteLine(LogLevel.Verbose, sprintf @"Found %d %s" (Seq.length x) name )
     )
@@ -225,7 +233,9 @@ let export service solution solutionPath =
       keepPluginSteps = stepsIds
       keepPluginImages = imgsIds
       keepWorkflows = workflowsIdsAndOwners
-      keepWebresources = webResIds}
+      keepWebresources = webResIds
+      keepCustomAPIs = customApis
+      }
     
   log.WriteLine(LogLevel.Verbose, @"Creating extended solution file")
 
@@ -316,11 +326,12 @@ let preImport service solutionName zipPath =
   | Some(solutionId,extSol) -> 
     let mutable errors = false in
     // Sync plugins and workflows
-    let targetAsms, targetTypes, targetSteps, targetImgs = getPluginsIds service solutionId
+    let targetAsms, targetTypes, targetSteps, targetImgs, targetCustomAPIs = getPluginsIds service solutionId
    
     
     let deletionError =
       [|
+        (customAPILogicalName, extSol.keepCustomAPIs, targetCustomAPIs, takeName, None)
         (imgLogicName, extSol.keepPluginImages, targetImgs, takeGuid, None)
         (stepLogicName, extSol.keepPluginSteps, targetSteps, takeGuid, None)
         (typeLogicName, extSol.keepPluginTypes, targetTypes, takeName, None)

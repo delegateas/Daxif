@@ -13,7 +13,7 @@ type SerializeType =
   | XML of string
   | JSON of string
 
-/// Matches CRM2011/2013 OptionSet values
+/// Matches D365 OptionSet values
 type WebResourceType = 
   | HTML =  1
   | HTM  =  1
@@ -30,7 +30,8 @@ type WebResourceType =
   | XSL  =  9
   | XSLT =  9
   | ICO  = 10
-  | SVG  = 11 // Added in 9.0, enum number unconfirmed
+  | SVG  = 11 // D365 only
+  | RESX = 12 // D365 only
 
 /// CRM Releases
 /// Newer versions have higher values

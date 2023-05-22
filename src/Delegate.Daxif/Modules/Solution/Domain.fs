@@ -25,6 +25,7 @@ type ExtendedSolution =
     keepPluginImages: seq<Guid*string>
     keepWorkflows: seq<Guid*string*string>
     keepWebresources: seq<Guid*string>
+    keepCustomAPIs: seq<Guid*string>
   }
 
 type ImportJobInfo =
