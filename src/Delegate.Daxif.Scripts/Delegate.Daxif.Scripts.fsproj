@@ -18,6 +18,9 @@
   <ItemGroup>
     <None Include="RELEASE_NOTES.md" />
     <Content Include="ScriptTemplates\*.fsx" Pack="true" PackagePath="content\Daxif" />
+    <Content Include="Resources\CustomAPI.cs">
+      <Pack>true</Pack>
+    </Content>
     <Content Include="Resources\Plugin.cs" Pack="true" />
     <None Include="..\resources\delegate_daxif_logo_small.png" Pack="true" PackagePath="" />
   </ItemGroup>

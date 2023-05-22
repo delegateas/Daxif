@@ -75,7 +75,7 @@ let createStep (typeId:Guid) (messageId:Guid) (filterId:Guid) name step =
   ps
 
 /// Create a new image with the provided image informations under the defined step
-let createImage (stepId:Guid) eventOperation image =
+let createImage (stepId:Guid) eventOperation (image:Image) =
   if not <| propertyNames.ContainsKey eventOperation then
     failwithf "Could not create step images since event operation '%s' was not recognized." eventOperation
 
@@ -106,7 +106,7 @@ let updateStep (stepId:Guid) step =
   ps
 
 /// Used to update an existing image with changes to its attributes
-let updateImage sourceImage (targetImageEntity:Entity) = 
+let updateImage (sourceImage:Image) (targetImageEntity:Entity) = 
   let psi = Entity("sdkmessageprocessingstepimage")
   psi.Attributes.Add("sdkmessageprocessingstepimageid", targetImageEntity.Id)
   psi.Attributes.Add("name", sourceImage.name)
@@ -115,3 +115,51 @@ let updateImage sourceImage (targetImageEntity:Entity) =
   psi.Attributes.Add("attributes", sourceImage.attributes)
   psi.Attributes.Add("sdkmessageprocessingstepid", targetImageEntity.GetAttributeValue<EntityReference>("sdkmessageprocessingstepid"))
   psi
+
+
+/// Create a new customAPI with the provided CustomAPI
+let createCustomAPI (api:Message) (pluginType: EntityReference) (prefix: string) =
+  let newCustomAPI = Entity("customapi")
+  newCustomAPI.Attributes.Add("allowedcustomprocessingsteptype", OptionSetValue(api.allowedCustomProcessingStepType))
+  newCustomAPI.Attributes.Add("bindingtype", OptionSetValue(api.bindingType))
+  newCustomAPI.Attributes.Add("boundentitylogicalname", api.boundEntityLogicalName)
+  newCustomAPI.Attributes.Add("description", syncDescription())
+  newCustomAPI.Attributes.Add("displayname", api.displayName)
+  newCustomAPI.Attributes.Add("executeprivilegename", api.executePrivilegeName)
+  newCustomAPI.Attributes.Add("isfunction", api.isFunction)
+  newCustomAPI.Attributes.Add("isprivate", api.isPrivate)
+  newCustomAPI.Attributes.Add("name", api.name)
+  newCustomAPI.Attributes.Add("plugintypeid", pluginType)
+  newCustomAPI.Attributes.Add("uniquename", prefix + "_" + api.uniqueName)
+  newCustomAPI.Attributes.Add("iscustomizable",BooleanManagedProperty(api.isCustomizable))
+  newCustomAPI
+
+/// Create a new customAPIReq
+let createCustomAPIReq (req:RequestParameter) (customapi: EntityReference) (prefix: string) =
+  let newReq = Entity("customapirequestparameter")
+
+  newReq.Attributes.Add("description", syncDescription())
+  newReq.Attributes.Add("displayname", req.displayName)
+  newReq.Attributes.Add("logicalentityname", req.logicalEntityName)
+  newReq.Attributes.Add("isoptional", req.isOptional)
+  newReq.Attributes.Add("name", req.name)
+  newReq.Attributes.Add("type", OptionSetValue(req._type))
+  newReq.Attributes.Add("uniquename", req.uniqueName)
+  newReq.Attributes.Add("iscustomizable",BooleanManagedProperty(req.isCustomizable))
+  newReq.Attributes.Add("customapiid", customapi)
+  newReq
+
+/// Create a new customAPIResp
+let createCustomAPIResp (resp:ResponseProperty) (customapi: EntityReference) (prefix: string) =
+  let newResp = Entity("customapiresponseproperty")
+  newResp.Attributes.Add("description", syncDescription())
+  newResp.Attributes.Add("displayname", resp.displayName)
+  newResp.Attributes.Add("logicalentityname", resp.logicalEntityName)
+  newResp.Attributes.Add("name", resp.name)
+  newResp.Attributes.Add("type", OptionSetValue(resp._type))
+  newResp.Attributes.Add("uniquename", resp.uniqueName)
+  newResp.Attributes.Add("iscustomizable",BooleanManagedProperty(resp.isCustomizable))
+  newResp.Attributes.Add("customapiid", customapi)
+  newResp
+
+ 

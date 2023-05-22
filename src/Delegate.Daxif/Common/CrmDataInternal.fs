@@ -407,6 +407,12 @@ module CrmDataInternal =
       q.Criteria <- f
       CrmDataHelper.retrieveFirstMatch proxy q
     
+    let pluginTypeExists (proxy: IOrganizationService) uniqueName =
+      try 
+        let pluginType = retrievePluginType proxy uniqueName
+        pluginType.Id <> Guid.Empty
+      with _ -> false
+
     let tryRetrievePluginType proxy uniqueName = 
       let (uniqueName : string) = uniqueName
       let ln = @"plugintype"
@@ -557,6 +563,21 @@ module CrmDataInternal =
       q.LinkEntities.Add(le)
       CrmDataHelper.retrieveMultiple proxy q
     
+    let retrieveCustomAPIsBySolution proxy (solutionId: Guid) = 
+      let q = QueryExpression("customapi")
+      q.ColumnSet <- ColumnSet(true)
+        
+      let le = LinkEntity()
+      le.JoinOperator <- JoinOperator.Inner
+      le.LinkFromAttributeName <- @"customapiid"
+      le.LinkFromEntityName <- @"customapi"
+      le.LinkToAttributeName <- @"objectid"
+      le.LinkToEntityName <- @"solutioncomponent"
+      le.LinkCriteria.Conditions.Add(ConditionExpression("solutionid", ConditionOperator.Equal, solutionId))
+      q.LinkEntities.Add(le)
+      CrmDataHelper.retrieveMultiple proxy q
+
+
     let retrievePluginProcessingSteps proxy typeId = 
       let (typeId : Guid) = typeId
       let ln = @"sdkmessageprocessingstep"

@@ -3,7 +3,7 @@
 open System
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Messages
-
+open System.Collections.Generic
 open DG.Daxif.Common
 open DG.Daxif.Common.InternalUtility
 open DG.Daxif.Common.Utility
@@ -84,4 +84,59 @@ let createImages proxy solutionName imgDiff stepMap =
   |> Array.map (snd >> makeCreateReq >> attachToSolution solutionName >> toOrgReq)
   |> CrmDataHelper.performAsBulkResultHandling proxy raiseExceptionIfFault ignore
   |> ignore
+
+let createAPIReqs proxy solutionName prefix apiReqDiff targetReqAPIs apiMap =
+  apiReqDiff.adds 
+  |> Map.toArray
+  |> Array.map (fun (name, req: RequestParameter) -> 
+    let apiId = Map.find req.customApiName apiMap
+    name, EntitySetup.createCustomAPIReq req (EntityReference("customapi", id = apiId)) prefix
+  )
+  |>> Array.iter (fun (name, record) -> log.Info "Creating %s: %s" record.LogicalName name)
+  |> Array.map (snd >> makeCreateReq >> attachToSolution solutionName >> toOrgReq)
+  |> CrmDataHelper.performAsBulkResultHandling proxy raiseExceptionIfFault ignore
+  |> ignore
+
+let createAPIResps proxy solutionName prefix apiRespDiff targetApiResps apiMap =
+  apiRespDiff.adds
+  |> Map.toArray
+  |> Array.map (fun (name, resp: ResponseProperty) -> 
+    let apiId = Map.find resp.customApiName apiMap
+    name, EntitySetup.createCustomAPIResp resp (EntityReference("customapi", id = apiId)) prefix
+  )
+  |>> Array.iter (fun (name, record) -> log.Info "Creating %s: %s" record.LogicalName name)
+  |> Array.map (snd >> makeCreateReq >> attachToSolution solutionName >> toOrgReq)
+  |> CrmDataHelper.performAsBulkResultHandling proxy raiseExceptionIfFault ignore
+  |> ignore
+
+/// Creates custom apis and return guid map. 
+let createAPIs proxy solutionName prefix apiDiff targetAPIs asmId (types: Map<string,Guid>) =
+  let apiArray = 
+    apiDiff.adds 
+    |> Map.toArray
+
+  let orgApisMap = targetAPIs |> Map.map (fun _ (e: Entity) -> e.Id)
+
+  // Create custom api's and store guid maps
+
+  let newApis = 
+    apiArray
+    |> Array.map (fun (_, api: Message) -> 
+       match types.TryGetValue api.pluginTypeName with
+       | true, value -> api.name, EntitySetup.createCustomAPI (api) (EntityReference("plugintype", id = value)) (prefix)
+       | _           -> null, null
+       )
+
+  newApis
+  |> Array.filter( fun (name, record) -> name <> null)
+  |>> Array.iter (fun (name, record) -> log.Info "Creating %s: %s" record.LogicalName name)
+  |> Array.map (snd >> makeCreateReq >> attachToSolution solutionName >> toOrgReq)
+  |> CrmDataHelper.performAsBulkResultHandling proxy raiseExceptionIfFault 
+    (fun e -> 
+      let name = fst newApis.[e.RequestIndex]
+      let guid = (e.Response :?> CreateResponse).id
+      name, guid)
+  |> Array.fold (fun map (k, v) -> Map.add k v map) orgApisMap
+
+
 

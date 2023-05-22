@@ -48,7 +48,46 @@ let retrieveRegistered proxy solutionId assemblyId =
     )
     |> Map.ofSeq
 
-  typeMap, stepMap, imageMap
+  let customApis = 
+    Query.customAPIsBySolution solutionId 
+    |> CrmDataHelper.retrieveMultiple proxy
+    |> Seq.cache
+    |> Seq.filter (fun e -> e.GetAttributeValue<EntityReference>("plugintypeid").Id |> validTypeGuids.Contains)
+
+  let customApiMap =
+    customApis |> makeMap (fun (x:Entity) -> x.GetAttributeValue<string>("name"))
+    
+  let customApiGuidMap =
+    customApis |> makeMap (fun step -> step.Id)
+    
+  // Add Request Parameters based on custom id
+  // Make map where:
+  // Iterate through all customapis
+  // Request related request parameters 
+  // Gather al in mapp where: 
+  // Key = "ReqParam.Name"
+  // Value = ReqParam
+
+  let reqMap =
+    customApis   
+    |> Seq.toArray
+    |> Array.map(fun (x) -> Query.customAPIReqParamsByCustomApiId x.Id)
+    |> Array.map(fun (x) -> (
+       CrmDataHelper.retrieveMultiple proxy x))
+    |> Seq.fold Seq.append Seq.empty
+    |> makeMap (fun req -> req.GetAttributeValue<string>("name"))
+
+
+  let respMap =
+      customApis   
+      |> Seq.toArray
+      |> Array.map(fun (x) -> Query.customAPIRespParamsByCustomApiId x.Id)
+      |> Array.map(fun (x) -> (
+         CrmDataHelper.retrieveMultiple proxy x))
+      |> Seq.fold Seq.append Seq.empty
+      |> makeMap (fun resp -> resp.GetAttributeValue<string>("name"))
+
+  typeMap, stepMap, imageMap, customApiMap, reqMap, respMap
 
 
 /// Retrieve registered plugins from CRM under a given assembly
@@ -59,11 +98,12 @@ let retrieveRegisteredByAssembly proxy solutionId assemblyName =
     |> Seq.tryFind (fun a -> getRecordName a = assemblyName)
     ?|> AssemblyRegistration.fromEntity
 
-  match targetAssembly with
-  | None         -> Map.empty, Map.empty, Map.empty
-  | Some asmInfo -> retrieveRegistered proxy solutionId asmInfo.id
-  |> fun maps -> targetAssembly, maps
-
+  let maps = 
+    match targetAssembly with
+    | None         -> Map.empty, Map.empty, Map.empty, Map.empty, Map.empty, Map.empty
+    | Some asmInfo -> retrieveRegistered proxy solutionId asmInfo.id
+  
+  targetAssembly, maps
 
 /// Retrieves the necessary SdkMessage and SdkMessageFilter GUIDs for a collection of Steps
 let getRelevantMessagesAndFilters proxy (steps: Step seq) : Map<(EventOperation * LogicalName), (Guid * Guid)> =
