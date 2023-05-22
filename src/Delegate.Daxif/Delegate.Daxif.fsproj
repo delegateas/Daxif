@@ -155,14 +155,15 @@
     <PackageReference Include="Microsoft.CrmSdk.Workflow" Version="9.0.2.*">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CrmSdk.XrmTooling.CoreAssembly" Version="9.1.0.*">
+    <PackageReference Include="Microsoft.CrmSdk.XrmTooling.CoreAssembly" Version="9.1.1.*">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.IdentityModel" Version="7.0.*">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Update="FSharp.Core">
+    <PackageReference Update="FSharp.Core" Version="7.0.*">
       <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; compile; build; native; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Update="System.ValueTuple" Version="4.5.*">
       <PrivateAssets>all</PrivateAssets>
