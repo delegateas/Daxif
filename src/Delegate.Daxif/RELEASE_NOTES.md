@@ -1,4 +1,7 @@
 # Release Notes
+### 5.5.1 - May 23 2023
+* Fixed 'useUniqueInstance' parameter to GetCrmServiceClient() with default value: 'false'. - Developer now has to actively enable multiple instances of service client. This is due to potential authentication issues if too many simultaneous tasks are spawning connections (such as WebResourceSync functionality) (@bo-stig-christensen)
+
 ### 5.5.0 - May 22 2023
 * Added support for Custom APIs. You can use the CustomAPI.cs file from Delegate.Daxif.Scripts to activate the functionality. (@magesoe, @mlRosenquist)
 * Added 'useUniqueInstance' parameter to GetCrmServiceClient() with default value: 'true'. - This enables a single script to correctly connect to multiple environments, while still having the option to set the parameter to 'false' in order to optimize any existing scripts that may be adversely affected regarding performance by this change. (@bo-stig-christensen)
