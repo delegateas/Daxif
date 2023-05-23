@@ -106,15 +106,16 @@ type Connection = {
       | Some cs -> { method = ConnectionMethod.ConnectionString cs }
 
   /// Connects to the environment and returns IOrganizationService
-  member x.GetService(?timeOut: TimeSpan) =
+  member x.GetService(?timeOut: TimeSpan, ?useUniqueInstance: bool) =
     let timeOut = defaultArg timeOut defaultServiceTimeOut
+    let useUniqueInstance = defaultArg useUniqueInstance false
     match x.method with
     | ConnectionMethod.Proxy _ -> 
       x.GetProxy() :> IOrganizationService
     | ConnectionMethod.CrmServiceClientOAuth _
     | ConnectionMethod.CrmServiceClientClientSecret _
     | ConnectionMethod.ConnectionString _ -> 
-      x.GetCrmServiceClient(timeOut) :> IOrganizationService
+      x.GetCrmServiceClient(timeOut, useUniqueInstance) :> IOrganizationService
 
   /// Connects to the environment and returns an OrganizationServiceProxy
   member x.GetProxy(?timeOut: TimeSpan) = 
@@ -130,7 +131,7 @@ type Connection = {
   /// Connects to the environment and returns a CrmServiceClient
   member x.GetCrmServiceClient(?timeOut: TimeSpan, ?useUniqueInstance: bool) =
     let timeOut = defaultArg timeOut defaultServiceTimeOut
-    let useUniqueInstance = defaultArg useUniqueInstance true
+    let useUniqueInstance = defaultArg useUniqueInstance false
     match x.method with
     | ConnectionMethod.Proxy _ -> 
       failwith "Unable to get CrmServiceClient with Proxy method"
