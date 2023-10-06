@@ -108,7 +108,6 @@ type RequestParameter = {
   isOptional: bool
   logicalEntityName: string
   _type: int
-  customApiName: string
 }
 
 /// Information about a Custom API Response Property
@@ -120,7 +119,6 @@ type ResponseProperty = {
   isCustomizable: bool
   logicalEntityName: string
   _type: int
-  customApiName: string
 }
 
 // Information about a Custom API, its request parameters and response properties
