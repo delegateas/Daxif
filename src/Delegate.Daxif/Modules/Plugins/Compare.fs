@@ -70,16 +70,17 @@ let apiReq (reqParam: RequestParameter) (x: Entity) =
   let isCustomizable = x.GetAttributeValue<BooleanManagedProperty>("iscustomizable").Value
   let isOptional = x.GetAttributeValue<bool>("isoptional")
   let logicalEntityName = x.GetAttributeValue<string>("logicalentityname")
-  let _type = x.GetAttributeValue<OptionSetValue>("type").Value
+  let _type = x.GetAttributeValue<OptionSetValue>("type").Value  
+  let customApi = x.GetAttributeValue<EntityReference>("customapiid")
 
-  // TODO: Compare more 
   let target = 
     (name, 
     displayname,
     isCustomizable,
     isOptional,
     logicalEntityName,
-    _type
+    _type,
+    customApi.Name
   )
   let source = 
     (reqParam.name,
@@ -87,7 +88,8 @@ let apiReq (reqParam: RequestParameter) (x: Entity) =
     reqParam.isCustomizable,
     reqParam.isOptional,
     reqParam.logicalEntityName,
-    reqParam._type
+    reqParam._type,
+    reqParam.customApiName
      )
 
   target = source
@@ -99,21 +101,23 @@ let apiResp (reqParam: ResponseProperty) (x: Entity) =
   let isCustomizable = x.GetAttributeValue<BooleanManagedProperty>("iscustomizable").Value
   let logicalEntityName = x.GetAttributeValue<string>("logicalentityname")
   let _type = x.GetAttributeValue<OptionSetValue>("type").Value
+  let customApi = x.GetAttributeValue<EntityReference>("customapiid")
 
-  // TODO: Compare more 
   let target = 
     (name, 
     displayname,
     isCustomizable,
     logicalEntityName,
-    _type
+    _type,
+    customApi.Name
   )
   let source = 
     (reqParam.name,
     reqParam.displayName,
     reqParam.isCustomizable,
     reqParam.logicalEntityName,
-    reqParam._type
+    reqParam._type,
+    reqParam.customApiName
      )
 
   target = source
@@ -128,13 +132,6 @@ let image (img: Image) (x: Entity) =
   let sourceCompare = (img.entityAlias, img.imageType, img.attributes)
 
   targetCompare = sourceCompare
-
-/// Compares a Custom API Request Parameter from CRM with one in source code
-// TODO
-
-/// Compares a Custom API Response Property from CRM with one in source code
-// TODO
-
 
 /// Compares an assembly from CRM with the one containing the source code
 let assembly (local: AssemlyLocal) (registered: AssemblyRegistration option) =

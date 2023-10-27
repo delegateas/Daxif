@@ -4,7 +4,6 @@ open System
 open System.IO
 open System.Reflection
 open System.Xml.Linq
-open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 

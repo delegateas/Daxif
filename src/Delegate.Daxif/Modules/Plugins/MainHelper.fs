@@ -30,8 +30,8 @@ let localToMaps (plugins: Plugin seq) (customAPIs: CustomAPI seq) =
     |> Seq.fold (fun (typeMap, customApiMap, reqParamMap, respPropMap) c ->
       let newTypeMap = if Map.containsKey c.TypeKey typeMap then typeMap else Map.add c.TypeKey c typeMap
       let newcustomApiMap = Map.add c.Key c.message customApiMap
-      let newReqParamMap = c.RequestParametersWithKeys |> Seq.fold (fun acc x -> Map.add x.name x acc) reqParamMap
-      let newRespPropMap = c.ResponsePropertiesWithKeys |> Seq.fold (fun acc x -> Map.add x.name x acc) respPropMap
+      let newReqParamMap = c.RequestParametersWithKeys |> Seq.fold (fun acc x -> Map.add (x.customApiName + "-" + x.name) x acc) reqParamMap
+      let newRespPropMap = c.ResponsePropertiesWithKeys |> Seq.fold (fun acc x -> Map.add (x.customApiName + "-" + x.name) x acc) respPropMap
 
       newTypeMap, newcustomApiMap, newReqParamMap, newRespPropMap
     ) (Map.empty, Map.empty, Map.empty, Map.empty)
