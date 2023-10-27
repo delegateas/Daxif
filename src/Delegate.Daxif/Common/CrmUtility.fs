@@ -4,12 +4,9 @@ open System
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Query
 open Microsoft.Xrm.Sdk.Client
-open Microsoft.Crm.Sdk.Messages
-open Microsoft.Xrm.Sdk.Messages
 
 open System.IO
 open System.IO.Compression
-open System.Xml
 open System.Xml.Linq
 open System.Xml.XPath
 

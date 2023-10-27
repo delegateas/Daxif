@@ -73,7 +73,6 @@ let apiReq (reqParam: RequestParameter) (x: Entity) =
   let _type = x.GetAttributeValue<OptionSetValue>("type").Value  
   let customApi = x.GetAttributeValue<EntityReference>("customapiid")
 
-  // TODO: Compare more 
   let target = 
     (name, 
     displayname,
@@ -104,7 +103,6 @@ let apiResp (reqParam: ResponseProperty) (x: Entity) =
   let _type = x.GetAttributeValue<OptionSetValue>("type").Value
   let customApi = x.GetAttributeValue<EntityReference>("customapiid")
 
-  // TODO: Compare more 
   let target = 
     (name, 
     displayname,
@@ -134,13 +132,6 @@ let image (img: Image) (x: Entity) =
   let sourceCompare = (img.entityAlias, img.imageType, img.attributes)
 
   targetCompare = sourceCompare
-
-/// Compares a Custom API Request Parameter from CRM with one in source code
-// TODO
-
-/// Compares a Custom API Response Property from CRM with one in source code
-// TODO
-
 
 /// Compares an assembly from CRM with the one containing the source code
 let assembly (local: AssemlyLocal) (registered: AssemblyRegistration option) =

@@ -75,7 +75,7 @@ let retrieveRegistered proxy solutionId assemblyId =
     |> Array.map(fun (x) -> (
        CrmDataHelper.retrieveMultiple proxy x))
     |> Seq.fold Seq.append Seq.empty
-    |> makeMap (fun req -> req.GetAttributeValue<string>("name"))
+    |> makeMap (fun req -> req.GetAttributeValue<EntityReference>("customapiid").Name + "-" + req.GetAttributeValue<string>("name"))
 
 
   let respMap =
@@ -85,7 +85,7 @@ let retrieveRegistered proxy solutionId assemblyId =
       |> Array.map(fun (x) -> (
          CrmDataHelper.retrieveMultiple proxy x))
       |> Seq.fold Seq.append Seq.empty
-      |> makeMap (fun resp -> resp.GetAttributeValue<string>("name"))
+      |> makeMap (fun resp -> resp.GetAttributeValue<EntityReference>("customapiid").Name + "-" + resp.GetAttributeValue<string>("name"))
 
   typeMap, stepMap, imageMap, customApiMap, reqMap, respMap
 
