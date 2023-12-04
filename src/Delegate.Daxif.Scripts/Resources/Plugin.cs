@@ -124,9 +124,23 @@ namespace DG.XrmFramework.Plugins {
         /// Initializes a new instance of the <see cref="Plugin"/> class.
         /// </summary>
         /// <param name="childClassName">The <see cref="" cred="Type"/> of the derived class.</param>
-        internal Plugin(Type childClassName) {
-            this.ChildClassName = childClassName.ToString();
-        }
+        internal Plugin(Type childClassName) : this(childClassName, null, null) { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Plugin"/> class.
+        /// </summary>
+        /// <param name="childClassName"></param>
+        /// <param name="unsecure"></param>
+        internal Plugin(Type childClassName, string unsecure) : this(childClassName, unsecure, null) { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Plugin"/> class.
+        /// </summary>
+        /// <param name="childClassName"></param>
+        /// <param name="unsecure"></param>
+        /// <param name="secure"></param>
+        internal Plugin(Type childClassName, string unsecure, string secure) { }
+
 
 
         /// <summary>

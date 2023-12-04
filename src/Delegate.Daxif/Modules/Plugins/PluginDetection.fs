@@ -176,17 +176,30 @@ let getValidPlugins (types:Type[]) =
   let validTypes, invalidTypes = 
       types
       |> Array.filter (fun (x:Type) -> x.IsSubclassOf(pluginType.Value))
-      |> Array.partition (fun (x:Type) -> not x.IsAbstract && x.GetConstructor(Type.EmptyTypes) <> null)
+      |> Array.map (fun (x:Type) -> 
+        let constructorType = 
+          match x.GetConstructor(Type.EmptyTypes) <> null, x.GetConstructor([|typeof<string>|]) <> null, x.GetConstructor([|typeof<string>; typeof<string>|]) <> null with
+          | true,_,_ -> Some PluginConstructorType.Empty
+          | _,true,_ -> Some PluginConstructorType.Unsecure
+          | _,_,true -> Some PluginConstructorType.Secure
+          | false,false,false -> None
+
+        x,constructorType
+      )
+      |> Array.partition (fun (x:Type, constructor: PluginConstructorType option) -> 
+        not x.IsAbstract && constructor.IsSome
+      )
   
   invalidTypes
-  |> Array.iter (fun (x:Type) -> 
+  |> Array.iter (fun (x:Type, constructor: PluginConstructorType option) -> 
     if x.IsAbstract 
     then log.Warn "The plugin '%s' is an abstract type and is therefore not valid. The plugin will not be synchronized" (x.Name)
-    if x.GetConstructor(Type.EmptyTypes) = null 
-    then log.Warn "The plugin '%s' does not contain an empty contructor and is therefore not valid. The plugin will not be synchronized" (x.Name)
+    if constructor.IsNone
+    then log.Warn "The plugin '%s' does not contain a valid contructor and is therefore not valid. The plugin will not be synchronized" (x.Name)
   )
 
   validTypes
+  |> Array.map (fun (x: Type, constructor: PluginConstructorType option) -> x,constructor.Value)
 
 /// Calls "PluginProcessingStepConfigs" in the plugin assembly that returns a
 /// tuple containing the plugin information
@@ -197,8 +210,14 @@ let getPluginsFromAssembly (asm: Assembly) =
     |> fun validPlugins ->
 
       validPlugins
-      |> Array.Parallel.map (fun (x:Type) -> 
-        Activator.CreateInstance(x), x.GetMethod(@"PluginProcessingStepConfigs"))
+      |> Array.Parallel.map (fun (x:Type, constructorType: PluginConstructorType) ->
+        let instance = 
+          match constructorType with
+          | Empty -> Activator.CreateInstance(x)
+          | Unsecure -> Activator.CreateInstance(x, [|null|])
+          | Secure -> Activator.CreateInstance(x, [|null;null|])
+          
+        instance, x.GetMethod(@"PluginProcessingStepConfigs"))
       |> Array.Parallel.map (fun (x, (y:MethodInfo)) -> 
           y.Invoke(x, [||]) :?> 
             ((string * int * string * string) * 
@@ -229,7 +248,7 @@ let getValidCustomAPIs(types:Type[]) =
   |> Array.iter (fun (x:Type) -> 
     if x.IsAbstract 
     then log.Warn "The custom api '%s' is an abstract type and is therefore not valid. The custom api will not be synchronized" (x.Name)
-    if x.GetConstructor(Type.EmptyTypes) = null 
+    if x.GetConstructor(Type.EmptyTypes) = null
     then log.Warn "The custom api '%s' does not contain an empty contructor and is therefore not valid. The custom api will not be synchronized" (x.Name)
   )
 
