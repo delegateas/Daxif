@@ -158,3 +158,5 @@ type AssemblyRegistration = {
       id = e.Id
       hash = e.GetAttributeValue<string>("sourcehash")
     }
+
+type PluginConstructorType = Empty | Unsecure | Secure
