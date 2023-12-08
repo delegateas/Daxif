@@ -139,7 +139,9 @@ namespace DG.XrmFramework.Plugins {
         /// <param name="childClassName"></param>
         /// <param name="unsecure"></param>
         /// <param name="secure"></param>
-        internal Plugin(Type childClassName, string unsecure, string secure) { }
+        internal Plugin(Type childClassName, string unsecure, string secure) {
+            this.ChildClassName = childClassName.ToString();
+        }
 
 
 
