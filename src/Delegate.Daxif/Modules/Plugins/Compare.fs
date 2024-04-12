@@ -2,6 +2,7 @@
 
 open System
 open Microsoft.Xrm.Sdk
+open DG.Daxif
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 
@@ -135,9 +136,17 @@ let image (img: Image) (x: Entity) =
 /// Compares a Custom API Response Property from CRM with one in source code
 // TODO
 
-
 /// Compares an assembly from CRM with the one containing the source code
+/// Returns true if the assembly in CRM is newer or the hash matches the one in the source code
 let assembly (local: AssemlyLocal) (registered: AssemblyRegistration option) =
   registered
-  ?|> fun y -> y.hash = local.hash 
+  ?|> fun y -> 
+        let log = ConsoleLogger.Global
+
+        let localIsOlderOrEqual = y.version .>= local.version
+        let hashMatch = y.hash = local.hash
+        log.Verbose "Comparing assembly version. Registered >= local? %b" localIsOlderOrEqual
+        log.Verbose "Comparing assembly hash. Hash matches? %b" hashMatch
+        log.Verbose "Assembly should be updated? %b" ((localIsOlderOrEqual || hashMatch) |> not)
+        localIsOlderOrEqual || hashMatch
   ?| false

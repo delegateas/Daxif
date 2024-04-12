@@ -4,6 +4,7 @@ open System
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Messages
 
+open DG.Daxif
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 
@@ -61,21 +62,27 @@ let localToMaps (plugins: Plugin seq) (customAPIs: CustomAPI seq) =
 
   mergedTypeMap, stepMap, imageMap, customApiTypeMap, customApiMap, reqParamMap, respPropMap
 
+/// Determine which operation we want to perform on the assembly
+let determineOperation (asmReg: AssemblyRegistration option) (asmLocal) : AssemblyOperation * Guid =
+  match asmReg with
+  | Some asm when Compare.assembly asmLocal (Some asm) -> Unchanged, asm.id
+  | Some asm -> Update, asm.id
+  | None     -> Create, Guid.Empty
+
 /// Update or create assembly
 let ensureAssembly proxy solutionName asmLocal maybeAsm =
-  match Compare.assembly asmLocal maybeAsm with
-  | true  -> maybeAsm.Value.id
-  | false ->
-    let asmEntity = EntitySetup.createAssembly asmLocal.dllName asmLocal.dllPath asmLocal.assembly asmLocal.hash asmLocal.isolationMode
-    
-    match maybeAsm with
-    | Some asmReg ->
-      asmEntity.Id <- asmReg.id
+  match determineOperation maybeAsm asmLocal with
+  | Unchanged, id ->
+      log.Info "No changes to assembly %s detected" asmLocal.dllName
+      id
+  | Update, id ->
+      let asmEntity = EntitySetup.createAssembly asmLocal.dllName asmLocal.dllPath asmLocal.assembly asmLocal.hash asmLocal.isolationMode
+      asmEntity.Id <- id
       CrmDataHelper.getResponse<UpdateResponse> proxy (makeUpdateReq asmEntity) |> ignore
       log.Info "Updating %s: %s" asmEntity.LogicalName asmLocal.dllName
-      asmReg.id
-
-    | None        -> 
+      id
+  | Create, _ ->
+      let asmEntity = EntitySetup.createAssembly asmLocal.dllName asmLocal.dllPath asmLocal.assembly asmLocal.hash asmLocal.isolationMode
       log.Info "Creating %s: %s" asmEntity.LogicalName asmLocal.dllName
       CrmDataHelper.getResponseWithParams<CreateResponse> proxy (makeCreateReq asmEntity) [ "SolutionUniqueName", solutionName ]
       |> fun r -> r.id
@@ -148,9 +155,9 @@ let create proxy solutionName prefix imgDiff stepDiff apiDiff apiReqDiff apiResp
 
 /// Load a local assembly and validate its plugins
 let loadAndValidateAssembly proxy projectPath dllPath isolationMode ignoreOutdatedAssembly =
-  log.Verbose "Loading local assembly and it's plugins"
+  log.Verbose "Loading local assembly and its plugins"
   let asmLocal = PluginDetection.getAssemblyContextFromDll projectPath dllPath isolationMode ignoreOutdatedAssembly
-  log.Verbose "Local assembly loaded"
+  log.Verbose "Local assembly version %s loaded" (asmLocal.version |> versionToString)
 
   log.Verbose "Validating plugins to be registered"
   match Validation.validatePlugins proxy asmLocal.plugins with

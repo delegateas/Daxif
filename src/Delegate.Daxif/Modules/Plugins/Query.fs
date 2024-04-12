@@ -6,7 +6,7 @@ open Microsoft.Xrm.Sdk.Query
 /// Create a query to get a plugin assembly by its name
 let pluginAssemblyByName (name: string) = 
   let q = QueryExpression("pluginassembly")
-  q.ColumnSet <- ColumnSet("pluginassemblyid", "name", "sourcehash")
+  q.ColumnSet <- ColumnSet("pluginassemblyid", "name", "sourcehash", "version")
 
   let f = FilterExpression()
   f.AddCondition(ConditionExpression("name", ConditionOperator.Equal, name))
@@ -25,7 +25,7 @@ let pluginAssemblyByName (name: string) =
 /// Create a query to get plugin assemblies by solution
 let pluginAssembliesBySolution (solutionId: Guid) = 
   let q = QueryExpression("pluginassembly")
-  q.ColumnSet <- ColumnSet("pluginassemblyid", "name", "sourcehash", "isolationmode")
+  q.ColumnSet <- ColumnSet("pluginassemblyid", "name", "sourcehash", "isolationmode", "version")
 
   let le = LinkEntity()
   le.JoinOperator <- JoinOperator.Inner

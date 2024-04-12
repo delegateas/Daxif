@@ -4,7 +4,6 @@ open System
 open System.IO
 open System.Reflection
 open System.Xml.Linq
-open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 
@@ -279,12 +278,14 @@ let getAssemblyContextFromDll projectPath dllPath isolationMode ignoreOutdatedAs
       |> Set.fold (fun a x -> a + x |> sha1CheckSum) String.Empty
 
   let asm = Assembly.LoadFile(dllTempPath); 
+  let version = asm.GetName().Version |> fun y -> (y.Major, y.Minor, y.Build, y.Revision)
     
   { assembly = asm
     assemblyId = None
     dllName = dllName
     dllPath = dllFullPath
     hash = hash
+    version = version
     isolationMode = isolationMode
     plugins = getPluginsFromAssembly asm
     customAPIs = getCustomAPIsFromAssembly asm
