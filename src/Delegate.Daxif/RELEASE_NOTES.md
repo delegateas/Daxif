@@ -1,5 +1,5 @@
 # Release Notes
-### 5.6.0 - April 04 2024
+### 5.6.0 - April 15 2024
 * Update assembly comparison when determining if we want to update the assembly. Compare the version of the local assembly to the version currently registered, if the local version is higher (by semver rules) than the registered version, update the assembly even if the hash matches. (@mkholt)
 * Changed the hashing functionality to no longer load in the project files and dependencies, but instead taking a SHA1 sum of the assembly file. This removes the dependency on the project files, and makes the hashing more reliable. (@mkholt)
 
