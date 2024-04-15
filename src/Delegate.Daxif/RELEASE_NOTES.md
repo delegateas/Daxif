@@ -1,6 +1,7 @@
 # Release Notes
 ### 5.6.0 - April 04 2024
-* Update assembly comparison when determining if we want to update the assembly. Now also compares the version, and if the local version is larger we always sync the assembly file.
+* Update assembly comparison when determining if we want to update the assembly. Compare the version of the local assembly to the version currently registered, if the local version is higher (by semver rules) than the registered version, update the assembly even if the hash matches. (@mkholt)
+* Changed the hashing functionality to no longer load in the project files and dependencies, but instead taking a SHA1 sum of the assembly file. This removes the dependency on the project files, and makes the hashing more reliable. (@mkholt)
 
 ### 5.5.1 - May 23 2023
 * Fixed 'useUniqueInstance' parameter to GetCrmServiceClient() with default value: 'false'. - Developer now has to actively enable multiple instances of service client. This is due to potential authentication issues if too many simultaneous tasks are spawning connections (such as WebResourceSync functionality) (@bo-stig-christensen)
