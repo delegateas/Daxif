@@ -154,9 +154,9 @@ let create proxy solutionName prefix imgDiff stepDiff apiDiff apiReqDiff apiResp
   
 
 /// Load a local assembly and validate its plugins
-let loadAndValidateAssembly proxy projectPath dllPath isolationMode ignoreOutdatedAssembly =
+let loadAndValidateAssembly proxy dllPath isolationMode =
   log.Verbose "Loading local assembly and its plugins"
-  let asmLocal = PluginDetection.getAssemblyContextFromDll projectPath dllPath isolationMode ignoreOutdatedAssembly
+  let asmLocal = PluginDetection.getAssemblyContextFromDll dllPath isolationMode
   log.Verbose "Local assembly version %s loaded" (asmLocal.version |> versionToString)
 
   log.Verbose "Validating plugins to be registered"
@@ -169,12 +169,12 @@ let loadAndValidateAssembly proxy projectPath dllPath isolationMode ignoreOutdat
 
 
 /// Analyzes local and remote registrations and returns the information about each of them
-let analyze proxyGen projectPath dllPath solutionName isolationMode ignoreOutdatedAssembly =
+let analyze proxyGen dllPath solutionName isolationMode =
   let proxy = proxyGen()
 
-  let asmLocal = loadAndValidateAssembly proxy projectPath dllPath isolationMode ignoreOutdatedAssembly
+  let asmLocal = loadAndValidateAssembly proxy dllPath isolationMode
   let solutionId = CrmDataInternal.Entities.retrieveSolutionId proxy solutionName
-  let id, prefix = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy solutionName
+  let _id, prefix = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy solutionName
   let asmReg, pluginsReg = Retrieval.retrieveRegisteredByAssembly proxy solutionId asmLocal.dllName
   let pluginsLocal = localToMaps asmLocal.plugins asmLocal.customAPIs
     

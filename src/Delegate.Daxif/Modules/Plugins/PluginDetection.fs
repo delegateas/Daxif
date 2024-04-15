@@ -3,57 +3,10 @@
 open System
 open System.IO
 open System.Reflection
-open System.Xml.Linq
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 
 open Domain
-
-    
-/// Used to retrieve a .vsproj dependencies (recursive)
-let projDependencies (vsproj:string) = 
-  let getElemName name =
-    XName.Get(name, "http://schemas.microsoft.com/developer/msbuild/2003")
-      
-  let getElemValue name (parent : XElement) = 
-    let elem = parent.Element(getElemName name)
-    if elem = null || String.IsNullOrEmpty elem.Value then None
-    else Some(elem.Value)
-      
-  let getAttrValue name (elem : XElement) = 
-    let attr = elem.Attribute(XName.Get name)
-    if attr = null || String.IsNullOrEmpty attr.Value then None
-    else Some(attr.Value)
-
-  let fullpath path1 path2 = Path.GetFullPath(Path.Combine(path1, path2))
-
-  let rec projDependencies' vsproj' = seq {
-    let vsProjXml = XDocument.Load(uri = vsproj')
-
-    let path = Path.GetDirectoryName(vsproj')
-
-    let projRefs = 
-      vsProjXml.Document.Descendants(getElemName "ProjectReference")
-      |> Seq.choose (fun elem -> getAttrValue "Include" elem)
-      |> Seq.map(fun elem -> fullpath path elem)
-
-    let refs = 
-      vsProjXml.Document.Descendants(getElemName "Reference")
-      |> Seq.choose (fun elem -> getElemValue "HintPath" elem ?|? getAttrValue "Include" elem)
-      |> Seq.filter (fun ref -> ref.EndsWith(".dll"))
-      |> Seq.map(fun elem -> fullpath path elem)
-      
-    let files = 
-      vsProjXml.Document.Descendants(getElemName "Compile")
-      |> Seq.choose (fun elem -> getAttrValue "Include" elem)
-      |> Seq.map(fun elem -> fullpath path elem)
-      
-    for projRef in projRefs do
-      yield! projDependencies' projRef
-    yield! refs
-    yield! files }
-
-  projDependencies' (Path.GetFullPath(vsproj))
 
 /// Transforms the received tuple from the assembly file through invocation into
 /// plugin, step and image records
@@ -259,27 +212,16 @@ let getCustomAPIsFromAssembly (asm: Assembly) =
       (getFullException(ex))
 
 /// Analyzes an assembly based on a path to its compiled assembly and its project file
-let getAssemblyContextFromDll projectPath dllPath isolationMode ignoreOutdatedAssembly =
+let getAssemblyContextFromDll dllPath isolationMode =
   let dllFullPath = Path.GetFullPath(dllPath)
   let dllTempPath = Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString() + @".dll")
   let dllName     = Path.GetFileNameWithoutExtension(dllFullPath); 
 
   File.Copy(dllFullPath, dllTempPath, true)
-
-  let asmWriteTime = File.GetLastWriteTimeUtc dllFullPath
-  let hash =
-      projDependencies projectPath 
-      |> Set.ofSeq
-      |> Set.map(fun x -> 
-        match not(ignoreOutdatedAssembly) && File.GetLastWriteTimeUtc x > asmWriteTime with
-        | true  -> failwithf "A file in the project was updated later than compiled assembly: %s\nPlease recompile and synchronize again, or use the \"ignoreOutdatedAssembly\" option." x
-        | false -> File.ReadAllBytes(x) |> sha1CheckSum'
-      )
-      |> Set.fold (fun a x -> a + x |> sha1CheckSum) String.Empty
-
+  let hash = File.ReadAllBytes dllPath |> sha1CheckSum'
   let asm = Assembly.LoadFile(dllTempPath); 
   let version = asm.GetName().Version |> fun y -> (y.Major, y.Minor, y.Build, y.Revision)
-    
+  
   { assembly = asm
     assemblyId = None
     dllName = dllName

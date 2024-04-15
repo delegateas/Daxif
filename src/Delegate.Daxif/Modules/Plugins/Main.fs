@@ -2,7 +2,6 @@
 
 open DG.Daxif
 open DG.Daxif.Modules.Plugin
-open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 
@@ -10,12 +9,12 @@ open Domain
 
 
 /// Main plugin synchronization function
-let syncSolution proxyGen projectPath dllPath solutionName isolationMode ignoreOutdatedAssembly dryRun =
+let syncSolution proxyGen dllPath solutionName isolationMode dryRun =
   logVersion log
   log.Info "Action: Plugin synchronization"
 
   log.Info "Comparing plugins registered in CRM versus those found in your local code"
-  let asmLocal, asmReg, pluginsLocal, pluginsReg, prefix = MainHelper.analyze proxyGen projectPath dllPath solutionName isolationMode ignoreOutdatedAssembly
+  let asmLocal, asmReg, pluginsLocal, pluginsReg, prefix = MainHelper.analyze proxyGen dllPath solutionName isolationMode
 
   match dryRun with
   | false -> 
