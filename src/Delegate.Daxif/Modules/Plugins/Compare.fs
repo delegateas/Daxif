@@ -138,19 +138,20 @@ let image (img: Image) (x: Entity) =
 
 /// Compares an assembly from CRM with the one containing the source code
 /// Returns true if the assembly in CRM is newer and the hash matches the one in the source code
-let assembly (local: AssemlyLocal) (registered: AssemblyRegistration option) =
+let registeredIsSameAsLocal (local: AssemlyLocal) (registered: AssemblyRegistration option) =
   registered
   ?|> fun y -> 
         let log = ConsoleLogger.Global
 
         let environmentIsNewer = y.version .>= local.version
-        log.Verbose "Comparing assembly version. Registered >= local? %b" environmentIsNewer
+        log.Verbose "Registered version %s is %s than local version %s"
+            (y.version |> versionToString) (if environmentIsNewer then "newer" else "older") (local.version |> versionToString)
         
         let hashMatch = y.hash = local.hash
-        log.Verbose "Comparing assembly hash. Hash matches? %b" hashMatch
+        log.Verbose "Registered assembly hash %s local assembly hash" (if hashMatch then "matches" else "does not match")
 
         let isSameAssembly = environmentIsNewer && hashMatch
-        log.Verbose "Assembly is unchanged? %b" isSameAssembly
+        log.Verbose "Assembly will%s be updated" (if isSameAssembly then " not" else "")
         
         isSameAssembly
   ?| false

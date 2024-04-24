@@ -65,7 +65,7 @@ let localToMaps (plugins: Plugin seq) (customAPIs: CustomAPI seq) =
 /// Determine which operation we want to perform on the assembly
 let determineOperation (asmReg: AssemblyRegistration option) (asmLocal) : AssemblyOperation * Guid =
   match asmReg with
-  | Some asm when Compare.assembly asmLocal (Some asm) -> Unchanged, asm.id
+  | Some asm when Compare.registeredIsSameAsLocal asmLocal (Some asm) -> Unchanged, asm.id
   | Some asm -> Update, asm.id
   | None     -> Create, Guid.Empty
 
