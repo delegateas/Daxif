@@ -53,6 +53,11 @@ type AsyncJobState =
   | Failed              = 31
   | Canceled            = 32
 
+type AssemblyOperation =
+    | Unchanged
+    | Create
+    | Update
+
 type Version = int * int * int * int
 type VersionCriteria = Version option * Version option
 

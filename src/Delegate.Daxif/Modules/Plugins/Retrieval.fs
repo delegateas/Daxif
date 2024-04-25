@@ -4,6 +4,7 @@ open System
 open Microsoft.Xrm.Sdk
 open Microsoft.Xrm.Sdk.Messages
 
+open DG.Daxif
 open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 
@@ -97,6 +98,10 @@ let retrieveRegisteredByAssembly proxy solutionId assemblyName =
     |> CrmDataHelper.retrieveMultiple proxy
     |> Seq.tryFind (fun a -> getRecordName a = assemblyName)
     ?|> AssemblyRegistration.fromEntity
+
+  match targetAssembly with
+  | Some asm -> ConsoleLogger.Global.Verbose "Registered assembly version %s found for %s" (asm.version |> versionToString) assemblyName
+  | None -> ConsoleLogger.Global.Verbose "No registered assembly found matching %s" assemblyName
 
   let maps = 
     match targetAssembly with

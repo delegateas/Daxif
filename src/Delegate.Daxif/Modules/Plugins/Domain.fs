@@ -4,6 +4,7 @@ open System
 open System.Reflection
 open Microsoft.Xrm.Sdk
 open DG.Daxif
+open DG.Daxif.Common
 
 (** Enum for plugin configurations **)
 type ExecutionMode = 
@@ -144,6 +145,7 @@ type AssemlyLocal =
     dllName: String
     dllPath: String
     hash: String
+    version: Version
     isolationMode: AssemblyIsolationMode
     plugins: Plugin seq
     customAPIs: CustomAPI seq
@@ -152,9 +154,11 @@ type AssemlyLocal =
 type AssemblyRegistration = {
   id: Guid
   hash: String
+  version: Version
 } with
   static member fromEntity (e:Entity) = 
     {
       id = e.Id
       hash = e.GetAttributeValue<string>("sourcehash")
+      version = e.GetAttributeValue<string>("version") |> Utility.parseVersion
     }

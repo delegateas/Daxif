@@ -225,6 +225,9 @@ let parseVersion (str:string): Version =
   let getIdx idx = Array.tryItem idx vArr ?>> parseInt ?| 0
   (getIdx 0, getIdx 1, getIdx 2, getIdx 3)
 
+let versionToString (version:Version): string =
+  let (a,b,c,d) = version
+  sprintf "%d.%d.%d.%d" a b c d
   
 let getIntGroup def (m:Match) (idx:int) = parseInt m.Groups.[idx].Value ?| def
 let getMinVersion = getIntGroup 0
