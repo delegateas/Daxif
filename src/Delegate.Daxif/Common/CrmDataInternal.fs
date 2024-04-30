@@ -565,7 +565,7 @@ module CrmDataInternal =
     
     let retrieveCustomAPIsBySolution proxy (solutionId: Guid) = 
       let q = QueryExpression("customapi")
-      q.ColumnSet <- ColumnSet(true)
+      q.ColumnSet <- ColumnSet("customapiid", "uniquename")
         
       let le = LinkEntity()
       le.JoinOperator <- JoinOperator.Inner
@@ -604,7 +604,7 @@ module CrmDataInternal =
       le.LinkCriteria.Conditions.Add
         (ConditionExpression(an, ConditionOperator.Equal, solutionId))
       let q = QueryExpression(ln)
-      q.ColumnSet <- ColumnSet(true)
+      q.ColumnSet <- ColumnSet("sdkmessageprocessingstepid", "name", "stage", "statecode", "statuscode")
       q.LinkEntities.Add(le)
       CrmDataHelper.retrieveMultiple proxy q
     
@@ -636,7 +636,7 @@ module CrmDataInternal =
       // Only definition workflows
       f.AddCondition(ConditionExpression(t, ConditionOperator.Equal, 1))
       let q = QueryExpression(ln)
-      q.ColumnSet <- ColumnSet(true)
+      q.ColumnSet <- ColumnSet("workflowid", "name", "ownerid", "statecode", "statuscode") // Determined primarily by Solution\Extend.fs usage
       q.LinkEntities.Add(le)
       q.Criteria <- f
       CrmDataHelper.retrieveMultiple proxy q

@@ -103,7 +103,7 @@ let instantiateAssembly (solutionId : Guid) (solutionName : string) dllName dllP
   log.Verbose "Retrieving assemblies from CRM"
 
   let ln = @"pluginassembly"
-  let attrToReturn = Query.ColumnSet (true)
+  let attrToReturn = Query.ColumnSet ("pluginassemblyid", "name", "publickeytoken", "culture") // Based on usage in updateAssembly function
   let version = asm.GetName().Version.ToString()
 
   let pluginAssemblies = 
