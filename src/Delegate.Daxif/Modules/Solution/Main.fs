@@ -113,7 +113,7 @@ let export (env: Environment) solution location managed async (timeOut: TimeSpan
   | false -> Export.exportSync service solution location managed
   | true -> Export.exportAsync service solution location managed
   
-let import publishAfterImport (env: Environment) location (timeOut: TimeSpan) = 
+let import publishAfterImport (env: Environment) location upgrade (timeOut: TimeSpan) = 
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
   logVersion log
   log.Info @"Import solution: %s" solution
@@ -124,7 +124,7 @@ let import publishAfterImport (env: Environment) location (timeOut: TimeSpan) =
   log.Verbose @"Publish after Import: %O" publishAfterImport
   env.logAuthentication log
   let service = env.connect().GetService(timeOut)
-  Import.execute service solution location managed |> ignore
+  Import.execute service solution location managed upgrade |> ignore
   if publishAfterImport then
     Import.publish service managed
 
@@ -172,7 +172,7 @@ let exportWithExtendedSolution (env: Environment) solution location managed asyn
   env.logAuthentication log
   SolutionHelper.exportWithExtendedSolution env solution location managed async timeOut
 
-let importWithExtendedSolution reassignWorkflows (env: Environment) location (timeOut: TimeSpan) = 
+let importWithExtendedSolution reassignWorkflows (env: Environment) location (upgrade:bool) (timeOut: TimeSpan) = 
   let solution, managed = CrmUtility.getSolutionInformationFromFile location
   logVersion log
   log.Info @"Import extended solution: %s" solution
@@ -183,14 +183,15 @@ let importWithExtendedSolution reassignWorkflows (env: Environment) location (ti
   env.logAuthentication log
   SolutionHelper.importWithExtendedSolution reassignWorkflows env solution location managed timeOut |> ignore
 
-let importStandard (env: Environment) (activatePluginSteps: bool option) extended publishAfterImport reassignWorkflows pathToSolutionZip logLevel (timeOut: TimeSpan) =
+let importStandard (env: Environment) (activatePluginSteps: bool option) extended publishAfterImport reassignWorkflows pathToSolutionZip logLevel upgrade (timeOut: TimeSpan) =
   let logLevel = logLevel ?| LogLevel.Verbose
   let extended = extended ?| false
+  let upgrade = upgrade ?| false
 
   match extended with
   | true  -> importWithExtendedSolution reassignWorkflows
   | false -> import publishAfterImport
-  |> fun f -> f env pathToSolutionZip timeOut
+  |> fun f -> f env pathToSolutionZip upgrade timeOut
       
   match activatePluginSteps with
   | Some true -> 

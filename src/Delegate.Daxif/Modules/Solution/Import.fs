@@ -28,17 +28,34 @@ let createImportRequest zipFile jobId managed =
   req.RequestId <- new Nullable<Guid>(Guid.NewGuid())
   req
 
+let createStageAndUpgradeAsyncRequest zipFile jobId managed =
+  let req = new StageAndUpgradeAsyncRequest()
+  req.CustomizationFile <- zipFile
+  req.ImportJobId <- jobId
+  req.ConvertToManaged <- managed
+  req.OverwriteUnmanagedCustomizations <- true
+  req.PublishWorkflows <- true
+  req.RequestId <- new Nullable<Guid>(Guid.NewGuid())
+  req
+
 let executeImportSync (service: IOrganizationService) (req:ImportSolutionRequest) =
-  log.Debug @"Execution import request (RequestId: %A)" req.RequestId.Value
+  log.Debug @"Executing import request (RequestId: %A)" req.RequestId.Value
   service.Execute(req) :?> Messages.ImportSolutionResponse |> ignore
-    
+
 let executeImportAsync (service: IOrganizationService) (req:ImportSolutionRequest) = 
   let areq = new Messages.ExecuteAsyncRequest()
   areq.Request <- req
   let asyncJobId = 
-    service.Execute(areq) :?> Messages.ExecuteAsyncResponse 
+    service.Execute(areq) :?> Messages.ExecuteAsyncResponse
     |> fun r -> r.AsyncJobId
-  log.Debug @"Execution import request asyncrunously (AsyncJobId: %A, RequestId: %A)" asyncJobId req.RequestId.Value
+  log.Debug @"Executing import request asynchronously (AsyncJobId: %A, RequestId: %A)" asyncJobId req.RequestId.Value
+  asyncJobId
+
+let executeUpgradeAsync (service: IOrganizationService) (req:StageAndUpgradeAsyncRequest) =
+  let asyncJobId =
+    service.Execute(req) :?> Messages.StageAndUpgradeAsyncResponse
+    |> fun r -> r.AsyncOperationId
+  log.Debug @"Executing stageAndUpgrade request asynchronously (AsyncJobId: %A, RequestId: %A)" asyncJobId req.RequestId.Value
   asyncJobId
 
 let getImportJobStatus service (jobInfo: ImportJobInfo) =
@@ -172,25 +189,31 @@ let publish service managed =
     CrmDataHelper.publishAll service
     log.WriteLine(LogLevel.Verbose, @"The solution was successfully published")
 
-let execute service solution location managed = 
+let execute service solution location managed upgrade = 
   log.WriteLine(LogLevel.Info, @"Importing solution")
   let zipFile = File.ReadAllBytes(location)
   log.WriteLine(LogLevel.Verbose, @"Solution file loaded successfully")
 
   let jobId = Guid.NewGuid()
-  let req = createImportRequest zipFile jobId managed
+  let req =
+    match upgrade with
+    | false -> createImportRequest zipFile jobId managed :> OrganizationRequest
+    | true  -> createStageAndUpgradeAsyncRequest zipFile jobId managed :> OrganizationRequest
     
   let startImport () = 
     async { 
       let asyncJobId = 
         match CrmDataInternal.Info.version service with
         | (_, CrmReleases.CRM2011) -> 
-          executeImportSync service req
-          log.WriteLine(LogLevel.Verbose,@"Import job Started")
+          executeImportSync service (req :?> ImportSolutionRequest)
+          log.WriteLine(LogLevel.Verbose, @"Import job started")
           None
         | (_, _) -> 
-          let asyncJobId = executeImportAsync service req
-          log.WriteLine(LogLevel.Verbose,@"Asynchronous import job started")
+          let asyncJobId = 
+            match upgrade with
+            | true  -> executeUpgradeAsync service (req :?> StageAndUpgradeAsyncRequest)
+            | false -> executeImportAsync service (req :?> ImportSolutionRequest)
+          log.WriteLine(LogLevel.Verbose, @"Asynchronous import job started")
           Some (asyncJobId)
 
       log.WriteLine(LogLevel.Verbose, @"Import solution: " + solution + @" (0%)")

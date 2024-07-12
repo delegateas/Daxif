@@ -42,15 +42,16 @@ type Solution private () =
   /// <param name="diffCallingInfo">[Experimental] When specified, a diff import will be performed. Assumes exportdiff has been used prior.</param>
   /// <param name="publishAfterImport">Flag whether or not to publish all customizations after solution import. - defaults to: true</param>
   /// <param name="reassignWorkflows">Flag whether to reassign workflows based on environment from which the solution was exported. - defaults to: false</param>
+  /// <param name="upgrade">Flag to import the solution as an upgrade rather than an update. - defaults to: false (update)</param>
   /// <param name="timeOut">DataVerse Service Client timeout represented as a TimeSpan. - defaults to: 1 hour</param>
-  static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel, ?diffCallingInfo, ?publishAfterImport, ?reassignWorkflows, ?timeOut: System.TimeSpan) =    
+  static member Import(env: Environment, pathToSolutionZip, ?activatePluginSteps, ?extended, ?logLevel, ?diffCallingInfo, ?publishAfterImport, ?reassignWorkflows, ?upgrade, ?timeOut: System.TimeSpan) =    
     let publishAfterImport = publishAfterImport ?| true
     let reassignWorkflows = reassignWorkflows ?| false
     let timeOut = timeOut ?| defaultServiceTimeOut
 
     match diffCallingInfo with
     | Some dci -> Main.importDiff pathToSolutionZip dci.SolutionName Domain.partialSolutionName env timeOut
-    | _ -> Main.importStandard env activatePluginSteps extended publishAfterImport reassignWorkflows pathToSolutionZip logLevel timeOut
+    | _ -> Main.importStandard env activatePluginSteps extended publishAfterImport reassignWorkflows pathToSolutionZip logLevel upgrade timeOut
 
   /// <summary>Exports a solution package from a given environment</summary>
   /// <param name="env">Environment the action should be performed against.</param>
