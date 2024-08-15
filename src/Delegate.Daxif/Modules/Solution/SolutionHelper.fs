@@ -224,7 +224,7 @@ let exportWithExtendedSolution (env: Environment) solution location managed asyn
 let importWithExtendedSolution reassignWorkflows (env: Environment) solution location managed (timeOut: TimeSpan) = 
   let service = env.connect().GetService(timeOut)
   Extend.preImport service solution location
-  Import.execute service solution location managed
+  Import.execute service solution location managed false
   |> fun jobInfo -> jobInfo.result
   |> function
     | Some (AsyncJobHelper.JobResult.Success) ->
