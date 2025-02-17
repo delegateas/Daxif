@@ -224,7 +224,7 @@ let export service solution solutionPath =
     )
 
   let workflowsIdsAndOwners = workflows |> getWorkflowData service
-  let webResIds = getWebresources service solutionId |> getEntityIds
+  let webResIds = getWebresources service solutionId None |> getEntityIds
 
   let delegateSolution = 
     { states=states
@@ -356,7 +356,7 @@ let postImport service solutionName zipPath reassignWorkflows =
   log.Verbose "Synching Web Resource and Workflows"
   
   // Sync Webresources and workflows
-  let targetWebRes = getWebresources service solutionId |> getEntityIds
+  let targetWebRes = getWebresources service solutionId None |> getEntityIds
   let targetWorkflows = getWorkflows service solutionId |> getEntityIds
   let sourceWorkflows = extSol.keepWorkflows |> Seq.map (fun (id,name,_) -> id,name)
   

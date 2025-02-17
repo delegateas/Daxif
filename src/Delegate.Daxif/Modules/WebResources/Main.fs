@@ -7,7 +7,7 @@ open DG.Daxif.Common
 open DG.Daxif.Common.Utility
 open DG.Daxif.Common.InternalUtility
 
-let syncSolution proxyGen solution webresourceRoot patchSolutionName publishAfterSync = 
+let syncSolution proxyGen solution webresourceRoot patchSolutionName publishAfterSync extensions = 
   let publishAfterSync = publishAfterSync ?| true
   logVersion log
   let patchInfo = match patchSolutionName with
@@ -16,5 +16,5 @@ let syncSolution proxyGen solution webresourceRoot patchSolutionName publishAfte
   log.Info @"Sync solution webresources: %s%s" solution patchInfo
   log.Verbose @"Solution: %s" solution
   log.Verbose @"Path to webresources: %s" webresourceRoot
-  WebResourcesHelper.syncSolution proxyGen webresourceRoot solution patchSolutionName publishAfterSync
+  WebResourcesHelper.syncSolution proxyGen webresourceRoot solution patchSolutionName publishAfterSync extensions
   log.Info "The solution webresources were synced successfully"
