@@ -18,10 +18,13 @@ type WebResourceAction =
 let getMatchingEntitiesByName namesToKeep =
   Seq.filter (fun (x: Entity) -> namesToKeep |> Set.contains (x.GetAttributeValue<string>("name")))
   
+let getWebresourceTypeFromExtensions (ext: string) =
+  Enum.Parse(typeof<WebResourceType>, ext.ToUpper()) :?> WebResourceType
+
 // Convert a local web resource file to an entity object.
 let localResourceToWebResource path name = 
   let ext = Path.GetExtension(path).ToUpper().Replace(@".", String.Empty)
-  let webResourceType = Enum.Parse(typeof<WebResourceType>, ext.ToUpper()) :?> WebResourceType
+  let webResourceType = getWebresourceTypeFromExtensions ext
   
   let wr = Entity("webresource")
   wr.Attributes.Add("content", fileToBase64 path)
@@ -81,11 +84,12 @@ let getLocalWRs location prefix extensions crmRelease =
  
 let getSyncActions proxy webresourceFolder solutionName patchSolutionName extensions =
   let (solutionId, prefix) = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy solutionName
-  let wrBase = CrmDataInternal.Entities.retrieveWebResources proxy solutionId |> Seq.toList
+  let extensionAsWebresourceTyoe = extensions |> Array.map getWebresourceTypeFromExtensions
+  let wrBase = CrmDataInternal.Entities.retrieveWebResources proxy solutionId (Some extensionAsWebresourceTyoe) |> Seq.toList
   
   let wrPatch = match patchSolutionName with
                 | Some s -> let (sIdPatch, _) = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy s
-                            CrmDataInternal.Entities.retrieveWebResources proxy sIdPatch |> Seq.toList
+                            CrmDataInternal.Entities.retrieveWebResources proxy sIdPatch (Some extensionAsWebresourceTyoe) |> Seq.toList
                 | None   -> List.empty
 
   let wrBaseOnly = wrBase |> Seq.filter (fun a -> not (wrPatch |> Seq.exists (fun b -> b.Id = a.Id)))

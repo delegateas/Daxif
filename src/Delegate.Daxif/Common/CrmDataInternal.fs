@@ -499,7 +499,7 @@ module CrmDataInternal =
       q.Criteria <- f 
       CrmDataHelper.retrieveFirstMatch proxy q
     
-    let retrieveWebResources proxy solutionId = 
+    let retrieveWebResources proxy solutionId (extensions: WebResourceType array option)= 
       let (solutionId : Guid) = solutionId
       let ln = @"webresource"
       let an = @"solutionid"
@@ -515,6 +515,10 @@ module CrmDataInternal =
       let f = FilterExpression()
       f.AddCondition
         (ConditionExpression(nm, ConditionOperator.Equal, false))
+      if extensions.IsSome then
+        let validExtensions = extensions.Value |> Array.map (fun x -> (int)x)
+        f.AddCondition
+          (ConditionExpression("webresourcetype", ConditionOperator.In, validExtensions))
       let q = QueryExpression(ln)
       q.ColumnSet <- ColumnSet(true)
       q.Criteria <- f
