@@ -37,10 +37,10 @@ let localResourceToWebResource path name =
   
 /// Get all local webresources by enumerating all folders at given location,
 /// while looking for supported file types.
-let getLocalResourcesHelper location crmRelease = 
+let getLocalResourcesHelper location (extensions: string array) crmRelease = 
   seq { 
     let exts = 
-      Enum.GetNames(typeof<DG.Daxif.WebResourceType>)
+      extensions
       |> Array.map (fun x -> @"." + x.ToLower())
       |> Array.toList
       |> List.filter (fun x -> (x <> ".svg" && x <> ".resx" ) || crmRelease >= CrmReleases.D365)
@@ -70,8 +70,8 @@ let getPrefixAndUniqueName location =
       @"Incorrect root folder (must only contain 1 folder ex: 'publishPrefix_uniqueSolutionName'"
   
 /// Filter out any files which are labeled with "_nosync"
-let getLocalWRs location prefix crmRelease = 
-  getLocalResourcesHelper location crmRelease
+let getLocalWRs location prefix extensions crmRelease = 
+  getLocalResourcesHelper location extensions crmRelease
   |> Seq.filter (fun name -> not <| name.EndsWith("_nosync"))
   |> Seq.map (fun path -> 
     let name = path.Substring(path.IndexOf(location) + location.Length).Replace(@"\", "/").Trim('/')
@@ -79,7 +79,7 @@ let getLocalWRs location prefix crmRelease =
   )
   |> Map.ofSeq
  
-let getSyncActions proxy webresourceFolder solutionName patchSolutionName =
+let getSyncActions proxy webresourceFolder solutionName patchSolutionName extensions =
   let (solutionId, prefix) = CrmDataInternal.Entities.retrieveSolutionIdAndPrefix proxy solutionName
   let wrBase = CrmDataInternal.Entities.retrieveWebResources proxy solutionId |> Seq.toList
   
@@ -96,7 +96,7 @@ let getSyncActions proxy webresourceFolder solutionName patchSolutionName =
   let localWrPathMap = 
     CrmDataInternal.Info.version proxy
     |> snd
-    |> getLocalWRs webresourceFolder wrPrefix
+    |> getLocalWRs webresourceFolder wrPrefix extensions
   let localWrs = localWrPathMap |> Seq.map (fun kv -> kv.Key) |> Set.ofSeq
 
   let crmWRs = 
@@ -152,10 +152,10 @@ let getSyncActions proxy webresourceFolder solutionName patchSolutionName =
     yield! update
   }
 
-let syncSolution proxyGen location solutionName patchSolutionName publishAfterSync = 
+let syncSolution proxyGen location solutionName patchSolutionName publishAfterSync extensions = 
   let p = proxyGen()
   
-  let syncActions = getSyncActions p location solutionName patchSolutionName
+  let syncActions = getSyncActions p location solutionName patchSolutionName extensions
   let patchSolutionNameIfExists = patchSolutionName |> Option.defaultValue solutionName
   let patchVerboseString = match patchSolutionName with
                             | Some _ -> " and added to patch solution"
